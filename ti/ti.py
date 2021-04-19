@@ -104,7 +104,8 @@ def action_interrupt(name, time):
 
 def action_note(content):
     ensure_working()
-
+    now = to_human()
+    content += f' ({now})'
     data = store.load()
     current = data['work'][-1]
 
@@ -115,7 +116,7 @@ def action_note(content):
 
     store.dump(data)
 
-    print('Noted to ' + yellow(current['name']) + '.')
+    print(f'Noted "\x1b[3m{content}\x1b[0m" to ' + yellow(current['name']) + '.')
 
 
 def action_tag(tags):
@@ -131,8 +132,7 @@ def action_tag(tags):
     store.dump(data)
 
     tag_count = len(tags)
-    print("Okay, tagged current work with %d tag%s."
-          % (tag_count, "s" if tag_count > 1 else ""))
+    print(f"Okay, tagged current work with {tag_count:d} tag{'s' if tag_count > 1 else ''}.")
 
 
 def action_status():
