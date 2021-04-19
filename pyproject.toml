@@ -7,8 +7,12 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
+dateparser = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
+cram = "^0.7"
+pytest-cram = "^0.2.2"
+ipython = "^7.22.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

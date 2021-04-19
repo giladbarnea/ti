@@ -37,11 +37,11 @@ import tempfile
 from datetime import datetime, timedelta
 from collections import defaultdict
 import yaml
-
+from time import sleep
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, AlreadyOn, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
-from ti.time import parse_engtime, parse_isotime, timegap, to_datetime
+from ti.time import parse_engtime, parse_human, timegap, to_human
 
 
 def action_on(name, time):
@@ -49,8 +49,8 @@ def action_on(name, time):
     work = data['work']
 
     if work and 'end' not in work[-1]:
-        raise AlreadyOn("You are already working on %s. Stop it or use a "
-                        "different sheet." % (yellow(work[-1]['name']),))
+        action_fin(time)
+        return action_on(name, time)
 
     entry = {
         'name': name,
@@ -60,7 +60,7 @@ def action_on(name, time):
     work.append(entry)
     store.dump(data)
 
-    print('Start working on ' + green(name) + '.')
+    print('Start working on ' + green(name) + f' at {time}.')
 
 
 def action_fin(time, back_from_interrupt=True):
@@ -71,7 +71,7 @@ def action_fin(time, back_from_interrupt=True):
     current = data['work'][-1]
     current['end'] = time
     store.dump(data)
-    print('So you stopped working on ' + red(current['name']) + '.')
+    print('So you stopped working on ' + red(current['name']) + f' at {time}.')
 
     if back_from_interrupt and len(data['interrupt_stack']) > 0:
         name = data['interrupt_stack'].pop()['name']
@@ -141,11 +141,10 @@ def action_status():
     data = store.load()
     current = data['work'][-1]
 
-    start_time = parse_isotime(current['start'])
-    diff = timegap(start_time, datetime.utcnow())
+    start_time = parse_human(current['start'])
+    diff = timegap(start_time, datetime.now())
 
-    print('You have been working on {0} for {1}.'.format(
-        green(current['name']), diff))
+    print(f'You have been working on {green(current["name"])} for {diff}.')
 
 
 def action_log(period):
@@ -155,12 +154,12 @@ def action_log(period):
     current = None
 
     for item in work:
-        start_time = parse_isotime(item['start'])
+        start_time = parse_human(item['start'])
         if 'end' in item:
             log[item['name']]['delta'] += (
-                parse_isotime(item['end']) - start_time)
+                    parse_human(item['end']) - start_time)
         else:
-            log[item['name']]['delta'] += datetime.utcnow() - start_time
+            log[item['name']]['delta'] += datetime.now() - start_time
             current = item['name']
 
     name_col_len = 0
@@ -229,10 +228,6 @@ def ensure_working():
 
     raise NoTask("For all I know, you aren't working on anything.")
 
-
-
-
-
 def parse_args(argv=sys.argv):
 
 
@@ -257,12 +252,12 @@ def parse_args(argv=sys.argv):
         fn = action_on
         args = {
             'name': tail[0],
-            'time': to_datetime(' '.join(tail[1:])),
+            'time': to_human(' '.join(tail[1:])),
         }
 
     elif head in ['f', 'fin']:
         fn = action_fin
-        args = {'time': to_datetime(' '.join(tail))}
+        args = {'time': to_human(' '.join(tail))}
 
     elif head in ['s', 'status']:
         fn = action_status
@@ -293,7 +288,7 @@ def parse_args(argv=sys.argv):
         fn = action_interrupt
         args = {
             'name': tail[0],
-            'time': to_datetime(' '.join(tail[1:])),
+            'time': to_human(' '.join(tail[1:])),
         }
 
     else:
