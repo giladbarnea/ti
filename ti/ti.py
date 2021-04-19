@@ -148,7 +148,7 @@ def action_status(show_notes=False):
 		print(f'You have been working on {green(current["name"])} for {green(diff)}.')
 		return
 	rprint('\n    '.join([f'You have been working on [green]{current["name"]}[/] for [green]{diff}[/].\nNotes:[rgb(170,170,170)]',
-					   *[f'[rgb(100,100,100)]-[/rgb(100,100,100)] {note}' for note in notes],
+					   *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {note}' for note in notes],
 						 '[/]']))
 
 
