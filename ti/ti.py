@@ -37,278 +37,286 @@ import tempfile
 from datetime import datetime, timedelta
 from collections import defaultdict
 import yaml
-from time import sleep
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, AlreadyOn, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
 from ti.time import parse_engtime, parse_human, timegap, to_human
-
+from rich import print as rprint
 
 def action_on(name, time):
-    data = store.load()
-    work = data['work']
+	data = store.load()
+	work = data['work']
 
-    if work and 'end' not in work[-1]:
-        action_fin(time)
-        return action_on(name, time)
+	if work and 'end' not in work[-1]:
+		action_fin(time)
+		return action_on(name, time)
 
-    entry = {
-        'name': name,
-        'start': time,
-    }
+	entry = {
+		'name':  name,
+		'start': time,
+		}
 
-    work.append(entry)
-    store.dump(data)
+	work.append(entry)
+	store.dump(data)
 
-    print('Start working on ' + green(name) + f' at {time}.')
+	print('Start working on ' + green(name) + f' at {time}.')
 
 
 def action_fin(time, back_from_interrupt=True):
-    ensure_working()
+	ensure_working()
 
-    data = store.load()
+	data = store.load()
 
-    current = data['work'][-1]
-    current['end'] = time
-    store.dump(data)
-    print('So you stopped working on ' + red(current['name']) + f' at {time}.')
+	current = data['work'][-1]
+	current['end'] = time
+	store.dump(data)
+	print('So you stopped working on ' + red(current['name']) + f' at {time}.')
 
-    if back_from_interrupt and len(data['interrupt_stack']) > 0:
-        name = data['interrupt_stack'].pop()['name']
-        store.dump(data)
-        action_on(name, time)
-        if len(data['interrupt_stack']) > 0:
-            print('You are now %d deep in interrupts.'
-                  % len(data['interrupt_stack']))
-        else:
-            print("Congrats, you're out of interrupts!")
+	if back_from_interrupt and len(data['interrupt_stack']) > 0:
+		name = data['interrupt_stack'].pop()['name']
+		store.dump(data)
+		action_on(name, time)
+		if len(data['interrupt_stack']) > 0:
+			print('You are now %d deep in interrupts.'
+				  % len(data['interrupt_stack']))
+		else:
+			print("Congrats, you're out of interrupts!")
 
 
 def action_interrupt(name, time):
-    ensure_working()
+	ensure_working()
 
-    action_fin(time, back_from_interrupt=False)
+	action_fin(time, back_from_interrupt=False)
 
-    data = store.load()
-    if 'interrupt_stack' not in data:
-        data['interrupt_stack'] = []
-    interrupt_stack = data['interrupt_stack']
+	data = store.load()
+	if 'interrupt_stack' not in data:
+		data['interrupt_stack'] = []
+	interrupt_stack = data['interrupt_stack']
 
-    interrupted = data['work'][-1]
-    interrupt_stack.append(interrupted)
-    store.dump(data)
+	interrupted = data['work'][-1]
+	interrupt_stack.append(interrupted)
+	store.dump(data)
 
-    action_on('interrupt: ' + green(name), time)
-    print('You are now %d deep in interrupts.' % len(interrupt_stack))
+	action_on('interrupt: ' + green(name), time)
+	print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
 def action_note(content):
-    ensure_working()
-    now = to_human()
-    content += f' ({now})'
-    data = store.load()
-    current = data['work'][-1]
+	ensure_working()
+	now = to_human()
+	content += f' ({now})'
+	data = store.load()
+	current = data['work'][-1]
 
-    if 'notes' not in current:
-        current['notes'] = [content]
-    else:
-        current['notes'].append(content)
+	if 'notes' not in current:
+		current['notes'] = [content]
+	else:
+		current['notes'].append(content)
 
-    store.dump(data)
+	store.dump(data)
 
-    print(f'Noted "\x1b[3m{content}\x1b[0m" to ' + yellow(current['name']) + '.')
+	print(f'Noted "\x1b[3m{content}\x1b[0m" to ' + yellow(current['name']) + '.')
 
 
 def action_tag(tags):
-    ensure_working()
+	ensure_working()
 
-    data = store.load()
-    current = data['work'][-1]
+	data = store.load()
+	current = data['work'][-1]
 
-    current['tags'] = set(current.get('tags') or [])
-    current['tags'].update(tags)
-    current['tags'] = list(current['tags'])
+	current['tags'] = set(current.get('tags') or [])
+	current['tags'].update(tags)
+	current['tags'] = list(current['tags'])
 
-    store.dump(data)
+	store.dump(data)
 
-    tag_count = len(tags)
-    print(f"Okay, tagged current work with {tag_count:d} tag{'s' if tag_count > 1 else ''}.")
+	tag_count = len(tags)
+	print(f"Okay, tagged current work with {tag_count:d} tag{'s' if tag_count > 1 else ''}.")
 
 
-def action_status():
-    ensure_working()
+def action_status(show_notes=False):
+	ensure_working()
 
-    data = store.load()
-    current = data['work'][-1]
+	data = store.load()
+	current = data['work'][-1]
 
-    start_time = parse_human(current['start'])
-    diff = timegap(start_time, datetime.now())
+	start_time = parse_human(current['start'])
+	diff = timegap(start_time, datetime.now())
 
-    print(f'You have been working on {green(current["name"])} for {diff}.')
+	notes = current.get('notes')
+	if not show_notes or not notes:
+		print(f'You have been working on {green(current["name"])} for {green(diff)}.')
+		return
+	rprint('\n    '.join([f'You have been working on [green]{current["name"]}[/] for [green]{diff}[/].\nNotes:[rgb(170,170,170)]',
+					   *[f'[rgb(100,100,100)]-[/rgb(100,100,100)] {note}' for note in notes],
+						 '[/]']))
 
 
 def action_log(period):
-    data = store.load()
-    work = data['work'] + data['interrupt_stack']
-    log = defaultdict(lambda: {'delta': timedelta()})
-    current = None
+	data = store.load()
+	work = data['work'] + data['interrupt_stack']
+	log = defaultdict(lambda: {'delta': timedelta()})
+	current = None
 
-    for item in work:
-        start_time = parse_human(item['start'])
-        if 'end' in item:
-            log[item['name']]['delta'] += (
-                    parse_human(item['end']) - start_time)
-        else:
-            log[item['name']]['delta'] += datetime.now() - start_time
-            current = item['name']
+	for item in work:
+		start_time = parse_human(item['start'])
+		if 'end' in item:
+			log[item['name']]['delta'] += (
+					parse_human(item['end']) - start_time)
+		else:
+			log[item['name']]['delta'] += datetime.now() - start_time
+			current = item['name']
 
-    name_col_len = 0
+	name_col_len = 0
 
-    for name, item in log.items():
-        name_col_len = max(name_col_len, len(strip_color(name)))
+	for name, item in log.items():
+		name_col_len = max(name_col_len, len(strip_color(name)))
 
-        secs = item['delta'].total_seconds()
-        tmsg = []
+		secs = item['delta'].total_seconds()
+		tmsg = []
 
-        if secs > 3600:
-            hours = int(secs // 3600)
-            secs -= hours * 3600
-            tmsg.append(str(hours) + ' hour' + ('s' if hours > 1 else ''))
+		if secs > 3600:
+			hours = int(secs // 3600)
+			secs -= hours * 3600
+			tmsg.append(str(hours) + ' hour' + ('s' if hours > 1 else ''))
 
-        if secs > 60:
-            mins = int(secs // 60)
-            secs -= mins * 60
-            tmsg.append(str(mins) + ' minute' + ('s' if mins > 1 else ''))
+		if secs > 60:
+			mins = int(secs // 60)
+			secs -= mins * 60
+			tmsg.append(str(mins) + ' minute' + ('s' if mins > 1 else ''))
 
-        if secs:
-            tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
+		if secs:
+			tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
 
-        log[name]['tmsg'] = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
+		log[name]['tmsg'] = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
 
-    for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
-        print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['tmsg'],
-              end=' ← working\n' if current == name else '\n')
+	for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
+		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['tmsg'],
+			  end=' ← working\n' if current == name else '\n')
 
 
 def action_edit():
-    if "EDITOR" not in os.environ:
-        raise NoEditor("Please set the 'EDITOR' environment variable")
+	if "EDITOR" not in os.environ:
+		raise NoEditor("Please set the 'EDITOR' environment variable")
 
-    data = store.load()
-    yml = yaml.safe_dump(data, default_flow_style=False, allow_unicode=True)
+	data = store.load()
+	yml = yaml.safe_dump(data, default_flow_style=False, allow_unicode=True)
 
-    cmd = os.getenv('EDITOR')
-    fd, temp_path = tempfile.mkstemp(prefix='ti.')
-    with open(temp_path, "r+") as f:
-        f.write(yml.replace('\n- ', '\n\n- '))
-        f.seek(0)
-        subprocess.check_call(cmd + ' ' + temp_path, shell=True)
-        yml = f.read()
-        f.truncate()
+	cmd = os.getenv('EDITOR')
+	fd, temp_path = tempfile.mkstemp(prefix='ti.')
+	with open(temp_path, "r+") as f:
+		f.write(yml.replace('\n- ', '\n\n- '))
+		f.seek(0)
+		subprocess.check_call(cmd + ' ' + temp_path, shell=True)
+		yml = f.read()
+		f.truncate()
 
-    os.close(fd)
-    os.remove(temp_path)
+	os.close(fd)
+	os.remove(temp_path)
 
-    try:
-        data = yaml.load(yml)
-    except:
-        raise InvalidYAML("Oops, that YAML doesn't appear to be valid!")
+	try:
+		data = yaml.load(yml)
+	except:
+		raise InvalidYAML("Oops, that YAML doesn't appear to be valid!")
 
-    store.dump(data)
+	store.dump(data)
 
 
 def is_working():
-    data = store.load()
-    return data.get('work') and 'end' not in data['work'][-1]
+	data = store.load()
+	return data.get('work') and 'end' not in data['work'][-1]
 
 
 def ensure_working():
-    if is_working():
-        return
+	if is_working():
+		return
 
-    raise NoTask("For all I know, you aren't working on anything.")
+	raise NoTask("For all I know, you aren't working on anything.")
+
 
 def parse_args(argv=sys.argv):
+	# prog = argv[0]
+	if len(argv) == 1:
+		raise BadArguments("You must specify a command.")
 
+	head = argv[1]
+	tail = argv[2:]
 
-    # prog = argv[0]
-    if len(argv) == 1:
-        raise BadArguments("You must specify a command.")
+	if head in ['-h', '--help', 'h', 'help']:
+		raise BadArguments()
 
-    head = argv[1]
-    tail = argv[2:]
+	elif head in ['e', 'edit']:
+		fn = action_edit
+		args = {}
 
-    if head in ['-h', '--help', 'h', 'help']:
-        raise BadArguments()
+	elif head in ['o', 'on']:
+		if not tail:
+			raise BadArguments("Need the name of whatever you are working on.")
 
-    elif head in ['e', 'edit']:
-        fn = action_edit
-        args = {}
+		fn = action_on
+		args = {
+			'name': tail[0],
+			'time': to_human(' '.join(tail[1:])),
+			}
 
-    elif head in ['o', 'on']:
-        if not tail:
-            raise BadArguments("Need the name of whatever you are working on.")
+	elif head in ['f', 'fin']:
+		fn = action_fin
+		args = {'time': to_human(' '.join(tail))}
 
-        fn = action_on
-        args = {
-            'name': tail[0],
-            'time': to_human(' '.join(tail[1:])),
-        }
+	elif head in ['s', 'status']:
+		fn = action_status
+		args = {}
 
-    elif head in ['f', 'fin']:
-        fn = action_fin
-        args = {'time': to_human(' '.join(tail))}
+	elif head == 's+':
+		fn = action_status
+		args = {'show_notes': True}
 
-    elif head in ['s', 'status']:
-        fn = action_status
-        args = {}
+	elif head in ['l', 'log']:
+		fn = action_log
+		args = {'period': tail[0] if tail else None}
 
-    elif head in ['l', 'log']:
-        fn = action_log
-        args = {'period': tail[0] if tail else None}
+	elif head in ['t', 'tag']:
+		if not tail:
+			raise BadArguments("Please provide at least one tag to add.")
 
-    elif head in ['t', 'tag']:
-        if not tail:
-            raise BadArguments("Please provide at least one tag to add.")
+		fn = action_tag
+		args = {'tags': tail}
 
-        fn = action_tag
-        args = {'tags': tail}
+	elif head in ['n', 'note']:
+		if not tail:
+			raise BadArguments("Please provide some text to be noted.")
 
-    elif head in ['n', 'note']:
-        if not tail:
-            raise BadArguments("Please provide some text to be noted.")
+		fn = action_note
+		args = {'content': ' '.join(tail)}
 
-        fn = action_note
-        args = {'content': ' '.join(tail)}
+	elif head in ['i', 'interrupt']:
+		if not tail:
+			raise BadArguments("Need the name of whatever you are working on.")
 
-    elif head in ['i', 'interrupt']:
-        if not tail:
-            raise BadArguments("Need the name of whatever you are working on.")
+		fn = action_interrupt
+		args = {
+			'name': tail[0],
+			'time': to_human(' '.join(tail[1:])),
+			}
 
-        fn = action_interrupt
-        args = {
-            'name': tail[0],
-            'time': to_human(' '.join(tail[1:])),
-        }
+	else:
+		raise BadArguments("I don't understand %r" % (head,))
 
-    else:
-        raise BadArguments("I don't understand %r" % (head,))
-
-    return fn, args
+	return fn, args
 
 
 def main():
-    try:
-        fn, args = parse_args()
-        fn(**args)
-    except TIError as e:
-        msg = str(e) if len(str(e)) > 0 else __doc__
-        print(msg, file=sys.stderr)
-        sys.exit(1)
+	try:
+		fn, args = parse_args()
+		fn(**args)
+	except TIError as e:
+		msg = str(e) if len(str(e)) > 0 else __doc__
+		print(msg, file=sys.stderr)
+		sys.exit(1)
 
 
 store = Store(os.getenv('SHEET_FILE', None) or
-              os.path.expanduser('~/.ti-sheet.yml'))
+			  os.path.expanduser('~/.ti-sheet.yml'))
 
 if __name__ == '__main__':
-    main()
+	main()

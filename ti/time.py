@@ -57,7 +57,7 @@ def parse_human(isotime) -> datetime:
 def timegap(start_time, end_time):
 	diff = end_time - start_time
 
-	mins = diff.total_seconds() // 60
+	mins = int(diff.total_seconds() // 60)
 
 	if mins == 0:
 		return 'less than a minute'
@@ -68,7 +68,9 @@ def timegap(start_time, end_time):
 	elif mins < 89:
 		return 'about an hour'
 	elif mins < 1439:
-		return f'about {mins // 60} hours'
+		hours = int(mins // 60)
+		mins_remainder = int(mins % 60)
+		return f'about {hours} hours and {mins_remainder} minutes'
 	elif mins < 2519:
 		return 'about a day'
 	elif mins < 43199:

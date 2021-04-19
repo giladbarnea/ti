@@ -26,4 +26,4 @@ class Store(object):
     def dump(self, data):
         with open(self.filename, 'w') as f:
             # json.dump(data, f, separators=(',', ': '), indent=2)
-            yaml.dump(data, f, indent=2)
+            yaml.dump(data, f, indent=4)
