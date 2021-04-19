@@ -41,7 +41,10 @@ from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, AlreadyOn, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
 from ti.time import parse_engtime, parse_human, timegap, to_human
-from rich import print as rprint
+try:
+	from rich import print as rprint
+except ModuleNotFoundError:
+	rprint=print
 
 def action_on(name, time):
 	data = store.load()

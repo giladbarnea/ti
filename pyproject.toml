@@ -1,13 +1,14 @@
 [tool.poetry]
-name = "tix"
+name = "ti"
 version = "0.1.0"
-description = "A somewhat-silly simple time tracker"
-authors = ["Your Name <you@example.com>"]
+description = "Not a silly simple time tracker"
+authors = ["Gilad Barnea <giladbrn@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
 dateparser = "^1.0.0"
+rich = {version = "^10.1.0", optional = true}
 
 [tool.poetry.dev-dependencies]
 cram = "^0.7"
