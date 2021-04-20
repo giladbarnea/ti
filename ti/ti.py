@@ -37,6 +37,7 @@ import tempfile
 from datetime import datetime, timedelta
 from collections import defaultdict
 import yaml
+from dateparser import parse as dateparse
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, AlreadyOn, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
@@ -160,9 +161,12 @@ def action_log(period):
 	work = data['work'] + data['interrupt_stack']
 	log = defaultdict(lambda: {'delta': timedelta()})
 	current = None
-	breakpoint()
+	if period:
+		period_dt = dateparse(period)
 	for item in work:
 		start_time = parse_human(item['start'])
+		if period and period_dt.day != start_time.day:
+			continue
 		if 'end' in item:
 			log[item['name']]['delta'] += (
 					parse_human(item['end']) - start_time)
@@ -192,7 +196,8 @@ def action_log(period):
 			tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
 
 		log[name]['tmsg'] = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
-
+	
+	rprint(f"[b]Showing {period}'s logs:[/]")
 	for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
 		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['tmsg'],
 			  end=' ← working\n' if current == name else '\n')

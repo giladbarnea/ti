@@ -1,5 +1,7 @@
 import re
 from colorama import Fore
+from loguru import logger
+
 def red(s):
 	return Fore.RED + s + Fore.RESET
 
@@ -19,6 +21,7 @@ def blue(s):
 color_regex = re.compile("(\x9B|\x1B\\[)[0-?]*[ -/]*[@-~]")
 
 
+@logger.catch()
 def strip_color(s):
 	"""Strip color from string."""
 	return color_regex.sub("", s)
