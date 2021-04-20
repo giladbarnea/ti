@@ -160,7 +160,7 @@ def action_log(period):
 	work = data['work'] + data['interrupt_stack']
 	log = defaultdict(lambda: {'delta': timedelta()})
 	current = None
-
+	breakpoint()
 	for item in work:
 		start_time = parse_human(item['start'])
 		if 'end' in item:
