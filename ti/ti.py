@@ -179,7 +179,7 @@ def action_log(period="today"):
 	for name, item in log.items():
 		name_col_len = max(name_col_len, len(strip_color(name)))
 
-		secs = item['delta'].total_seconds()
+		secs = int(item['delta'].total_seconds())
 		tmsg = []
 
 		if secs > 3600:
@@ -197,7 +197,7 @@ def action_log(period="today"):
 
 		log[name]['tmsg'] = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
 	
-	rprint(f"[b]Showing {period}'s logs:[/]")
+	rprint(f"[b]{period.title()}'s logs:[/]")
 	for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
 		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['tmsg'],
 			  end=' ← working\n' if current == name else '\n')
