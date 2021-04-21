@@ -156,7 +156,7 @@ def action_status(show_notes=False):
 						 '[/]']))
 
 
-def action_log(period):
+def action_log(period="today"):
 	data = store.load()
 	work = data['work'] + data['interrupt_stack']
 	log = defaultdict(lambda: {'delta': timedelta()})
@@ -281,7 +281,7 @@ def parse_args(argv=sys.argv):
 
 	elif head in ['l', 'log']:
 		fn = action_log
-		args = {'period': tail[0] if tail else None}
+		args = {'period': tail[0] if tail else 'today'}
 
 	elif head in ['t', 'tag']:
 		if not tail:
