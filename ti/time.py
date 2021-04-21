@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from dateparser import parse
+from dateparser import parse as parsedate
+
 from loguru import logger
 import re
 from ti.error import BadTime
@@ -26,6 +27,9 @@ def parse_engtime(engtime="") -> datetime:
 	Returns:
 		datetime: The difference between now and `engtime`.
 	"""
+	if not engtime:
+		return parsedate('now')
+	return parsedate(engtime)
 	now: datetime = datetime.now()
 	if not engtime or engtime.lower().strip() == 'now':
 		return now

@@ -1,4 +1,4 @@
-from os import path
+from os import path, getenv
 
 import yaml
 
@@ -24,6 +24,9 @@ class Store(object):
         return data
 
     def dump(self, data):
+        if getenv('TI_DRYRUN',"").lower() in ('1', 'true'):
+            print('dry run, not dumping')
+            return
         with open(self.filename, 'w') as f:
             # json.dump(data, f, separators=(',', ': '), indent=2)
             yaml.dump(data, f, indent=4)
