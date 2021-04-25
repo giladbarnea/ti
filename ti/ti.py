@@ -38,22 +38,26 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import yaml
 from dateparser import parse as dateparse
+
+from ti import times
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, AlreadyOn, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
-from ti.time import parse_engtime, parse_human, timegap, to_human
+from ti.times import parse_engtime, str2dt, timegap, to_human
+
 try:
 	from rich import print as rprint
 except ModuleNotFoundError:
-	rprint=print
+	rprint = print
 
-def action_on(name, time):
+
+def on(name, time):
 	data = store.load()
 	work = data['work']
 
 	if work and 'end' not in work[-1]:
-		action_fin(time)
-		return action_on(name, time)
+		fin(time)
+		return on(name, time)
 
 	entry = {
 		'name':  name,
@@ -66,7 +70,7 @@ def action_on(name, time):
 	print('Start working on ' + green(name) + f' at {time}.')
 
 
-def action_fin(time, back_from_interrupt=True):
+def fin(time, back_from_interrupt=True):
 	ensure_working()
 
 	data = store.load()
@@ -79,7 +83,7 @@ def action_fin(time, back_from_interrupt=True):
 	if back_from_interrupt and len(data['interrupt_stack']) > 0:
 		name = data['interrupt_stack'].pop()['name']
 		store.dump(data)
-		action_on(name, time)
+		on(name, time)
 		if len(data['interrupt_stack']) > 0:
 			print('You are now %d deep in interrupts.'
 				  % len(data['interrupt_stack']))
@@ -87,10 +91,10 @@ def action_fin(time, back_from_interrupt=True):
 			print("Congrats, you're out of interrupts!")
 
 
-def action_interrupt(name, time):
+def interrupt(name, time):
 	ensure_working()
 
-	action_fin(time, back_from_interrupt=False)
+	fin(time, back_from_interrupt=False)
 
 	data = store.load()
 	if 'interrupt_stack' not in data:
@@ -101,11 +105,11 @@ def action_interrupt(name, time):
 	interrupt_stack.append(interrupted)
 	store.dump(data)
 
-	action_on('interrupt: ' + green(name), time)
+	on('interrupt: ' + green(name), time)
 	print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
-def action_note(content):
+def note(content):
 	ensure_working()
 	now = to_human()
 	content += f' ({now})'
@@ -122,7 +126,7 @@ def action_note(content):
 	print(f'Noted "\x1b[3m{content}\x1b[0m" to ' + yellow(current['name']) + '.')
 
 
-def action_tag(tags):
+def tag(tags):
 	ensure_working()
 
 	data = store.load()
@@ -138,13 +142,13 @@ def action_tag(tags):
 	print(f"Okay, tagged current work with {tag_count:d} tag{'s' if tag_count > 1 else ''}.")
 
 
-def action_status(show_notes=False):
+def status(show_notes=False):
 	ensure_working()
 
 	data = store.load()
 	current = data['work'][-1]
 
-	start_time = parse_human(current['start'])
+	start_time = str2dt(current['start'])
 	diff = timegap(start_time, datetime.now())
 
 	notes = current.get('notes')
@@ -152,26 +156,27 @@ def action_status(show_notes=False):
 		print(f'You have been working on {green(current["name"])} for {green(diff)}.')
 		return
 	rprint('\n    '.join([f'You have been working on [green]{current["name"]}[/] for [green]{diff}[/].\nNotes:[rgb(170,170,170)]',
-					   *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {note}' for note in notes],
-						 '[/]']))
+						  *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {note}' for note in notes],
+						  '[/]']))
 
 
-def action_log(period="today"):
+def log(period="today"):
 	data = store.load()
 	work = data['work'] + data['interrupt_stack']
 	log = defaultdict(lambda: {'delta': timedelta()})
 	current = None
-	if period:
-		period_dt = dateparse(period)
+	period_dt = parse_engtime(period)
+	if not period_dt:
+		breakpoint()
+	now = datetime.now()
 	for item in work:
-		start_time = parse_human(item['start'])
+		start_time = str2dt(item['start'])
 		if period and period_dt.day != start_time.day:
 			continue
 		if 'end' in item:
-			log[item['name']]['delta'] += (
-					parse_human(item['end']) - start_time)
+			log[item['name']]['delta'] += (str2dt(item['end']) - start_time)
 		else:
-			log[item['name']]['delta'] += datetime.now() - start_time
+			log[item['name']]['delta'] += now - start_time
 			current = item['name']
 
 	name_col_len = 0
@@ -195,15 +200,20 @@ def action_log(period="today"):
 		if secs:
 			tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
 
-		log[name]['tmsg'] = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
-	
-	rprint(f"[b]{period.title()}'s logs:[/]")
+		pretty = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
+		log[name]['pretty'] = pretty
+
+	if len(period) > 2:
+		title = period.title()
+	else:
+		title = f"{period[0]} {times.ABBREVS[period[1]]} ago"
+	rprint(f"[b]{title}'s logs:[/]")
 	for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
-		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['tmsg'],
+		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['pretty'],
 			  end=' ← working\n' if current == name else '\n')
 
 
-def action_edit():
+def edit():
 	if "EDITOR" not in os.environ:
 		raise NoEditor("Please set the 'EDITOR' environment variable")
 
@@ -254,54 +264,54 @@ def parse_args(argv=sys.argv):
 		raise BadArguments()
 
 	elif head in ['e', 'edit']:
-		fn = action_edit
+		fn = edit
 		args = {}
 
 	elif head in ['o', 'on']:
 		if not tail:
 			raise BadArguments("Need the name of whatever you are working on.")
 
-		fn = action_on
+		fn = on
 		args = {
 			'name': tail[0],
 			'time': to_human(' '.join(tail[1:])),
 			}
 
 	elif head in ['f', 'fin']:
-		fn = action_fin
+		fn = fin
 		args = {'time': to_human(' '.join(tail))}
 
 	elif head in ['s', 'status']:
-		fn = action_status
+		fn = status
 		args = {}
 
 	elif head == 's+':
-		fn = action_status
+		fn = status
 		args = {'show_notes': True}
 
 	elif head in ['l', 'log']:
-		fn = action_log
+		fn = log
 		args = {'period': tail[0] if tail else 'today'}
 
 	elif head in ['t', 'tag']:
 		if not tail:
 			raise BadArguments("Please provide at least one tag to add.")
 
-		fn = action_tag
+		fn = tag
 		args = {'tags': tail}
 
 	elif head in ['n', 'note']:
 		if not tail:
 			raise BadArguments("Please provide some text to be noted.")
 
-		fn = action_note
+		fn = note
 		args = {'content': ' '.join(tail)}
 
 	elif head in ['i', 'interrupt']:
 		if not tail:
 			raise BadArguments("Need the name of whatever you are working on.")
 
-		fn = action_interrupt
+		fn = interrupt
 		args = {
 			'name': tail[0],
 			'time': to_human(' '.join(tail[1:])),
