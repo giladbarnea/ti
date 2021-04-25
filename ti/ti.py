@@ -272,14 +272,16 @@ def parse_args(argv=sys.argv):
 			raise BadArguments("Need the name of whatever you are working on.")
 
 		fn = on
+		name = tail.pop(0)
+		time = to_human(' '.join(tail[1:]) if tail else 'now')
 		args = {
-			'name': tail[0],
-			'time': to_human(' '.join(tail[1:])),
+			'name': name,
+			'time': time,
 			}
 
 	elif head in ['f', 'fin']:
 		fn = fin
-		args = {'time': to_human(' '.join(tail))}
+		args = {'time': to_human(' '.join(tail[1:]) if tail else 'now')}
 
 	elif head in ['s', 'status']:
 		fn = status
