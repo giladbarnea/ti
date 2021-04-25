@@ -15,14 +15,14 @@ ABBREVS = {
 	}
 
 @logger.catch()
-def to_human(engtime=""):
+def to_human(engtime="now"):
 	"""Called by parse_args(), written as 'start' and 'end' values"""
 	timediff: datetime = parse_engtime(engtime)
 	return timediff.strftime('%x %X')
 
 
 @logger.catch()
-def parse_engtime(engtime="") -> datetime:
+def parse_engtime(engtime="now") -> datetime:
 	"""
 	Format is e.g.::
 
@@ -37,9 +37,7 @@ def parse_engtime(engtime="") -> datetime:
 	Returns:
 		datetime: The difference between now and `engtime`.
 	"""
-	if not engtime:
-		return parsedate('now')
-	match = re.match(r'(\d+)\s*([smhdwM])(\s+ago\s*)?$', engtime, re.X)
+	match = re.match(r'(\d+)\s*([smhdwM])(\s+ago\s*)?$', engtime)
 	if match is None:
 		return parsedate(engtime)
 	now: datetime = datetime.now()

@@ -160,10 +160,10 @@ def status(show_notes=False):
 						  '[/]']))
 
 
-def log(period="today"):
+def log(period):
 	data = store.load()
 	work = data['work'] + data['interrupt_stack']
-	log = defaultdict(lambda: {'delta': timedelta()})
+	_log = defaultdict(lambda: {'delta': timedelta()})
 	current = None
 	period_dt = parse_engtime(period)
 	if not period_dt:
@@ -174,14 +174,14 @@ def log(period="today"):
 		if period and period_dt.day != start_time.day:
 			continue
 		if 'end' in item:
-			log[item['name']]['delta'] += (str2dt(item['end']) - start_time)
+			_log[item['name']]['delta'] += (str2dt(item['end']) - start_time)
 		else:
-			log[item['name']]['delta'] += now - start_time
+			_log[item['name']]['delta'] += now - start_time
 			current = item['name']
 
 	name_col_len = 0
 
-	for name, item in log.items():
+	for name, item in _log.items():
 		name_col_len = max(name_col_len, len(strip_color(name)))
 
 		secs = int(item['delta'].total_seconds())
@@ -201,14 +201,14 @@ def log(period="today"):
 			tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
 
 		pretty = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
-		log[name]['pretty'] = pretty
+		_log[name]['pretty'] = pretty
 
 	if len(period) > 2:
 		title = period.title()
 	else:
 		title = f"{period[0]} {times.ABBREVS[period[1]]} ago"
 	rprint(f"[b]{title}'s logs:[/]")
-	for name, item in sorted(log.items(), key=(lambda x: x[0]), reverse=True):
+	for name, item in sorted(_log.items(), key=(lambda x: x[0]), reverse=True):
 		print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['pretty'],
 			  end=' ← working\n' if current == name else '\n')
 
