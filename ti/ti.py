@@ -42,7 +42,7 @@ from ti import times
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
-from ti.times import parse_engtime, str2dt, timegap, to_human
+from ti.times import human2dt, formatted2dt, timegap, human2formatted
 
 
 def on(name, time):
@@ -109,7 +109,7 @@ def interrupt(name, time):
 
 def note(content):
     ensure_working()
-    now = to_human()
+    now = human2formatted(fmt="%X")
     content += f' ({now})'
     data = store.load()
     current = data['work'][-1]
@@ -146,7 +146,7 @@ def status(show_notes=False):
     data = store.load()
     current = data['work'][-1]
 
-    start_time = str2dt(current['start'])
+    start_time = formatted2dt(current['start'])
     diff = timegap(start_time, datetime.now())
 
     notes = current.get('notes')
@@ -158,35 +158,37 @@ def status(show_notes=False):
     except ModuleNotFoundError:
         rprint = print
     rprint('\n    '.join([f'You have been working on [green]{current["name"]}[/] for [green]{diff}[/].\nNotes:[rgb(170,170,170)]',
-                          *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {note}' for note in notes],
+                          *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {n}' for n in notes],
                           '[/]']))
 
 
-def log(period):
+def log(period, *, detailed=False):
     data = store.load()
     work = data['work'] + data['interrupt_stack']
-    _log = defaultdict(lambda: {'delta': timedelta()})
+    _log = defaultdict(lambda: {'duration': timedelta(), 'times': []})
     current = None
-    period_dt = parse_engtime(period)
+    period_dt = human2dt(period)
     if not period_dt:
         breakpoint()
     now = datetime.now()
     for item in work:
-        start_time = str2dt(item['start'])
+        start_time = formatted2dt(item['start'])
         if period and period_dt.day != start_time.day:
             continue
-        if 'end' in item:
-            _log[item['name']]['delta'] += (str2dt(item['end']) - start_time)
-        else:
-            _log[item['name']]['delta'] += now - start_time
-            current = item['name']
+        end_time = item.get('end') and formatted2dt(item['end'])
+        _log[item['name']]['times'].append((start_time, end_time))
 
+        if end_time:
+            _log[item['name']]['duration'] += end_time - start_time
+        else:
+            _log[item['name']]['duration'] += now - start_time
+            current = item['name']
     name_col_len = 0
 
     for name, item in _log.items():
         name_col_len = max(name_col_len, len(strip_color(name)))
 
-        secs = int(item['delta'].total_seconds())
+        secs = int(item['duration'].total_seconds())
         tmsg = []
 
         if secs > 3600:
@@ -213,10 +215,27 @@ def log(period):
         from rich import print as rprint
     except ModuleNotFoundError:
         rprint = print
-    rprint(f"[b]{title}'s logs:[/]")
-    for name, item in sorted(_log.items(), key=(lambda x: x[0]), reverse=True):
-        print(ljust_with_color(name, name_col_len), ' ∙∙ ', item['pretty'],
-              end=' ← working\n' if current == name else '\n')
+    rprint(f"[b bright_white]{title}'s logs:[/]" + '\n' if detailed else '')
+    for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda t: t[0], entry[1]['times']))):
+        if detailed:
+            start_end_times = item["times"]
+            time = "\n  \x1b[2m"
+            for start, end in start_end_times:
+                if end:
+                    time += f'\n  {start.strftime("%X")} − {end.strftime("%X")} ({end - start})'
+                else:
+                    time += f'\n  {start.strftime("%X")}'
+            time += "\x1b[0m\n"
+        else:
+            time = f'\x1b[2mstarted: {min(map(lambda t: t[0], item["times"])).strftime("%X")}\x1b[0m'
+
+        if current == name:
+            name = f'\x1b[1m{name}\x1b[0m'
+
+        print(ljust_with_color(name, name_col_len),
+              ' ∙∙ ',
+              item['pretty'],
+              time)
 
 
 def edit():
@@ -279,7 +298,7 @@ def parse_args(argv=sys.argv):
 
         fn = on
         name = tail.pop(0)
-        time = to_human(' '.join(tail) if tail else 'now')
+        time = human2formatted(' '.join(tail) if tail else 'now')
         args = {
             'name': name,
             'time': time,
@@ -287,19 +306,18 @@ def parse_args(argv=sys.argv):
 
     elif head in ['f', 'fin']:
         fn = fin
-        args = {'time': to_human(' '.join(tail) if tail else 'now')}
+        args = {'time': human2formatted(' '.join(tail) if tail else 'now')}
 
-    elif head in ['s', 'status']:
+    elif head in ('s', 's+', 'status', 'status+'):
         fn = status
-        args = {}
+        args = {'show_notes': '+' in head}
 
-    elif head == 's+':
-        fn = status
-        args = {'show_notes': True}
-
-    elif head in ['l', 'log']:
+    elif head in ('l', 'l+', 'log', 'log+'):
         fn = log
-        args = {'period': tail[0] if tail else 'today'}
+        args = {
+            'period':   tail[0] if tail else 'today',
+            'detailed': '+' in head
+            }
 
     elif head in ['t', 'tag']:
         if not tail:
@@ -323,7 +341,7 @@ def parse_args(argv=sys.argv):
         name = tail.pop(0)
         args = {
             'name': name,
-            'time': to_human(' '.join(tail) if tail else 'now'),
+            'time': human2formatted(' '.join(tail) if tail else 'now'),
             }
 
     else:

@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from dateparser import parse as parsedate
 
-from loguru import logger
 import re
 from ti.error import BadTime
 
@@ -15,15 +14,13 @@ ABBREVS = {
     }
 
 
-@logger.catch()
-def to_human(engtime="now"):
+def human2formatted(engtime: str="now", fmt="%x %") -> str:
     """Called by parse_args(), written as 'start' and 'end' values"""
-    timediff: datetime = parse_engtime(engtime)
-    return timediff.strftime('%x %X')
+    timediff: datetime = human2dt(engtime)
+    return timediff.strftime(fmt)
 
 
-@logger.catch()
-def parse_engtime(engtime="now") -> datetime:
+def human2dt(engtime: str= "now") -> datetime:
     """
     Format is e.g.::
 
@@ -42,7 +39,7 @@ def parse_engtime(engtime="now") -> datetime:
     if match is None:
         parsed = parsedate(engtime)
         if not parsed:
-            raise BadTime(f"parse_engtime({engtime = })")
+            raise BadTime(f"human2dt({engtime = })")
         return parsed
     now: datetime = datetime.now()
     amount = int(match.group(1))
@@ -66,11 +63,11 @@ def parse_engtime(engtime="now") -> datetime:
     raise BadTime(f"Don't understand the time {engtime!r}")
 
 
-def str2dt(date: str) -> datetime:
+def formatted2dt(date: str) -> datetime:
     """Called by log() and status() with 'start' and 'end' values.
 
-    >>> str2dt('04/19/21 10:13:11')
-    >>> 'hi'
+    >>> formatted2dt('04/19/21 10:13:11')
+    datetime(2021, 4, 19, 10, 13, 11)
 
     """
     return datetime.strptime(date, '%x %X')
