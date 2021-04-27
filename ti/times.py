@@ -72,7 +72,23 @@ def formatted2dt(date: str) -> datetime:
     """
     return datetime.strptime(date, '%x %X')
 
+def secs2human(secs: int) -> str:
+    strings = []
+    if secs > 3600:
+        hours = int(secs // 3600)
+        secs -= hours * 3600
+        strings.append(str(hours) + ' hour' + ('s' if hours > 1 else ''))
 
+    if secs > 60:
+        mins = int(secs // 60)
+        secs -= mins * 60
+        strings.append(str(mins) + ' minute' + ('s' if mins > 1 else ''))
+
+    if secs:
+        strings.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
+
+    pretty = ', '.join(strings)[::-1].replace(',', '& ', 1)[::-1]
+    return pretty
 def timegap(start_time, end_time):
     diff = end_time - start_time
 

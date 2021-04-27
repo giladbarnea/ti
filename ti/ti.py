@@ -42,7 +42,7 @@ from ti import times
 from ti.color import yellow, green, red, strip_color, ljust_with_color
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
-from ti.times import human2dt, formatted2dt, timegap, human2formatted
+from ti.times import human2dt, formatted2dt, timegap, human2formatted, secs2human
 
 
 def on(name, time):
@@ -184,27 +184,13 @@ def log(period, *, detailed=False):
             _log[item['name']]['duration'] += now - start_time
             current = item['name']
     name_col_len = 0
-
+    total_secs = 0
     for name, item in _log.items():
         name_col_len = max(name_col_len, len(strip_color(name)))
 
         secs = int(item['duration'].total_seconds())
-        tmsg = []
-
-        if secs > 3600:
-            hours = int(secs // 3600)
-            secs -= hours * 3600
-            tmsg.append(str(hours) + ' hour' + ('s' if hours > 1 else ''))
-
-        if secs > 60:
-            mins = int(secs // 60)
-            secs -= mins * 60
-            tmsg.append(str(mins) + ' minute' + ('s' if mins > 1 else ''))
-
-        if secs:
-            tmsg.append(str(secs) + ' second' + ('s' if secs > 1 else ''))
-
-        pretty = ', '.join(tmsg)[::-1].replace(',', '& ', 1)[::-1]
+        total_secs += secs
+        pretty = secs2human(secs)
         _log[name]['pretty'] = pretty
 
     if len(period) > 2:
@@ -216,6 +202,7 @@ def log(period, *, detailed=False):
     except ModuleNotFoundError:
         rprint = print
     rprint(f"[b bright_white]{title}'s logs:[/]" + '\n' if detailed else '')
+
     for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda t: t[0], entry[1]['times']))):
         if detailed:
             start_end_times = item["times"]
@@ -227,7 +214,8 @@ def log(period, *, detailed=False):
                     time += f'\n  {start.strftime("%X")}'
             time += "\x1b[0m\n"
         else:
-            time = f'\x1b[2mstarted: {min(map(lambda t: t[0], item["times"])).strftime("%X")}\x1b[0m'
+            fist_start_time = min(map(lambda t: t[0], item["times"]))
+            time = f'\x1b[2mstarted: {fist_start_time.strftime("%X")}\x1b[0m'
 
         if current == name:
             name = f'\x1b[1m{name}\x1b[0m'
@@ -236,6 +224,8 @@ def log(period, *, detailed=False):
               ' ∙∙ ',
               item['pretty'],
               time)
+
+    rprint(f"[b bright_white]Total:[/] {secs2human(total_secs)}")
 
 
 def edit():
