@@ -14,7 +14,7 @@ ABBREVS = {
     }
 
 
-def human2formatted(engtime: str="now", fmt="%x %") -> str:
+def human2formatted(engtime: str="now", fmt="%x %X") -> str:
     """Called by parse_args(), written as 'start' and 'end' values"""
     timediff: datetime = human2dt(engtime)
     return timediff.strftime(fmt)
