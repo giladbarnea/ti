@@ -1,7 +1,8 @@
+import re
 from datetime import datetime, timedelta
+
 from dateparser import parse as parsedate
 
-import re
 from ti.error import BadTime
 
 ABBREVS = {
@@ -14,13 +15,21 @@ ABBREVS = {
     }
 
 
-def human2formatted(engtime: str="now", fmt="%x %X") -> str:
-    """Called by parse_args(), written as 'start' and 'end' values"""
+def reformat(date: str, fmt="%x %X") -> str:
+    return formatted2dt(date).strftime(fmt)
+
+
+def human2formatted(engtime: str = "now", fmt="%x %X") -> str:
+    """Called by parse_args(), written as 'start' and 'end' values
+
+    >>> human2formatted("yesterday")
+    '04/26/21 17:16:54'
+    """
     timediff: datetime = human2dt(engtime)
     return timediff.strftime(fmt)
 
 
-def human2dt(engtime: str= "now") -> datetime:
+def human2dt(engtime: str = "now") -> datetime:
     """
     Format is e.g.::
 
@@ -69,8 +78,23 @@ def formatted2dt(date: str) -> datetime:
     >>> formatted2dt('04/19/21 10:13:11')
     datetime(2021, 4, 19, 10, 13, 11)
 
+    >>> formatted2dt('04/19/21')
+    datetime.datetime(2021, 4, 19, 0, 0)
+
+    >>> formatted2dt('10:13:11')
+    datetime.datetime(2021, 4, 27, 10, 13, 11)
     """
-    return datetime.strptime(date, '%x %X')
+    if ' ' in date:
+        # "04/19/21 10:13:11" → datetime(...)
+        return datetime.strptime(date, '%x %X')
+    if '/' in date:
+        # "04/19/21" → datetime(...)
+        return datetime.strptime(date, '%x')
+    # "10:13:11" → datetime(...)
+    today = datetime.today()
+    dt = datetime(today.year, today.month, today.day, *map(int, date.split(':')))
+    return dt
+
 
 def secs2human(secs: int) -> str:
     strings = []
@@ -89,6 +113,8 @@ def secs2human(secs: int) -> str:
 
     pretty = ', '.join(strings)[::-1].replace(',', '& ', 1)[::-1]
     return pretty
+
+
 def timegap(start_time, end_time):
     diff = end_time - start_time
 

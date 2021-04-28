@@ -1,20 +1,22 @@
 import re
-from colorama import Fore
+
+def task(s):
+	return f'[b rgb(58,150,221)]{s}[/b rgb(58,150,221)]'
+
+def tagC(s):
+	return f'[rgb(204,120,50)]{s}[/rgb(204,120,50)]'
 
 def red(s):
-	return Fore.RED + s + Fore.RESET
-
+	return f'[red]{s}[/red]'
 
 def green(s):
-	return Fore.GREEN + s + Fore.RESET
-
+	return f'[green]{s}[/green]'
 
 def yellow(s):
-	return Fore.YELLOW + s + Fore.RESET
-
+	return f'[yellow]{s}[/yellow]'
 
 def blue(s):
-	return Fore.BLUE + s + Fore.RESET
+	return f'[blue]{s}[/blue]'
 
 
 color_regex = re.compile("(\x9B|\x1B\\[)[0-?]*[ -/]*[@-~]")

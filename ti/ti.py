@@ -34,25 +34,30 @@ import subprocess
 import sys
 import tempfile
 from collections import defaultdict
+from contextlib import suppress
 from datetime import datetime, timedelta
 
 import yaml
+from rich import print as rprint
 
 from ti import times
-from ti.color import yellow, green, red, strip_color, ljust_with_color
+from ti.color import yellow, green, strip_color, ljust_with_color, task, tagC
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import Store
-from ti.times import human2dt, formatted2dt, timegap, human2formatted, secs2human
+from ti.times import human2dt, formatted2dt, timegap, human2formatted, secs2human, reformat
 
 
-def on(name, time):
+def on(name, time="now", _tag=None):
     data = store.load()
     work = data['work']
 
-    if work and 'end' not in work[-1]:
+    if work and 'end' not in (current := work[-1]):
+        if current['name'] == name:
+            rprint(f'Already working on {task(name)} since {reformat(current["start"], "%X")} ;)')
+            return True
         ok = fin(time)
         if ok:
-            return on(name, time)
+            return on(name, time, _tag)
         return False
 
     entry = {
@@ -60,10 +65,16 @@ def on(name, time):
         'start': time,
         }
 
+    if _tag:
+        entry.update({'tags': [_tag]})
+
     work.append(entry)
     store.dump(data)
 
-    print('Start working on ' + green(name) + f' at {time}.')
+    message = f'{green("Started")} working on {task(name)} at {reformat(time, "%X")}'
+    if _tag:
+        message += f" tag: {_tag}"
+    rprint(message)
 
 
 def fin(time, back_from_interrupt=True):
@@ -74,7 +85,7 @@ def fin(time, back_from_interrupt=True):
     current = data['work'][-1]
     current['end'] = time
     ok = store.dump(data)
-    print('So you stopped working on ' + red(current['name']) + f' at {time}.')
+    rprint(f'{yellow("Stopped")} working on {task(current["name"])} at {reformat(time, "%X")}')
     if not ok:
         return False
     if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -107,10 +118,10 @@ def interrupt(name, time):
     print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
-def note(content):
+def note(content, time="now"):
     ensure_working()
-    now = human2formatted(fmt="%X")
-    content += f' ({now})'
+    formatted_time = human2formatted(time, fmt="%X")
+    content = content.strip() + f' ({formatted_time})'
     data = store.load()
     current = data['work'][-1]
 
@@ -120,24 +131,25 @@ def note(content):
         current['notes'].append(content)
 
     store.dump(data)
+    rprint(f'Noted [i]{content}[/i] to [b rgb(58,150,221)]{current["name"]}[/].')
 
-    print(f'Noted "\x1b[3m{content}\x1b[0m" to ' + yellow(current['name']) + '.')
 
-
-def tag(tags):
+def tag(_tag):
     ensure_working()
 
     data = store.load()
     current = data['work'][-1]
 
-    current['tags'] = set(current.get('tags') or [])
-    current['tags'].update(tags)
-    current['tags'] = list(current['tags'])
+    current_tags = list(current.get('tags', []))
+    if _tag.lower() in [t.lower() for t in current_tags]:
+        rprint(f'{task(current["name"])} already has tag {tagC(_tag)}.')
+        return
+    current_tags.append(_tag)
+    current['tags'] = current_tags
 
     store.dump(data)
 
-    tag_count = len(tags)
-    print(f"Okay, tagged current work with {tag_count:d} tag{'s' if tag_count > 1 else ''}.")
+    rprint(f"Okay, tagged {task(current['name'])} with {tagC(_tag)}.")
 
 
 def status(show_notes=False):
@@ -151,18 +163,15 @@ def status(show_notes=False):
 
     notes = current.get('notes')
     if not show_notes or not notes:
-        print(f'You have been working on {green(current["name"])} for {green(diff)}.')
+        rprint(f'You have been working on {task(current["name"])} for {green(diff)}.')
         return
-    try:
-        from rich import print as rprint
-    except ModuleNotFoundError:
-        rprint = print
-    rprint('\n    '.join([f'You have been working on [green]{current["name"]}[/] for [green]{diff}[/].\nNotes:[rgb(170,170,170)]',
+
+    rprint('\n    '.join([f'You have been working on {task(current["name"])} for {green(diff)}.\nNotes:[rgb(170,170,170)]',
                           *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {n}' for n in notes],
                           '[/]']))
 
 
-def log(period, *, detailed=False):
+def log(period="today", *, detailed=False):
     data = store.load()
     work = data['work'] + data['interrupt_stack']
     _log = defaultdict(lambda: {'duration': timedelta(), 'times': []})
@@ -197,10 +206,7 @@ def log(period, *, detailed=False):
         title = period.title()
     else:
         title = f"{period[0]} {times.ABBREVS[period[1]]} ago"
-    try:
-        from rich import print as rprint
-    except ModuleNotFoundError:
-        rprint = print
+
     rprint(f"[b bright_white]{title}'s logs:[/]" + '\n' if detailed else '')
 
     for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda t: t[0], entry[1]['times']))):
@@ -209,13 +215,13 @@ def log(period, *, detailed=False):
             time = "\n  \x1b[2m"
             for start, end in start_end_times:
                 if end:
-                    time += f'\n  {start.strftime("%X")} − {end.strftime("%X")} ({end - start})'
+                    time += f'\n  {start.strftime("%X")} → {end.strftime("%X")} ({end - start})'
                 else:
                     time += f'\n  {start.strftime("%X")}'
             time += "\x1b[0m\n"
         else:
             fist_start_time = min(map(lambda t: t[0], item["times"]))
-            time = f'\x1b[2mstarted: {fist_start_time.strftime("%X")}\x1b[0m'
+            time = f' \x1b[2mstarted: {fist_start_time.strftime("%X")}\x1b[0m'
 
         if current == name:
             name = f'\x1b[1m{name}\x1b[0m'
@@ -268,9 +274,10 @@ def ensure_working():
 
 
 def parse_args(argv=sys.argv):
-    # prog = argv[0]
     if len(argv) == 1:
-        raise BadArguments("You must specify a command.")
+        return log, {}
+    if argv[1] == '+':
+        return log, {'detailed': True}
 
     head = argv[1]
     tail = argv[2:]
@@ -288,10 +295,19 @@ def parse_args(argv=sys.argv):
 
         fn = on
         name = tail.pop(0)
-        time = human2formatted(' '.join(tail) if tail else 'now')
+        _tag = None
+        if tail:
+            with suppress(ValueError):
+                _tag_idx = tail.index('-t')
+                _tag = tail[_tag_idx + 1]
+                tail = tail[:_tag_idx]
+            time = human2formatted(' '.join(tail) if tail else 'now')
+        else:
+            time = human2formatted()
         args = {
             'name': name,
             'time': time,
+            '_tag': _tag
             }
 
     elif head in ['f', 'fin']:
@@ -311,17 +327,26 @@ def parse_args(argv=sys.argv):
 
     elif head in ['t', 'tag']:
         if not tail:
-            raise BadArguments("Please provide at least one tag to add.")
+            raise BadArguments("Please provide a tag.")
 
         fn = tag
-        args = {'tags': tail}
+        args = {'_tag': ' '.join(tail)}
 
     elif head in ['n', 'note']:
         if not tail:
             raise BadArguments("Please provide some text to be noted.")
 
         fn = note
-        args = {'content': ' '.join(tail)}
+        if len(tail) == 2:
+            content, time = tail
+            args = {
+                'content': content,
+                'time':    time
+                }
+        elif len(tail) == 1:
+            args = {'content': tail[0]}
+        else:
+            args = {'content': ' '.join(tail)}
 
     elif head in ['i', 'interrupt']:
         if not tail:

@@ -8,7 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 dateparser = "^1.0.0"
-rich = { version = "^10", optional = true}
+rich = "^10"
 loguru = { version = "^0.5.3", optional = true }
 
 [tool.poetry.dev-dependencies]
