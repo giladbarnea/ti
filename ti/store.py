@@ -31,3 +31,7 @@ class Store:
             # json.dump(data, f, separators=(',', ': '), indent=2)
             yaml.dump(data, f, indent=4)
             return True
+
+
+store = Store(getenv('SHEET_FILE', None) or
+              path.expanduser('~/.ti-sheet.yml'))

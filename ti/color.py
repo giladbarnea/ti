@@ -3,7 +3,7 @@ import re
 def task(s):
 	return f'[b rgb(58,150,221)]{s}[/b rgb(58,150,221)]'
 
-def tagC(s):
+def tag(s):
 	return f'[rgb(204,120,50)]{s}[/rgb(204,120,50)]'
 
 def red(s):
@@ -18,6 +18,12 @@ def yellow(s):
 def blue(s):
 	return f'[blue]{s}[/blue]'
 
+def b(s):
+	return f'[b]{s}[/b]'
+
+
+def dim(s):
+	return f'[dim]{s}[/dim]'
 
 color_regex = re.compile("(\x9B|\x1B\\[)[0-?]*[ -/]*[@-~]")
 

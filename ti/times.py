@@ -44,6 +44,7 @@ def human2dt(engtime: str = "now") -> datetime:
     Returns:
         datetime: The difference between now and `engtime`.
     """
+
     match = re.match(r'(\d+)\s*([smhdwM])(\s+ago\s*)?$', engtime)
     if match is None:
         parsed = parsedate(engtime)

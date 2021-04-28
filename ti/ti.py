@@ -33,18 +33,17 @@ import os
 import subprocess
 import sys
 import tempfile
-from collections import defaultdict
 from contextlib import suppress
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import yaml
 from rich import print as rprint
 
-from ti import times
-from ti.color import yellow, green, strip_color, ljust_with_color, task, tagC
+from ti import color as c
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
-from ti.store import Store
-from ti.times import human2dt, formatted2dt, timegap, human2formatted, secs2human, reformat
+from ti.store import store
+from ti.times import formatted2dt, timegap, human2formatted, reformat
+from ti.action import log
 
 
 def on(name, time="now", _tag=None):
@@ -53,7 +52,7 @@ def on(name, time="now", _tag=None):
 
     if work and 'end' not in (current := work[-1]):
         if current['name'] == name:
-            rprint(f'Already working on {task(name)} since {reformat(current["start"], "%X")} ;)')
+            rprint(f'Already working on {c.task(name)} since {reformat(current["start"], "%X")} ;)')
             return True
         ok = fin(time)
         if ok:
@@ -71,9 +70,9 @@ def on(name, time="now", _tag=None):
     work.append(entry)
     store.dump(data)
 
-    message = f'{green("Started")} working on {task(name)} at {reformat(time, "%X")}'
+    message = f'{c.green("Started")} working on {c.task(name)} at {reformat(time, "%X")}'
     if _tag:
-        message += f" tag: {_tag}"
+        message += f". tag: {c.tag(_tag)}"
     rprint(message)
 
 
@@ -85,7 +84,7 @@ def fin(time, back_from_interrupt=True):
     current = data['work'][-1]
     current['end'] = time
     ok = store.dump(data)
-    rprint(f'{yellow("Stopped")} working on {task(current["name"])} at {reformat(time, "%X")}')
+    rprint(f'{c.yellow("Stopped")} working on {c.task(current["name"])} at {reformat(time, "%X")}')
     if not ok:
         return False
     if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -114,7 +113,7 @@ def interrupt(name, time):
     interrupt_stack.append(interrupted)
     store.dump(data)
 
-    on('interrupt: ' + green(name), time)
+    on('interrupt: ' + c.green(name), time)
     print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
@@ -131,7 +130,7 @@ def note(content, time="now"):
         current['notes'].append(content)
 
     store.dump(data)
-    rprint(f'Noted [i]{content}[/i] to [b rgb(58,150,221)]{current["name"]}[/].')
+    rprint(f'Noted [i]{content}[/i] to {c.task(current["name"])}.')
 
 
 def tag(_tag):
@@ -142,14 +141,14 @@ def tag(_tag):
 
     current_tags = list(current.get('tags', []))
     if _tag.lower() in [t.lower() for t in current_tags]:
-        rprint(f'{task(current["name"])} already has tag {tagC(_tag)}.')
+        rprint(f'{c.task(current["name"])} already has tag {c.tag(_tag)}.')
         return
     current_tags.append(_tag)
     current['tags'] = current_tags
 
     store.dump(data)
 
-    rprint(f"Okay, tagged {task(current['name'])} with {tagC(_tag)}.")
+    rprint(f"Okay, tagged {c.task(current['name'])} with {c.tag(_tag)}.")
 
 
 def status(show_notes=False):
@@ -163,75 +162,12 @@ def status(show_notes=False):
 
     notes = current.get('notes')
     if not show_notes or not notes:
-        rprint(f'You have been working on {task(current["name"])} for {green(diff)}.')
+        rprint(f'You have been working on {c.task(current["name"])} for {c.green(diff)}.')
         return
 
-    rprint('\n    '.join([f'You have been working on {task(current["name"])} for {green(diff)}.\nNotes:[rgb(170,170,170)]',
+    rprint('\n    '.join([f'You have been working on {c.task(current["name"])} for {c.green(diff)}.\nNotes:[rgb(170,170,170)]',
                           *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {n}' for n in notes],
                           '[/]']))
-
-
-def log(period="today", *, detailed=False):
-    data = store.load()
-    work = data['work'] + data['interrupt_stack']
-    _log = defaultdict(lambda: {'duration': timedelta(), 'times': []})
-    current = None
-    period_dt = human2dt(period)
-    if not period_dt:
-        breakpoint()
-    now = datetime.now()
-    for item in work:
-        start_time = formatted2dt(item['start'])
-        if period and period_dt.day != start_time.day:
-            continue
-        end_time = item.get('end') and formatted2dt(item['end'])
-        _log[item['name']]['times'].append((start_time, end_time))
-
-        if end_time:
-            _log[item['name']]['duration'] += end_time - start_time
-        else:
-            _log[item['name']]['duration'] += now - start_time
-            current = item['name']
-    name_col_len = 0
-    total_secs = 0
-    for name, item in _log.items():
-        name_col_len = max(name_col_len, len(strip_color(name)))
-
-        secs = int(item['duration'].total_seconds())
-        total_secs += secs
-        pretty = secs2human(secs)
-        _log[name]['pretty'] = pretty
-
-    if len(period) > 2:
-        title = period.title()
-    else:
-        title = f"{period[0]} {times.ABBREVS[period[1]]} ago"
-
-    rprint(f"[b bright_white]{title}'s logs:[/]" + '\n' if detailed else '')
-
-    for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda t: t[0], entry[1]['times']))):
-        if detailed:
-            start_end_times = item["times"]
-            time = "\n  \x1b[2m"
-            for start, end in start_end_times:
-                if end:
-                    time += f'\n  {start.strftime("%X")} → {end.strftime("%X")} ({end - start})'
-                else:
-                    time += f'\n  {start.strftime("%X")}'
-            time += "\x1b[0m\n"
-        else:
-            fist_start_time = min(map(lambda t: t[0], item["times"]))
-            time = f' \x1b[2mstarted: {fist_start_time.strftime("%X")}\x1b[0m'
-
-        if current == name:
-            name = f'\x1b[1m{name}\x1b[0m'
-
-        print(ljust_with_color(name, name_col_len),
-              ' ∙∙ ',
-              item['pretty'],
-              time)
-
-    rprint(f"[b bright_white]Total:[/] {secs2human(total_secs)}")
 
 
 def edit():
@@ -282,14 +218,14 @@ def parse_args(argv=sys.argv):
     head = argv[1]
     tail = argv[2:]
 
-    if head in ['-h', '--help', 'h', 'help']:
+    if head in ('-h', '--help', 'h', 'help'):
         raise BadArguments()
 
-    elif head in ['e', 'edit']:
+    elif head in ('e', 'edit'):
         fn = edit
         args = {}
 
-    elif head in ['o', 'on']:
+    elif head in ('o', 'on'):
         if not tail:
             raise BadArguments("Need the name of whatever you are working on.")
 
@@ -310,7 +246,7 @@ def parse_args(argv=sys.argv):
             '_tag': _tag
             }
 
-    elif head in ['f', 'fin']:
+    elif head in ('f', 'fin'):
         fn = fin
         args = {'time': human2formatted(' '.join(tail) if tail else 'now')}
 
@@ -320,19 +256,29 @@ def parse_args(argv=sys.argv):
 
     elif head in ('l', 'l+', 'log', 'log+'):
         fn = log
+        groupby = None
+        with suppress(ValueError, AttributeError):
+            groupby_idx = tail.index('-g')
+            groupby = tail[groupby_idx + 1]
+            tail = tail[:groupby_idx]
+        if tail:
+            period = ' '.join(tail)
+        else:
+            period = 'today'
         args = {
-            'period':   tail[0] if tail else 'today',
-            'detailed': '+' in head
+            'period':   period,
+            'detailed': '+' in head,
+            'groupby':  groupby
             }
 
-    elif head in ['t', 'tag']:
+    elif head in ('t', 'tag'):
         if not tail:
             raise BadArguments("Please provide a tag.")
 
         fn = tag
         args = {'_tag': ' '.join(tail)}
 
-    elif head in ['n', 'note']:
+    elif head in ('n', 'note'):
         if not tail:
             raise BadArguments("Please provide some text to be noted.")
 
@@ -348,7 +294,7 @@ def parse_args(argv=sys.argv):
         else:
             args = {'content': ' '.join(tail)}
 
-    elif head in ['i', 'interrupt']:
+    elif head in ('i', 'interrupt'):
         if not tail:
             raise BadArguments("Need the name of whatever you are working on.")
 
@@ -374,9 +320,6 @@ def main():
         print(msg, file=sys.stderr)
         sys.exit(1)
 
-
-store = Store(os.getenv('SHEET_FILE', None) or
-              os.path.expanduser('~/.ti-sheet.yml'))
 
 if __name__ == '__main__':
     main()
