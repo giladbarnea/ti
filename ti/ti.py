@@ -42,7 +42,7 @@ from rich import print as rprint
 from ti import color as c
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import store
-from ti.times import formatted2arrow, timegap, human2formatted, reformat
+from ti.times import formatted2arrow, timegap, human2formatted, reformat, now
 from ti.action import log
 
 
@@ -158,7 +158,7 @@ def status(show_notes=False):
     current = data['work'][-1]
 
     start_time = formatted2arrow(current['start'])
-    diff = timegap(start_time, datetime.now())
+    diff = timegap(start_time, now())
 
     notes = current.get('notes')
     if not show_notes or not notes:

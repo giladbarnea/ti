@@ -186,7 +186,7 @@ def secs2human(secs: int) -> str:
     return pretty
 
 
-def timegap(start_time: datetime, end_time: datetime) -> str:
+def timegap(start_time: Arrow, end_time: Arrow) -> str:
     diff = end_time - start_time
 
     mins = int(diff.total_seconds() // 60)
