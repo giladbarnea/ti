@@ -9,14 +9,12 @@ from pytz import timezone, BaseTzInfo
 @dataclass
 class TimeCfg:
     tz: BaseTzInfo
-    format: str
+    format: str = 'MM/DD/YY'
 
     def __init__(self, timecfg: dict):
         for k, v in timecfg.items():
             setattr(self, k, v)
         self.tz = timezone(self.tz)
-        if not self.format:
-            self.format = 'MM/DD/YY'
 
     # def __post_init__(self):
 
