@@ -57,6 +57,10 @@ def human2dt(engtime: str = "now") -> datetime:
 
     parsed = now - timedelta(**{ABBREVS[unit]: amount})
     return parsed
+
+
+
+
     if not engtime or engtime.lower().strip() == 'now':
         return now
 

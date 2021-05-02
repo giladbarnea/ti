@@ -2,17 +2,18 @@ from collections import defaultdict
 from datetime import timedelta, datetime
 from typing import List, Tuple, Literal
 
+from loguru import logger
 from rich import print as rprint
 
 from ti import color as c
 from ti import times
 from ti.store import store
 from ti.times import human2dt, formatted2dt, secs2human
-from loguru import logger
+
 
 @logger.catch()
 def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
-    if groupby and groupby not in ('t','tag'):
+    if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
     data = store.load()
     work = data['work'] + data['interrupt_stack']
@@ -38,9 +39,7 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
             else:
                 for t in tags:
                     by_tag[t].add(name)
-        else:
-            _log[name]['tags'] = tags
-
+        _log[name]['tags'] = tags
 
         _log[name]['times'].append((start_time, end_time))
 
@@ -67,13 +66,12 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
 
     rprint(f"[b bright_white]{title}'s logs:[/]" + '\n' if detailed else '')
     if groupby:
-        for _tag, name in by_tag.items():
-            print(_tag)
-            print_log(name, _log[name],current,detailed,name_col_len)
-        # print_log()
-        # rprint(by_tag)
+        for _tag, names in by_tag.items():
+            print(f"\x1b[38;2;204;120;50m{_tag}\x1b[39m")
+            for name in names:
+                print_log(name, _log[name], current, detailed, name_col_len)
         return
-    for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda t: t[0], entry[1]['times']))):
+    for name, item in sorted(_log.items(), key=lambda entry: min(map(lambda _t: _t[0], entry[1]['times']))):
         print_log(name, item, current, detailed, name_col_len)
 
     rprint(f"[b bright_white]Total:[/] {secs2human(total_secs)}")
