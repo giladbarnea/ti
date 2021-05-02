@@ -15,6 +15,8 @@ class TimeCfg:
         for k, v in timecfg.items():
             setattr(self, k, v)
         self.tz = timezone(self.tz)
+        if not self.format:
+            self.format = 'MM/DD/YY'
 
     # def __post_init__(self):
 
