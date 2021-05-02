@@ -8,7 +8,7 @@ from rich import print as rprint
 from ti import color as c
 from ti import times
 from ti.store import store
-from ti.times import human2dt, formatted2dt, secs2human
+from ti.times import human2arrow, formatted2arrow, secs2human, now
 
 
 @logger.catch()
@@ -19,18 +19,18 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
     work = data['work'] + data['interrupt_stack']
     _log = defaultdict(lambda: {'duration': timedelta(), 'times': []})
     current = None
-    period_dt = human2dt(period)
+    period_dt = human2arrow(period)
     if not period_dt:
         breakpoint()
-    now = datetime.now()
+    _now = now()
 
     # None key contains items with no tags
     by_tag = defaultdict(set)
     for item in work:
-        start_time = formatted2dt(item['start'])
+        start_time = formatted2arrow(item['start'])
         if period and period_dt.day != start_time.day:
             continue
-        end_time = item.get('end') and formatted2dt(item['end'])
+        end_time = item.get('end') and formatted2arrow(item['end'])
         name = item['name']
         tags = item.get('tags', set())
         if groupby and groupby in ('t', 'tag'):
@@ -46,7 +46,7 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
         if end_time:
             _log[name]['duration'] += end_time - start_time
         else:
-            _log[name]['duration'] += now - start_time
+            _log[name]['duration'] += _now - start_time
             current = name
 
     name_col_len = 0

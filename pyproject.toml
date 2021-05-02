@@ -1,19 +1,20 @@
 [tool.poetry]
 name = "ti"
-version = "0.1.0"
+version = "0.0.3"
 description = "Not a silly simple time tracker"
 authors = ["Gilad Barnea <giladbrn@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-dateparser = "^1.0.0"
 rich = "^10"
 loguru = { version = "^0.5.3", optional = true }
+toml = "^0.10"
+arrow = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
-cram = { version = "^0.7" , optional = true}
-pytest-cram = { version = "^0.2.2" , optional = true}
+# cram = { version = "^0.7" , optional = true}
+# pytest-cram = { version = "^0.2.2" , optional = true}
 ipython = { version = "^7.22.0", optional = true }
 
 [build-system]

@@ -1,9 +1,28 @@
 import re
+from contextlib import suppress
 from datetime import datetime, timedelta
 
-from dateparser import parse as parsedate
+import arrow
+from arrow import Arrow
+from arrow.locales import EnglishLocale
 
-from ti.error import BadTime
+# from dateparser import parse as _parsedate
+# from functools import partial
+
+from ti.config import config
+
+if config:
+    # parsedate = partial(_parsedate, settings={'TIMEZONE': config.time.tz, 'RETURN_AS_TIMEZONE_AWARE': True})
+    TZINFO = config.time.tz
+    FMT = config.time.format
+    DT_FMT = FMT + f" HH:mm:ss"
+    # dtnow = partial(datetime.now, TZINFO)
+else:
+    # parsedate = _parsedate
+    TZINFO = None
+    FMT = 'MM/DD/YY'
+    DT_FMT = FMT + f" HH:mm:ss"
+    # dtnow = datetime.now
 
 ABBREVS = {
     's': 'seconds',
@@ -14,22 +33,40 @@ ABBREVS = {
     'M': 'months'
     }
 
-
-def reformat(date: str, fmt="%x %X") -> str:
-    return formatted2dt(date).strftime(fmt)
+DAYS = set(map(str.lower, EnglishLocale.day_abbreviations[1:] + EnglishLocale.day_names[1:]))
 
 
-def human2formatted(engtime: str = "now", fmt="%x %X") -> str:
+def now() -> Arrow:
+    return arrow.now(TZINFO)
+
+
+def day_num(day: str) -> int:
+    day = day.lower()
+    for num, day_name in enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1):
+        if day_name.startswith(day):
+            return num
+    raise ValueError(f"unknown day: {repr(day)}")
+
+
+def day2arrow(day: str) -> Arrow:
+    return now().shift(days=-1 * (7 - day_num(day)))
+
+
+def reformat(date: str, fmt=DT_FMT) -> str:
+    return formatted2arrow(date).strftime(fmt)
+
+
+def human2formatted(engtime: str = "now", fmt=DT_FMT) -> str:
     """Called by parse_args(), written as 'start' and 'end' values
 
     >>> human2formatted("yesterday")
     '04/26/21 17:16:54'
     """
-    timediff: datetime = human2dt(engtime)
-    return timediff.strftime(fmt)
+    arrw: Arrow = human2arrow(engtime)
+    return arrw.format(fmt)
 
 
-def human2dt(engtime: str = "now") -> datetime:
+def human2arrow(engtime: str = "now") -> Arrow:
     """
     Format is e.g.::
 
@@ -44,61 +81,90 @@ def human2dt(engtime: str = "now") -> datetime:
     Returns:
         datetime: The difference between now and `engtime`.
     """
+    engtime = engtime.lower()
+    if engtime in ('now', 'today'):
+        return now()
+    if engtime == 'yesterday':
+        return now().shift(days=-1)
 
-    match = re.match(r'(\d+)\s*([smhdwM])(\s+ago\s*)?$', engtime)
-    if match is None:
-        parsed = parsedate(engtime)
-        if not parsed:
-            raise BadTime(f"human2dt({engtime = })")
+    with suppress(ValueError):
+        return day2arrow(engtime)
+
+    TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|week)?s?"
+    match = re.fullmatch((rf'(?P<amount1>\d+)\s*(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER}\s*'
+                          rf'((?P<amount2>\d+)\s*(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER}\s*'
+                          rf'((?P<amount3>\d+)\s*(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})?)?\s*'
+                          r'(?:\s+ago\s*)?$'), engtime, re.IGNORECASE)
+    if match:
+        # 3m ago
+        grpdict = match.groupdict()
+        amount1 = int(grpdict['amount1'])
+        unit1 = grpdict['unit1']
+        delta = {ABBREVS[unit1]: amount1}
+        if amount2 := grpdict.get('amount2'):
+            delta.update({ABBREVS[grpdict['unit2']]: int(amount2)})
+            if amount3 := grpdict.get('amount3'):
+                delta.update({ABBREVS[grpdict['unit3']]: int(amount3)})
+        parsed = now() - timedelta(**delta)
         return parsed
-    now: datetime = datetime.now()
-    amount = int(match.group(1))
-    unit = match.group(2)
 
-    parsed = now - timedelta(**{ABBREVS[unit]: amount})
-    return parsed
-
-
-
-
-    if not engtime or engtime.lower().strip() == 'now':
-        return now
-
-    match = re.match(r'(\d+)\s*(m|mins?|minutes?)(\s+ago\s*)?$', engtime, re.X)
-    if match is not None:
-        minutes = int(match.group(1))
-        return now - timedelta(minutes=minutes)
-
-    match = re.match(r'(\d+)\s*(h|hrs?|hours?)(\s+ago\s*)?$', engtime, re.X)
-    if match is not None:
+    match = re.match(r'(\d{1,2})(?::(\d{2}))?', engtime)
+    if match:
         hours = int(match.group(1))
-        return now - timedelta(hours=hours)
+        minutes = match.group(2)
+        replace = {'hour': hours}
+        if minutes is not None:
+            replace.update({'minute': int(minutes)})
 
-    raise BadTime(f"Don't understand the time {engtime!r}")
+        return now().replace(**replace)
+
+    #
+    # parsed = parsedate(engtime)
+    #
+    #
+    # if not parsed:
+    #     raise BadTime(f"BadTime: human2dt({engtime = })")
+    # return parsed
+    # if not engtime or engtime.lower().strip() == 'now':
+    #     return now
+    #
+    # match = re.match(r'(\d+)\s*(m|mins?|minutes?)(\s+ago\s*)?$', engtime, re.X)
+    # if match is not None:
+    #     minutes = int(match.group(1))
+    #     return now - timedelta(minutes=minutes)
+    #
+    # match = re.match(r'(\d+)\s*(h|hrs?|hours?)(\s+ago\s*)?$', engtime, re.X)
+    # if match is not None:
+    #     hours = int(match.group(1))
+    #     return now - timedelta(hours=hours)
+    #
+    # raise BadTime(f"Don't understand the time {engtime!r}")
 
 
-def formatted2dt(date: str) -> datetime:
+def formatted2arrow(date: str) -> Arrow:
     """Called by log() and status() with 'start' and 'end' values.
 
-    >>> formatted2dt('04/19/21 10:13:11')
+    >>> formatted2arrow('04/19/21 10:13:11')
     datetime(2021, 4, 19, 10, 13, 11)
 
-    >>> formatted2dt('04/19/21')
+    >>> formatted2arrow('04/19/21')
     datetime.datetime(2021, 4, 19, 0, 0)
 
-    >>> formatted2dt('10:13:11')
+    >>> formatted2arrow('10:13:11')
     datetime.datetime(2021, 4, 27, 10, 13, 11)
     """
     if ' ' in date:
-        # "04/19/21 10:13:11" → datetime(...)
-        return datetime.strptime(date, '%x %X')
+        # "04/19/21 10:13:11" → arrow(...)
+        return arrow.get(date, DT_FMT, tzinfo=TZINFO)
+        # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
     if '/' in date:
-        # "04/19/21" → datetime(...)
-        return datetime.strptime(date, '%x')
+        # "04/19/21" → arrow(...)
+        return arrow.get(date, FMT, tzinfo=TZINFO)
+        # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
     # "10:13:11" → datetime(...)
     today = datetime.today()
-    dt = datetime(today.year, today.month, today.day, *map(int, date.split(':')))
-    return dt
+    return arrow.Arrow(today.year, today.month, today.day, *map(int, date.split(':')))
+    # return dt
 
 
 def secs2human(secs: int) -> str:
@@ -120,7 +186,7 @@ def secs2human(secs: int) -> str:
     return pretty
 
 
-def timegap(start_time, end_time):
+def timegap(start_time: datetime, end_time: datetime) -> str:
     diff = end_time - start_time
 
     mins = int(diff.total_seconds() // 60)

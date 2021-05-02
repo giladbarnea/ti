@@ -42,7 +42,7 @@ from rich import print as rprint
 from ti import color as c
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
 from ti.store import store
-from ti.times import formatted2dt, timegap, human2formatted, reformat
+from ti.times import formatted2arrow, timegap, human2formatted, reformat
 from ti.action import log
 
 
@@ -157,7 +157,7 @@ def status(show_notes=False):
     data = store.load()
     current = data['work'][-1]
 
-    start_time = formatted2dt(current['start'])
+    start_time = formatted2arrow(current['start'])
     diff = timegap(start_time, datetime.now())
 
     notes = current.get('notes')
@@ -211,9 +211,9 @@ def ensure_working():
 
 def parse_args(argv=sys.argv):
     if len(argv) == 1:
-        return log, {}
-    if argv[1] == '+':
         return log, {'detailed': True}
+    if argv[1] == '-':
+        return log, {}
 
     head = argv[1]
     tail = argv[2:]
@@ -254,7 +254,7 @@ def parse_args(argv=sys.argv):
         fn = status
         args = {'show_notes': '+' in head}
 
-    elif head in ('l', 'l+', 'log', 'log+'):
+    elif head in ('l', 'l-', 'log', 'log-'):
         fn = log
         groupby = None
         with suppress(ValueError, AttributeError):
@@ -267,7 +267,7 @@ def parse_args(argv=sys.argv):
             period = 'today'
         args = {
             'period':   period,
-            'detailed': '+' in head,
+            'detailed': '-' not in head,
             'groupby':  groupby
             }
 
