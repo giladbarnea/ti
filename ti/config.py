@@ -30,9 +30,10 @@ class Config:
         cfg_file = Path.home() / '.timefred.toml'
         if cfg_file.exists():
             cfg = toml.load(cfg_file.open())
-            self.time = TimeCfg(cfg.get("time"))
+            time_cfg = cfg.get("time", {})
         else:
-            self.time = None
+            time_cfg = {}
+        self.time = TimeCfg(time_cfg)
 
     def __bool__(self):
         return self.time is not None
