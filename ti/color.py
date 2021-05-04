@@ -1,5 +1,7 @@
 import re
 
+def rgb(s, r, g, b):
+	return f'\x1b[38;2;{r};{g};{b}m{s}\x1b[39m'
 def task(s):
 	return f'[b rgb(58,150,221)]{s}[/b rgb(58,150,221)]'
 
@@ -19,7 +21,7 @@ def blue(s):
 	return f'[blue]{s}[/blue]'
 
 def b(s):
-	return f'[b]{s}[/b]'
+	return f'\x1b[1m{s}\x1b[22m'
 
 
 def dim(s):
@@ -38,6 +40,6 @@ def len_color(s):
 	return len(s) - len(strip_color(s))
 
 
-def ljust_with_color(s, n):
+def ljust_with_color(s: str, n):
 	"""ljust string that might contain color."""
 	return s.ljust(n + len_color(s))

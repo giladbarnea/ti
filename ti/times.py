@@ -40,7 +40,7 @@ def now() -> Arrow:
     return arrow.now(TZINFO)
 
 
-def day_num(day: str) -> int:
+def isoweekday(day: str) -> int:
     day = day.lower()
     for num, day_name in enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1):
         if day_name.startswith(day):
@@ -49,11 +49,19 @@ def day_num(day: str) -> int:
 
 
 def day2arrow(day: str) -> Arrow:
-    return now().shift(days=-1 * (7 - day_num(day)))
+    now_isoweekday = now().isoweekday()
+    day_isoweekday = isoweekday(day)
+    diff = abs(now_isoweekday - day_isoweekday)
+    if now_isoweekday <= day_isoweekday:
+        shift = diff - 7
+    else:
+        shift = diff * -1
+    return now().shift(days=shift)
 
 
 def reformat(date: str, fmt=DT_FMT) -> str:
-    return formatted2arrow(date).strftime(fmt)
+    # return formatted2arrow(date).strftime(fmt)
+    return formatted2arrow(date).format(fmt)
 
 
 def human2formatted(engtime: str = "now", fmt=DT_FMT) -> str:

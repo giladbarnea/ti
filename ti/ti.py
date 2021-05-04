@@ -52,7 +52,7 @@ def on(name, time="now", _tag=None):
 
     if work and 'end' not in (current := work[-1]):
         if current['name'] == name:
-            rprint(f'Already working on {c.task(name)} since {reformat(current["start"], "%X")} ;)')
+            rprint(f'Already working on {c.task(name)} since {reformat(current["start"], "HH:mm:ss")} ;)')
             return True
         ok = fin(time)
         if ok:
@@ -70,7 +70,7 @@ def on(name, time="now", _tag=None):
     work.append(entry)
     store.dump(data)
 
-    message = f'{c.green("Started")} working on {c.task(name)} at {reformat(time, "%X")}'
+    message = f'{c.green("Started")} working on {c.task(name)} at {reformat(time, "HH:mm:ss")}'
     if _tag:
         message += f". tag: {c.tag(_tag)}"
     rprint(message)
@@ -84,7 +84,7 @@ def fin(time, back_from_interrupt=True):
     current = data['work'][-1]
     current['end'] = time
     ok = store.dump(data)
-    rprint(f'{c.yellow("Stopped")} working on {c.task(current["name"])} at {reformat(time, "%X")}')
+    rprint(f'{c.yellow("Stopped")} working on {c.task(current["name"])} at {reformat(time, "HH:mm:ss")}')
     if not ok:
         return False
     if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -118,8 +118,8 @@ def interrupt(name, time):
 
 
 def note(content, time="now"):
-    ensure_working()
-    formatted_time = human2formatted(time, fmt="%X")
+    # ensure_working()
+    formatted_time = human2formatted(time, fmt="HH:mm:ss")
     content = content.strip() + f' ({formatted_time})'
     data = store.load()
     current = data['work'][-1]
@@ -130,7 +130,8 @@ def note(content, time="now"):
         current['notes'].append(content)
 
     store.dump(data)
-    rprint(f'Noted [i]{content}[/i] to {c.task(current["name"])}.')
+
+    print(f'Noted {c.b(c.rgb(content,95,135,89))} to {c.b(c.rgb(current["name"], 58,150,221))}')
 
 
 def tag(_tag):

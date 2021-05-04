@@ -2,7 +2,7 @@ from typing import NoReturn
 
 import arrow
 
-from ti.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, day_num, day2arrow, human2formatted
+from ti.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, isoweekday, day2arrow, human2formatted
 from random import randint
 
 
@@ -70,8 +70,8 @@ def test__day_num():
                                 ('su', 'sun', 'sunday')],
                                start=1):
         for day in days:
-            assert day_num(day) == num
-            assert day_num(day.title()) == num
+            assert isoweekday(day) == num
+            assert isoweekday(day.title()) == num
 
 
 def test__day2arrow():

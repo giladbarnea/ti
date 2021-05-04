@@ -26,6 +26,7 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
 
     # None key contains items with no tags
     by_tag = defaultdict(set)
+    # breakpoint()
     for item in work:
         start_time = formatted2arrow(item['start'])
         if period and period_dt.day != start_time.day:
@@ -33,13 +34,18 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
         end_time = item.get('end') and formatted2arrow(item['end'])
         name = item['name']
         tags = item.get('tags', set())
+        _log[name]['notes'] = []
         if groupby and groupby in ('t', 'tag'):
             if not tags:
                 by_tag[None].add(name)
             else:
                 for t in tags:
                     by_tag[t].add(name)
+        for note in item.get('notes', set()):
+            note_content, _, note_time = note.rpartition('(')
+            _log[name]['notes'].append((note_time[:-1], note_content))
         _log[name]['tags'] = tags
+        # _log[name]['notes'] = notes
 
         _log[name]['times'].append((start_time, end_time))
 
@@ -49,6 +55,8 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
             _log[name]['duration'] += _now - start_time
             current = name
 
+
+    # Get total duration and make it pretty
     name_col_len = 0
     total_secs = 0
     for name, item in _log.items():
@@ -77,28 +85,35 @@ def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
     rprint(f"[b bright_white]Total:[/] {secs2human(total_secs)}")
 
 
-def print_log(name, item, current: str, detailed: bool, name_col_len: int):
+def print_log(name: str, item, current: str, detailed: bool, name_col_len: int):
     if detailed:
         start_end_times: List[Tuple[datetime, datetime]] = item["times"]
         time = "\n  \x1b[2m"
+        if item["notes"]:
+            time += f"\n  \x1b[38;2;150;150;150mTimes\x1b[0;2m"
         for start, end in start_end_times:
             if end:
                 time += f'\n  {start.strftime("%X")} → {end.strftime("%X")} ({end - start})'
             else:
                 time += f'\n  {start.strftime("%X")}'
+
+        if item["notes"]:
+            time += '\n\n  \x1b[38;2;150;150;150mNotes\x1b[0;2m'
+        for note_time, note_content in sorted(item["notes"], key=lambda _n:_n[0]):
+            time += f'\n  {note_time}: {note_content}'
         time += "\x1b[0m\n"
     else:
-        fist_start_time = min(map(lambda t: t[0], item["times"]))
-        time = f' \x1b[2mstarted: {fist_start_time.strftime("%X")}\x1b[0m'
+        first_start_time = min(map(lambda t: t[0], item["times"]))
+        time = f' \x1b[2mstarted: {first_start_time.strftime("%X")}\x1b[0m'
 
     if current == name:
-        name = f'\x1b[1m{name}\x1b[0m'
+        name = f'\x1b[1;38;2;255;255;255m{name}\x1b[0m'
 
     if detailed:
         tags = [f"\x1b[2;38;2;204;120;50m{_tag}\x1b[22;39m" for _tag in item["tags"]]
         name += f'  {", ".join(tags)}'
 
     print(c.ljust_with_color(name, name_col_len),
-          '\x1b[2m∙ ∙\x1b[0m ',
+          '\x1b[2m\t\x1b[0m ',
           item['pretty'],
           time)
