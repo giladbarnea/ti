@@ -34,25 +34,26 @@ import subprocess
 import sys
 import tempfile
 from contextlib import suppress
-from datetime import datetime
 
 import yaml
 from rich import print as rprint
 
 from ti import color as c
-from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments
-from ti.store import store
-from ti.times import formatted2arrow, timegap, human2formatted, reformat, now
 from ti.action import log
+from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
+from ti.item import Item
+from ti.store import store
+from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow
+from ti.util import confirm
 
 
-def on(name, time="now", _tag=None):
+def on(name, time="now", _tag=None, _note=None):
     data = store.load()
     work = data['work']
 
     if work and 'end' not in (current := work[-1]):
         if current['name'] == name:
-            rprint(f'Already working on {c.task(name)} since {reformat(current["start"], "HH:mm:ss")} ;)')
+            print(f'{c.orange("Already")} working on {c.task(name)} since {c.b(c.time(reformat(current["start"], "HH:mm:ss")))} ;)')
             return True
         ok = fin(time)
         if ok:
@@ -67,24 +68,36 @@ def on(name, time="now", _tag=None):
     if _tag:
         entry.update({'tags': [_tag]})
 
+    if _note:
+        entry.update({'notes': [_note]})
+
     work.append(entry)
     store.dump(data)
 
-    message = f'{c.green("Started")} working on {c.task(name)} at {reformat(time, "HH:mm:ss")}'
+    message = f'{c.green("Started")} working on {c.task(name)} at {c.b(c.time(reformat(time, "HH:mm:ss")))}'
     if _tag:
         message += f". tag: {c.tag(_tag)}"
-    rprint(message)
+
+    if _note:
+        message += f". note: {c.note(_note)}"
+    print(message)
 
 
-def fin(time, back_from_interrupt=True):
+def fin(time: str, back_from_interrupt=True) -> bool:
     ensure_working()
 
     data = store.load()
 
     current = data['work'][-1]
+    item = Item(**data['work'][-1])
+
+    end = formatted2arrow(time)
+    if item.start >= end:
+        print(f'{c.orange("Cannot")} finish {c.task(item.name)} at {c.time(reformat(end, "HH:mm:ss"))} because it only started at {c.time(reformat(item.start, "HH:mm:ss"))}.')
+        return False
     current['end'] = time
     ok = store.dump(data)
-    rprint(f'{c.yellow("Stopped")} working on {c.task(current["name"])} at {reformat(time, "HH:mm:ss")}')
+    print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(reformat(end, "HH:mm:ss"))}')
     if not ok:
         return False
     if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -117,39 +130,82 @@ def interrupt(name, time):
     print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
+from time import perf_counter_ns
+
+
+def timeit(function):
+    def decorator(*args, **kwargs):
+        a = perf_counter_ns()
+        rv = function(*args, **kwargs)
+        b = perf_counter_ns()
+        print(f'{function.__qualname__}({", ".join(args) + ", " if args else ""}{", ".join(f"{k}={repr(v)}" for k, v in kwargs.items())}) took {round((b - a) / 1000, 2):,} μs ({round((b - a) / 1_000_000, 1):,} ms)')
+        return rv
+
+    return decorator
+
+
 def note(content, time="now"):
     # ensure_working()
-    formatted_time = human2formatted(time, fmt="HH:mm:ss")
-    content = content.strip() + f' ({formatted_time})'
+    time = human2arrow(time)
+    if time > now():
+        raise BadTime(f"in the future: {time}")
+    formatted_time = time.format("HH:mm:ss")
+    content_and_time = content.strip() + f' ({formatted_time})'
     data = store.load()
-    current = data['work'][-1]
+    idx = -1
+    item = Item(**data['work'][idx])
+    if time < item.start:
+        # Note for something in the past
+        idx = -1 * next(i for i, work in enumerate(reversed(data['work']), 1) if Item(**work).start <= time)
+        item_in_range = Item(**data['work'][idx])
+        if item_in_range.name == item.name:
+            item = item_in_range
+        else:
+            if not confirm(f'{item.name_colored} started only at {c.time(item.start.strftime("%X"))},\n'
+                         f'note to {item_in_range.name_colored} (started at {c.time(item_in_range.start.strftime("%X"))})?'):
+                return
+            item = item_in_range
 
-    if 'notes' not in current:
-        current['notes'] = [content]
-    else:
-        current['notes'].append(content)
+    # refactor this out when Note class
+    content_lower = content.lower()
+    for n in item.notes:
+        if n.lower().startswith(content_lower):
+            if not confirm(f'{item.name_colored} already has this note: {c.b(c.note(n))}.\n'
+                          'Add anyway?'):
+                return
 
+    item.notes.append(content_and_time)
+    data['work'][idx]['notes'] = item.notes
     store.dump(data)
 
-    print(f'Noted {c.b(c.rgb(content,95,135,89))} to {c.b(c.rgb(current["name"], 58,150,221))}')
+    print(f'Noted {c.b(c.note(content_and_time))} to {item.name_colored}')
 
 
-def tag(_tag):
-    ensure_working()
-
+def tag(_tag, time="now"):
+    time = human2arrow(time)
+    if time > now():
+        raise BadTime(f"in the future: {time}")
     data = store.load()
-    current = data['work'][-1]
-
-    current_tags = list(current.get('tags', []))
-    if _tag.lower() in [t.lower() for t in current_tags]:
-        rprint(f'{c.task(current["name"])} already has tag {c.tag(_tag)}.')
+    idx = -1
+    item = Item(**data['work'][idx])
+    if time < item.start:
+        # Tag something in the past
+        idx = -1 * next(i for i, work in enumerate(reversed(data['work']), 1) if Item(**work).start <= time)
+        item_in_range = Item(**data['work'][idx])
+        if not input(f'{item.name_colored} started only at {c.time(item.start.strftime("%X"))}, '
+                     f'Tag {item_in_range.name_colored} (started at {c.time(item_in_range.start.strftime("%X"))})? [yn]  ').lower() in ('y', 'yes'):
+            return
+        item = item_in_range
+    tag_pretty = c.b(c.tag(_tag))
+    if _tag.lower() in [t.lower() for t in item.tags]:
+        print(f'{item.name_colored} already has tag {tag_pretty}.')
         return
-    current_tags.append(_tag)
-    current['tags'] = current_tags
+    item.tags.append(_tag)
+    data['work'][idx]['tags'] = item.tags
 
     store.dump(data)
 
-    rprint(f"Okay, tagged {c.task(current['name'])} with {c.tag(_tag)}.")
+    print(f"Okay, tagged {item.name_colored} with {tag_pretty}.")
 
 
 def status(show_notes=False):
@@ -163,10 +219,10 @@ def status(show_notes=False):
 
     notes = current.get('notes')
     if not show_notes or not notes:
-        rprint(f'You have been working on {c.task(current["name"])} for {c.green(diff)}.')
+        print(f'You have been working on {c.task(current["name"])} for {c.b(c.time(diff))}.')
         return
 
-    rprint('\n    '.join([f'You have been working on {c.task(current["name"])} for {c.green(diff)}.\nNotes:[rgb(170,170,170)]',
+    rprint('\n    '.join([f'You have been working on {c.task(current["name"])} for {c.b(c.time(diff))}.\nNotes:[rgb(170,170,170)]',
                           *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {n}' for n in notes],
                           '[/]']))
 
@@ -211,7 +267,10 @@ def ensure_working():
 
 
 def parse_args(argv=sys.argv):
-    if len(argv) == 1:
+    # ti -> log(detailed=True)
+    # ti - -> log()
+    argv_len = len(argv)
+    if argv_len == 1:
         return log, {'detailed': True}
     if argv[1] == '-':
         return log, {}
@@ -219,7 +278,7 @@ def parse_args(argv=sys.argv):
     head = argv[1]
     tail = argv[2:]
 
-    if head in ('-h', '--help', 'h', 'help'):
+    if 'help' in head or head in ('-h', 'h'):
         raise BadArguments()
 
     elif head in ('e', 'edit'):
@@ -233,18 +292,23 @@ def parse_args(argv=sys.argv):
         fn = on
         name = tail.pop(0)
         _tag = None
+        _note = None
         if tail:
             with suppress(ValueError):
                 _tag_idx = tail.index('-t')
                 _tag = tail[_tag_idx + 1]
                 tail = tail[:_tag_idx]
+                _note_idx = tail.index('-n')
+                _note = tail[_note_idx + 1]
+                tail = tail[:_note_idx]
             time = human2formatted(' '.join(tail) if tail else 'now')
         else:
             time = human2formatted()
         args = {
-            'name': name,
-            'time': time,
-            '_tag': _tag
+            'name':  name,
+            'time':  time,
+            '_tag':  _tag,
+            '_note': _note
             }
 
     elif head in ('f', 'fin'):
@@ -277,7 +341,17 @@ def parse_args(argv=sys.argv):
             raise BadArguments("Please provide a tag.")
 
         fn = tag
-        args = {'_tag': ' '.join(tail)}
+        if len(tail) == 2:
+            _tag, time = tail
+            args = {
+                '_tag': _tag,
+                'time': time
+                }
+        elif len(tail) == 1:
+            args = {'_tag': tail[0]}
+        else:
+            args = {'_tag': ' '.join(tail)}
+
 
     elif head in ('n', 'note'):
         if not tail:
@@ -305,6 +379,23 @@ def parse_args(argv=sys.argv):
             'name': name,
             'time': human2formatted(' '.join(tail) if tail else 'now'),
             }
+
+    elif head in ('a', 'ag', 'agg', 'aggreg', 'aggregate'):
+        if not tail:
+            raise BadArguments("Need at least <start> <stop>")
+        if len(tail) == 1:
+            times = tail[0]
+            if '-' in times:
+                start, stop = map(str.strip, times.partition('-'))
+            elif ' ' in times:
+                start, stop = map(str.strip, times.partition(' '))
+            else:
+                raise BadArguments("Need at least <start> <stop>")
+        else:
+            start, stop, *tail = tail
+        start_arw = human2arrow(start)
+        stop_arw = human2arrow(stop)
+        breakpoint()
 
     else:
         raise BadArguments("I don't understand %r" % (head,))

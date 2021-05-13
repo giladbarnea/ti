@@ -2,22 +2,25 @@ from typing import NoReturn
 
 import arrow
 
-from ti.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, isoweekday, day2arrow, human2formatted
+from ti.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, _isoweekday, _day2arrow, human2formatted
 from random import randint
 
 
 def _arrow_assert_soft_eq(arrw1, arrw2) -> NoReturn:
     """Regular Arrow __eq__ compares microseconds as well"""
     _arrow_assert_same_day(arrw1, arrw2)
-    assert arrw1.hour == arrw2.hour
-    assert arrw1.minute == arrw2.minute
-    assert arrw1.second == arrw2.second
+    _arrow_assert_same_time(arrw1, arrw2)
 
 
 def _arrow_assert_same_day(arrw1, arrw2) -> NoReturn:
     assert arrw1.year == arrw2.year
     assert arrw1.month == arrw2.month
     assert arrw1.day == arrw2.day
+
+def _arrow_assert_same_time(arrw1, arrw2) -> NoReturn:
+    assert arrw1.hour == arrw2.hour
+    assert arrw1.minute == arrw2.minute
+    assert arrw1.second == arrw2.second
 
 
 def test__human2arrow():
@@ -35,6 +38,7 @@ def test__human2arrow():
                  'm', 'min', 'mins', 'minute', 'minutes',
                  'h', 'hr', 'hrs', 'hour', 'hours',
                  'd', 'day', 'days'):
+        # sometimes fails because a second passes
         now2 = now.shift(**{ABBREVS[unit[0]]: -1})
         for foo in (unit, f' {unit}'):  # "s", " s"
 
@@ -59,6 +63,17 @@ def test__human2arrow():
         _arrow_assert_same_day(human2arrow(f'{h.ljust(1, "0")}:{m}'), now)
         _arrow_assert_same_day(human2arrow(f'{h.ljust(1, "0")}'), now)
 
+    # 'Wednesday'
+    wednesday = human2arrow('Wednesday')
+    _arrow_assert_same_time(wednesday, now)
+
+    # 'Wednesday 09:45'
+    wednesday_morning = human2arrow('Wed 09:45')
+    today_morning = now.replace(hour=9, minute=45)
+    _arrow_assert_same_day(wednesday_morning, wednesday)
+    assert wednesday_morning.hour == 9
+    assert wednesday_morning.minute == 45
+    _arrow_assert_same_time(wednesday_morning, today_morning)
 
 def test__day_num():
     for num, days in enumerate([('mo', 'mon', 'monday'),
@@ -70,13 +85,13 @@ def test__day_num():
                                 ('su', 'sun', 'sunday')],
                                start=1):
         for day in days:
-            assert isoweekday(day) == num
-            assert isoweekday(day.title()) == num
+            assert _isoweekday(day) == num
+            assert _isoweekday(day.title()) == num
 
 
 def test__day2arrow():
-    sunday = day2arrow('sun')
-    saturday = day2arrow('sat')
+    sunday = _day2arrow('sun')
+    saturday = _day2arrow('sat')
     assert sunday.day - saturday.day == 1
 
 
@@ -106,6 +121,6 @@ def test__formatted2arrow():
 def test__human2formatted():
     assert human2formatted() is not None
     now = arrow.now(TZINFO)
-    assert human2formatted(fmt="HH") == str(now.hour).ljust(1, '0')
+    assert human2formatted(fmt="HH") == str(now.hour).rjust(2, '0')
     assert human2formatted('07:39', fmt="HH") == '07'
     assert human2formatted('07:39', fmt="mm") == '39'
