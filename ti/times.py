@@ -36,6 +36,8 @@ ABBREVS = {
 
 # {'fri', 'friday', ...}
 DAYS = set(map(str.lower, EnglishLocale.day_abbreviations[1:] + EnglishLocale.day_names[1:]))
+
+# [(1, 'monday'), ..., (7, 'sunday')]
 NUM2DAY = list(enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1))
 TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|week)?s?"
 HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER}\s*'
@@ -48,25 +50,28 @@ def now() -> Arrow:
     return arrow.now(TZINFO)
 
 
-def _isoweekday(day: str) -> int:  # µs
+def isoweekday(day: str) -> int:  # perf: µs
     """
-    >>> _isoweekday('mon') == 1
+    >>> isoweekday('mon') == 1
+    >>> isoweekday('f') == 5
     """
     day = day.lower()
+    if len(day) == 1 and day in ('t','s'):
+        raise ValueError(f"ambiguous day: {repr(day)} (tuesday/thursday, saturday/sunday)")
     for num, day_name in NUM2DAY:
         if day_name.startswith(day):
             return num
     raise ValueError(f"unknown day: {repr(day)}")
 
 
-def _day2arrow(day: str) -> Arrow:  # µs
+def _day2arrow(day: str) -> Arrow:  # perf: µs
     """
     >>> _day2arrow('thurs')
     <Arrow ...>
     """
     _now = now()
     now_isoweekday = _now.isoweekday()
-    day_isoweekday = _isoweekday(day)
+    day_isoweekday = isoweekday(day)
     diff = abs(now_isoweekday - day_isoweekday)
     if now_isoweekday <= day_isoweekday:
         shift = diff - 7

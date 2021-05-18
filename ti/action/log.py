@@ -6,7 +6,7 @@ from typing import List, Tuple, Literal
 # from loguru import logger
 from rich import print as rprint
 
-from ti import color as c, times
+from ti import color as c
 # from ti.item import Item
 from ti.store import store
 from ti.times import human2arrow, formatted2arrow, secs2human, now, arrows2rel_time
@@ -15,7 +15,7 @@ note_time_re = re.compile(r'(.+) \(([\d/:]+)\)', re.IGNORECASE)
 
 
 # @logger.catch()
-def log(period="today", *, detailed=False, groupby: Literal['t', 'tag'] = None):
+def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
     data = store.load()
