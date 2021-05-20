@@ -23,10 +23,12 @@ def time(s):
 
 
 def tag(s):
+    # Orangeish
     return rgb(s, 204, 120, 50)
 
 
 def tag2(s):
+    # Dim Orangeish
     return rgb(s, 160, 94, 40)
 
 

@@ -34,9 +34,10 @@ import subprocess
 import sys
 import tempfile
 from contextlib import suppress
-from typing import Callable, Tuple, TypeVar
+from typing import Callable, Tuple, TypeVar, Union
 
 import yaml
+from arrow import Arrow
 from rich import print as rprint
 
 from ti import color as c
@@ -44,8 +45,9 @@ from ti.action import log
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
 from ti.item import Item
 from ti.store import store
-from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday
+from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday, arrows2rel_time
 from ti.util import confirm
+from ti.xarrow import XArrow
 
 
 def on(name, time="now", _tag=None, _note=None):
@@ -53,6 +55,7 @@ def on(name, time="now", _tag=None, _note=None):
 	work = data['work']
 
 	if work and 'end' not in (current := work[-1]):
+		# Finish current, then start (recursively)
 		current_name__lower = current["name"].lower()
 		name_lower = name.lower()
 		if current_name__lower == name_lower:
@@ -86,7 +89,7 @@ def on(name, time="now", _tag=None, _note=None):
 	print(message)
 
 
-def fin(time: str, back_from_interrupt=True) -> bool:
+def fin(time: Union[str, Arrow], back_from_interrupt=True) -> bool:
 	ensure_working()
 
 	data = store.load()
@@ -94,13 +97,18 @@ def fin(time: str, back_from_interrupt=True) -> bool:
 	current = data['work'][-1]
 	item = Item(**data['work'][-1])
 
-	end = formatted2arrow(time)
-	if item.start >= end:
-		print(f'{c.orange("Cannot")} finish {c.task(item.name)} at {c.time(reformat(end, "HH:mm:ss"))} because it only started at {c.time(reformat(item.start, "HH:mm:ss"))}.')
+	end: XArrow = formatted2arrow(time)
+	if item.start > end:
+		print(f'{c.orange("Cannot")} finish {item.name_colored} at {c.time(end.HHmmss)} because it only started at {c.time(item.start.HHmmss)}.')
 		return False
+	if item.start.day < end.day:
+		print(end)
+		if not confirm(f'{item.name_colored} started on {c.time(item.start.MMDDYYHHmmss)}, continue?'):
+			return False
 	current['end'] = time
+	item.end = time
 	ok = store.dump(data)
-	print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(reformat(end, "HH:mm:ss"))}')
+	print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.HHmmss)}')
 	if not ok:
 		return False
 	if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -266,6 +274,8 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 
 	# ti thursday
 	if len(argv[1]) > 1:
+		if argv[1].lower() == 'yesterday':
+			return log, {'period': argv[1], 'detailed': True}
 		with suppress(ValueError):
 			isoweekday(argv[1])
 			return log, {'period': argv[1], 'detailed': True}
@@ -279,6 +289,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 	elif head in ('e', 'edit'):
 		return edit, {}
 
+	# *** on
 	elif head in ('o', 'on'):
 		if not tail:
 			raise BadArguments("Need the name of whatever you are working on.")

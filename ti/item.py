@@ -5,6 +5,7 @@ from arrow import Arrow
 from ti import color as c
 from ti.dikt import Dikt
 from ti.times import formatted2arrow
+from ti.xarrow import XArrow
 
 
 class myproperty(property):
@@ -42,8 +43,8 @@ class myproperty(property):
 class Item(Dikt):
 	name: str
 	name_colored: str
-	start: Arrow
-	end: Optional[Arrow]
+	start: XArrow
+	end: Optional[XArrow]
 	notes: Optional[List[str]]
 	tags: Optional[List[str]]
 	jira: Optional[str]
@@ -64,20 +65,22 @@ class Item(Dikt):
 		return self._name
 
 	@property
-	def start(self) -> Arrow:
+	def start(self) -> XArrow:
 		if self._start and not isinstance(self._start, Arrow):
 			self._start = formatted2arrow(self._start)
 		return self._start
+
 	@start.setter
 	def start(self, val):
 		self._start = val
 
 
 	@property
-	def end(self) -> Arrow:
+	def end(self) -> XArrow:
 		if self._end and not isinstance(self._end, Arrow):
 			self._end = formatted2arrow(self._end)
 		return self._end
+
 
 	@end.setter
 	def end(self, val):

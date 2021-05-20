@@ -3,8 +3,10 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Union
 
-import arrow
+# import arrow
+from ti.xarrow import xarrow_factory as arrow
 from arrow import Arrow
+from ti.xarrow import XArrow
 from arrow.locales import EnglishLocale
 
 from ti.config import config
@@ -39,10 +41,15 @@ DAYS = set(map(str.lower, EnglishLocale.day_abbreviations[1:] + EnglishLocale.da
 
 # [(1, 'monday'), ..., (7, 'sunday')]
 NUM2DAY = list(enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1))
-TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|week)?s?"
-HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER}\s*'
-                             rf'((?P<amount2>\d+)\s*(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER}\s*'
-                             rf'((?P<amount3>\d+)\s*(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})?)?\s*'
+TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|eek|onth)?s?"
+HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
+                             rf'('
+                               rf'(?P<amount2>\d+)\s*(?P<fullunit2>(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
+                               rf'('
+                                 rf'(?P<amount3>\d+)\s*(?P<fullunit3>(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})'
+                               rf')?'
+                             rf')?'
+                             rf'\s*'
                              r'(?:\s+ago\s*)?$'), re.IGNORECASE)
 
 
@@ -99,7 +106,9 @@ def _time2replace_dict(time: str) -> dict:
     >>> _time2replace_dict('09:45')
     {'hour': 9, 'minute': 45}
     """
-    match = re.match(r'(\d{1,2})(?::(\d{2}))?', time)
+    if '/' in time:
+        raise ValueError(f"Don't understand {time = }")
+    match = re.match(r'(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?', time)
     if not match:
         raise ValueError(f"Don't understand {time = }")
 
@@ -108,6 +117,13 @@ def _time2replace_dict(time: str) -> dict:
     replace = {'hour': hours}
     if minutes is not None:
         replace.update({'minute': int(minutes)})
+    else:
+        replace.update({'minute': 0})
+    seconds = match.group(3)
+    if seconds is not None:
+        replace.update({'second': int(seconds)})
+    else:
+        replace.update({'second': 0})
     return replace
 
 
@@ -131,6 +147,9 @@ def _rel_time2arrow(time: str) -> Arrow:
     grpdict = match.groupdict()
     amount1 = int(grpdict['amount1'])
     unit1 = grpdict['unit1']
+    fullunit1 = grpdict['fullunit1']
+    if unit1 == 'm' and fullunit1 == 'month':
+        unit1 = 'M'
     delta = {ABBREVS[unit1]: amount1}
     if amount2 := grpdict.get('amount2'):
         delta.update({ABBREVS[grpdict['unit2']]: int(amount2)})
@@ -191,8 +210,13 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> Arrow:
     with suppress(ValueError):
         return _abs_time2arrow(engtime)
 
+    # 05/18/21
+    if '/' in engtime:
+        return formatted2arrow(engtime)
+
     # 'Wednesday 09:45'
     day, _, time = engtime.partition(' ')
+    # TODO: '05/20/21' doesnt work! and enters here
     day = _day2arrow(day)
     replace = _time2replace_dict(time)
     return day.replace(**replace)
@@ -220,7 +244,7 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> Arrow:
     # raise BadTime(f"Don't understand the time {engtime!r}")
 
 
-def formatted2arrow(date: Union[str, Arrow]) -> Arrow:
+def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     """Called by log() and status() with 'start' and 'end' values.
 
     >>> formatted2arrow('04/19/21 10:13:11')
@@ -244,7 +268,7 @@ def formatted2arrow(date: Union[str, Arrow]) -> Arrow:
         # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
     # "10:13:11" → datetime(...)
     today = datetime.today()
-    return arrow.Arrow(today.year, today.month, today.day, *map(int, date.split(':')))
+    return XArrow(today.year, today.month, today.day, *map(int, date.split(':')))
     # return dt
 
 

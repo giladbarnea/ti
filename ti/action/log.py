@@ -11,10 +11,9 @@ from ti import color as c
 from ti.store import store
 from ti.times import human2arrow, formatted2arrow, secs2human, now, arrows2rel_time
 
-note_time_re = re.compile(r'(.+) \(([\d/:]+)\)', re.IGNORECASE)
+note_time_re = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 
 
-# @logger.catch()
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
@@ -46,9 +45,14 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     # 		stop = True
 
     for item in work:
+        #TODO:must be in reversed
         start_time = formatted2arrow(item['start'])
-        if period and period_arrow.day != start_time.day:
+        if period_arrow.day != start_time.day:
             continue
+        if period_arrow.month != start_time.month and period_arrow.year != start_time.year:
+            # Assuming `work` is ordered
+            # TODO: work should be a dict of date strings
+            break
         end_time = item.get('end') and formatted2arrow(item['end'])
         name = item['name']
         tags = item.get('tags', set())
@@ -66,6 +70,7 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
                 note_time = match_groups[1]
                 _log[name]['notes'].append((note_time, note_content))
             else:
+                breakpoint()
                 _log[name]['notes'].append(note)
 
         _log[name]['tags'] = tags
@@ -88,7 +93,6 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
         total_secs += secs
         pretty = secs2human(secs)
         _log[name]['pretty'] = pretty
-
     title = c.b(c.w255(period_arrow.strftime('%A %x')))
     ago = arrows2rel_time(_now, period_arrow)
     if ago:
@@ -112,15 +116,12 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
         print_log(name, item, current, detailed, name_col_len)
 
     rprint(f"[b bright_white]Total:[/] {secs2human(total_secs)}")
-
-
 def print_log(name: str, item, current: str, detailed: bool, name_col_len: int):
     if detailed:
         start_end_times: List[Tuple[datetime, datetime]] = item["times"]
         time = "\n  \x1b[2m"
         if item["notes"]:
             time += '\n  ' + c.grey1('Times')
-            # time += f"\n  \x1b[38;2;150;150;150mTimes\x1b[0;2m"
         for start, end in start_end_times:
             if end:
                 time += f'\n  {start.strftime("%X")} → {end.strftime("%X")} ({end - start})'
@@ -129,25 +130,20 @@ def print_log(name: str, item, current: str, detailed: bool, name_col_len: int):
 
         if item["notes"]:
             time += '\n\n  ' + c.grey1('Notes')
-            # time += '\n\n  \x1b[38;2;150;150;150mNotes\x1b[0;2m'
         for note_time, note_content in sorted(item["notes"], key=lambda _n: _n[0]):
             time += f'\n  {note_time}: {note_content}'
         time += "\x1b[0m\n"
     else:
         first_start_time = min(map(lambda t: t[0], item["times"]))
         time = c.dim('started: ' + first_start_time.strftime("%X"))
-        # time = f' \x1b[2mstarted: {first_start_time.strftime("%X")}\x1b[0m'
 
     if current == name:
         name = c.b(c.w255(name))
-        # name = f'\x1b[1;38;2;255;255;255m{name}\x1b[0m'
     else:
-       # name = c.rgb(name, 200)
        name = c.w200(name)
 
     if detailed:
         tags = [c.dim(c.tag2(_tag)) for _tag in item["tags"]]
-        # tags = [f"\x1b[2;38;2;204;120;50m{_tag}\x1b[22;39m" for _tag in item["tags"]]
         name += f'  {", ".join(tags)}'
 
     print(c.ljust_with_color(name, name_col_len),

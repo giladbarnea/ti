@@ -4,6 +4,9 @@ import yaml
 
 
 # @dataclass
+from ti.util import timeit
+
+
 class Data(dict):
 	# doesn't write well to .ti-sheet
 	pass
@@ -15,7 +18,7 @@ class Store:
 
 	def __init__(self, filename):
 		self.filename = filename
-
+	# @timeit
 	def load(self):
 		if path.exists(self.filename):
 			with open(self.filename) as f:
