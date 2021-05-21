@@ -18,8 +18,8 @@ class Store:
 
 	def __init__(self, filename):
 		self.filename = filename
-	# @timeit
-	def load(self):
+
+	def load(self): # perf: 150ms
 		if path.exists(self.filename):
 			with open(self.filename) as f:
 				data = yaml.load(f, Loader=yaml.FullLoader)

@@ -15,6 +15,7 @@ class XArrow(Arrow):
 		self._HHmmss = None
 		self._MMDDYY = None
 		self._MMDDYYHHmmss = None
+		self._full = None
 	@property
 	def HHmmss(self):
 		if not self._HHmmss:
@@ -31,6 +32,13 @@ class XArrow(Arrow):
 		if not self._MMDDYYHHmmss:
 			self._MMDDYYHHmmss: str = times.reformat(self, times.DT_FMT)
 		return self._MMDDYYHHmmss
+
+	@property
+	def full(self):
+		"""'Thursday 05/20/21'"""
+		if not self._full:
+			self._full: str = self.strftime('%A %x')
+		return self._full
 
 class XArrowFactory(ArrowFactory):
 	type: Type[XArrow]
