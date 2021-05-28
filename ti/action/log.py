@@ -11,7 +11,7 @@ from ti import color as c
 from ti.item import Item
 from ti.store import store
 from ti.times import human2arrow, formatted2arrow, secs2human, now, arrows2rel_time
-
+from itertools import dropwhile
 note_time_re = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 
 
@@ -49,7 +49,7 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 				note_time = match_groups[1]
 				_log[item.name]['notes'].append((note_time, note_content))
 			else:
-				breakpoint()
+			    _log[item.name]['notes'].append((None, note))
 			# _log[item.name]['notes'].append(note)
 		stop = True
 		_log[item.name]['tags'] = item.tags
@@ -116,8 +116,14 @@ def print_log(name: str, item, current: str, detailed: bool, name_col_len: int):
 
 		if item["notes"]:
 			time += '\n\n  ' + c.grey1('Notes')
-		for note_time, note_content in sorted(item["notes"], key=lambda _n: _n[0]):
-			time += f'\n  {note_time}: {note_content}'
+
+		# for note_time, note_content in sorted(item["notes"], key=lambda _n: _n[0] if _n[0] else '0'):
+		for note_time, note_content in dropwhile(lambda _n:not _n[0], item["notes"]):
+			if note_time:
+				time += f'\n  {note_time}: {note_content}'
+			else:
+				time += f'\n  {note_content}'
+
 		time += "\x1b[0m\n"
 	else:
 		first_start_time = min(map(lambda t: t[0], item["times"]))
