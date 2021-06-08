@@ -7,11 +7,11 @@ from typing import List, Tuple, Literal
 from rich import print as rprint
 
 from ti import color as c
-# from ti.item import Item
 from ti.item import Item
 from ti.store import store
 from ti.times import human2arrow, formatted2arrow, secs2human, now, arrows2rel_time
 from itertools import dropwhile
+
 note_time_re = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 
 
@@ -26,45 +26,49 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 	_now = now()
 
 	by_tag = defaultdict(set)
-	stop = False
+	try:
+		item = next(item for item in map(lambda w: Item(**w), reversed(work)) if item.start.full == period_arrow.full)
+	except StopIteration:
+		# Optimization: for loop, stop when already passed
+		print(f"{c.orange('Missing')} logs for {period_arrow.full}")
+		return False
+	# stop = False
 	# total_secs = 0
-	for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
-		if item.start.day != period_arrow.day:
-			if stop:
-				break
-			continue
-		if period_arrow.month != item.start.month and period_arrow.year != item.start.year:
-			break
+	# for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
+	# 	if item.start.day != period_arrow.day:
+	# 		if stop:
+	# 			break
+	# 		continue
+	# 	if period_arrow.month != item.start.month and period_arrow.year != item.start.year:
+	# 		break
 		# 	if groupby and groupby in ('t', 'tag'):
 		# 		if not tags:
 		# 			by_tag[None].add(name)
 		# 		else:
 		# 			for t in tags:
 		# 				by_tag[t].add(name)
-		for note in item.notes:
-			match = note_time_re.fullmatch(note)
-			if match:
-				match_groups = match.groups()
-				note_content = match_groups[0]
-				note_time = match_groups[1]
-				_log[item.name]['notes'].append((note_time, note_content))
-			else:
-			    _log[item.name]['notes'].append((None, note))
-			# _log[item.name]['notes'].append(note)
-		stop = True
-		_log[item.name]['tags'] = item.tags
 
-		_log[item.name]['times'].append((item.start, item.end))
-
-		if item.end:
-			_log[item.name]['duration'] += item.end - item.start
+	for note in item.notes:
+		match = note_time_re.fullmatch(note)
+		if match:
+			match_groups = match.groups()
+			note_content = match_groups[0]
+			note_time = match_groups[1]
+			_log[item.name]['notes'].append((note_time, note_content))
 		else:
-			_log[item.name]['duration'] += _now - item.start
-			current = item.name
-		# duration = int(_log[item.name]['duration'].total_seconds())
-		# total_secs += duration
-		# pretty = secs2human(duration)
-		# _log[item.name]['pretty'] = pretty
+			_log[item.name]['notes'].append((None, note))
+	# _log[item.name]['notes'].append(note)
+	_log[item.name]['tags'] = item.tags
+
+	_log[item.name]['times'].append((item.start, item.end))
+
+	if item.end:
+		_log[item.name]['duration'] += item.end - item.start
+	else:
+		_log[item.name]['duration'] += _now - item.start
+		current = item.name
+
+
 
 	# Get total duration and make it pretty
 	name_col_len = 0
@@ -118,7 +122,7 @@ def print_log(name: str, item, current: str, detailed: bool, name_col_len: int):
 			time += '\n\n  ' + c.grey1('Notes')
 
 		# for note_time, note_content in sorted(item["notes"], key=lambda _n: _n[0] if _n[0] else '0'):
-		for note_time, note_content in dropwhile(lambda _n:not _n[0], item["notes"]):
+		for note_time, note_content in dropwhile(lambda _n: not _n[0], item["notes"]):
 			if note_time:
 				time += f'\n  {note_time}: {note_content}'
 			else:

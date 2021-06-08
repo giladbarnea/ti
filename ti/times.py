@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 from typing import Union
 
 # import arrow
-from ti.xarrow import xarrow_factory as arrow
+from ti.util import confirm
+from ti.xarrow import xarrow_factory
 from arrow import Arrow
 from ti.xarrow import XArrow
 from arrow.locales import EnglishLocale
@@ -14,7 +15,7 @@ from ti.config import config
 # from dateparser import parse as _parsedate
 # from functools import partial
 
-if config:
+if config.time:
     # parsedate = partial(_parsedate, settings={'TIMEZONE': config.time.tz, 'RETURN_AS_TIMEZONE_AWARE': True})
     TZINFO = config.time.tz
     FMT = config.time.format
@@ -53,8 +54,8 @@ HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smh
                              r'(?:\s+ago\s*)?$'), re.IGNORECASE)
 
 
-def now() -> Arrow:
-    return arrow.now(TZINFO)
+def now() -> XArrow:
+    return xarrow_factory.now(TZINFO)
 
 
 def isoweekday(day: str) -> int:  # perf: µs
@@ -71,7 +72,7 @@ def isoweekday(day: str) -> int:  # perf: µs
     raise ValueError(f"unknown day: {repr(day)}")
 
 
-def _day2arrow(day: str) -> Arrow:  # perf: µs
+def _day2arrow(day: str) -> XArrow:  # perf: µs
     """
     >>> _day2arrow('thurs')
     <Arrow ...>
@@ -127,7 +128,7 @@ def _time2replace_dict(time: str) -> dict:
     return replace
 
 
-def _abs_time2arrow(time: str) -> Arrow:
+def _abs_time2arrow(time: str) -> XArrow:
     """
     >>> _abs_time2arrow('09:45')
     <Arrow ...>
@@ -136,7 +137,7 @@ def _abs_time2arrow(time: str) -> Arrow:
     return now().replace(**replace)
 
 
-def _rel_time2arrow(time: str) -> Arrow:
+def _rel_time2arrow(time: str) -> XArrow:
     """
     >>> _rel_time2arrow('3m ago')
     <Arrow ...>
@@ -155,7 +156,7 @@ def _rel_time2arrow(time: str) -> Arrow:
         delta.update({ABBREVS[grpdict['unit2']]: int(amount2)})
         if amount3 := grpdict.get('amount3'):
             delta.update({ABBREVS[grpdict['unit3']]: int(amount3)})
-    parsed: Arrow = now() - timedelta(**delta)
+    parsed: XArrow = now() - timedelta(**delta)
     return parsed
 
 
@@ -164,16 +165,16 @@ def arrows2rel_time(late: Arrow, early: Arrow) -> str:
     >>> arrows2rel_time(now(), now().shift(days=-5, minutes=3))
     '4 days, 23 hours & 57 minutes ago'
     """
-    if (late.year != early.year or
-            late.month != early.month):
-        raise NotImplemented(f"Can only handle differences in weeks and below")
+    # if (late.year != early.year or
+    #         late.month != early.month):
+    #     raise NotImplemented(f"Can only handle differences in weeks and below")
     secs = int((late - early).total_seconds())
     if not secs:
         return ''
     return secs2human(secs) + ' ago'
 
 
-def human2arrow(engtime: Union[str, Arrow] = "now") -> Arrow:
+def human2arrow(engtime: Union[str, Arrow] = "now") -> XArrow:
     """
     Format is e.g.::
 
@@ -189,6 +190,9 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> Arrow:
         datetime: The difference between now and `engtime`.
     """
     if isinstance(engtime, Arrow):
+        if not isinstance(engtime, XArrow) \
+                and confirm(f'human2arrow(engtime) is regular Arrow, debug?'):
+            from pudb import set_trace; set_trace()
         return engtime
     engtime = engtime.lower()
 
@@ -257,14 +261,17 @@ def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     datetime.datetime(2021, 4, 27, 10, 13, 11)
     """
     if isinstance(date, Arrow):
+        if not isinstance(date, XArrow) \
+                and confirm(f'formatted2arrow(date) is regular Arrow, debug?'):
+            from pudb import set_trace; set_trace()
         return date
     if ' ' in date:
         # "04/19/21 10:13:11" → arrow(...)
-        return arrow.get(date, DT_FMT, tzinfo=TZINFO)
+        return xarrow_factory.get(date, DT_FMT, tzinfo=TZINFO)
         # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
     if '/' in date:
         # "04/19/21" → arrow(...)
-        return arrow.get(date, FMT, tzinfo=TZINFO)
+        return xarrow_factory.get(date, FMT, tzinfo=TZINFO)
         # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
     # "10:13:11" → datetime(...)
     today = datetime.today()
@@ -309,7 +316,7 @@ def secs2human(secs: int) -> str:
 
 
 def timegap(start_time: Arrow, end_time: Arrow) -> str:
-    # TODO: this is the same as arrows2rel_time
+    # TODO: this is the same as arrows2rel_time and used only by status()
     diff = end_time - start_time
 
     mins = int(diff.total_seconds() // 60)

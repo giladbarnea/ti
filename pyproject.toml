@@ -16,6 +16,8 @@ arrow = "^1.1.0"
 # cram = { version = "^0.7" , optional = true}
 # pytest-cram = { version = "^0.2.2" , optional = true}
 ipython = { version = "^7.22.0", optional = true }
+pudb = "^2021.1"
+pytest-pudb = "^0.7.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

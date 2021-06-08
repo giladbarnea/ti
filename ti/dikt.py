@@ -1,52 +1,50 @@
 import typing
 
+def extract_origin(t):
+	"""Extract e.g `dict` from `Optional[dict]`.
+	Returns None if non-extractable."""
+	origin = typing.get_origin(t)
+	if origin is None: # Any
+		return None
+	if origin is not typing.Union:
+		return origin
+
+	# origin is Union
+	origins = [a for a in typing.get_args(origin) if a != type(None)]
+	if len(origins) == 1:
+		return origins[0]
+	return None
 
 class Dikt(dict):
-	"""A drop-in replacement for builtin dict, that allows accessing values as attributes (recursively),
-	plus added functionality.
-
-	Example::
-
-		>>> document = { 'account_id' : 'foo', 'products' : { 'EndpointSecure' : 'bar' } }
-		>>> dokument = Dikt(document)
-		>>> dokument.products.EndpointSecure
-		bar
-		>>> dokument.DOES_NOT_EXIST
-		None
-		>>> isinstance(dokument, dict)
-		True
-		>>> # Recusively:
-		>>> isinstance(dokument.products, dict)
-		True
-		>>> # Works as regular dict
-		>>> for k, v in dokument.items(): ...
-
-	Class-level attribute annotations implement themselves (act as constructors)::
-
-		>>> class ProductData(Dikt):
-		>>>     def validate(self): ...
-
-		>>> class Device(Dikt):
-		>>> 	product_data: ProductData
-
-		>>> device = Device({ 'product_data' : ... })
-		>>> device.product_data.validate()
-
-	"""
-
 	def __init__(self, mapping=()) -> None:
 		super().__init__(mapping)
 		self.refresh()
 
-	def refresh(self):
+	def update_by_annotation(self, k, v) -> bool:
 		try:
 			annotations = self.__class__.__annotations__
 		except AttributeError:
-			annotations = {}
+			return False
+
+		if k not in annotations:
+			return False
+
+		origin = extract_origin(annotations[k])
+		if not origin:
+			return False
+
+		try:
+			constructed_val = annotations[k](v)
+		except:
+			return False
+
+		self.update({k: constructed_val})
+		return True
+
+	def refresh(self):
 		for k, v in self.items():
-			if k in annotations and typing.get_origin(annotations[k]) is not typing.Union:
-				self.update({k: annotations[k](v)})
-				continue
+			if self.update_by_annotation(k, v):
+					continue
 
 			if isinstance(v, dict):
 				self.update({k: Dikt(v)})
@@ -74,4 +72,10 @@ class Dikt(dict):
 	#         return None
 
 	def __getattr__(self, item):
+		"""Makes `d.foo` call `d['foo']`"""
 		return self[item]
+
+
+	def __setattr__(self, name: str, value) -> None:
+		super().__setattr__(name, value)
+		self[name] = value

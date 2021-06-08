@@ -5,15 +5,16 @@ ti is a simple and extensible time tracker for the command line. Visit the
 project page (http://ti.sharats.me) for more details.
 
 Usage:
-  ti (o|on) <name> [<start time>...]
-  ti (f|fin) [<end time>...]
+  ti (o|on) <name> [start time = "now"]
+  ti (f|fin) [end time = "now"]
   ti (s|status)
-  ti (t|tag) <tag>...
-    Add tag to current activity, e.g `ti tag red for-joe`.
-  ti (n|note) <note-text>...
-    `ti note Discuss this with the other team.`
-  ti (l|log) [today]
+  ti (t|tag) <tag> [time = "now"]
+    Add tag to current activity, e.g `ti tag research`.
+  ti (n|note) <note-text> [time = "now"]
+    ti note Discuss this with the other team.
+  ti (l|log) [period = "today"]
   ti (e|edit)
+  ti (a|agg|aggregate)
   ti (i|interrupt)
     Marks end time of current activity, pushes it to interrupt stack, and starts an "interrupt" activity.
   ti --no-color
@@ -146,15 +147,16 @@ def note(content, time="now"):
 	time = human2arrow(time)
 	if time > now():
 		raise BadTime(f"in the future: {time}")
-	formatted_time = time.format("HH:mm:ss")
-	content_and_time = content.strip() + f' ({formatted_time})'
+	breakpoint()
+	content_and_time = content.strip() + f' ({time.HHmmss})'
 	data = store.load()
 	idx = -1
 	item = Item(**data['work'][idx])
 	if time < item.start:
 		# Note for something in the past
-		idx = -1 * next(i for i, work in enumerate(reversed(data['work']), 1) if Item(**work).start <= time)
-		item_in_range = Item(**data['work'][idx])
+		idx, item_in_range = next((i, item) for i, item in enumerate(map(lambda w: Item(**w), reversed(data['work'])), 1) if item.start.full == time.full)
+		idx *= -1
+
 		if item_in_range.name == item.name:
 			item = item_in_range
 		else:
@@ -193,16 +195,16 @@ def tag(_tag, time="now"):
 					   f'Tag {item_in_range.name_colored} (started at {c.time(item_in_range.start.strftime("%X"))})?'):
 			return
 		item = item_in_range
-	tag_pretty = c.b(c.tag(_tag))
+	tag_colored = c.b(c.tag(_tag))
 	if _tag.lower() in [t.lower() for t in item.tags]:
-		print(f'{item.name_colored} already has tag {tag_pretty}.')
+		print(f'{item.name_colored} already has tag {tag_colored}.')
 		return
 	item.tags.append(_tag)
 	data['work'][idx]['tags'] = item.tags
 
 	store.dump(data)
 
-	print(f"Okay, tagged {item.name_colored} with {tag_pretty}.")
+	print(f"Okay, tagged {item.name_colored} with {tag_colored}.")
 
 
 def status(show_notes=False):
@@ -264,6 +266,8 @@ def ensure_working():
 
 
 def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
+	# *** log
+	# ** ti [-]
 	# ti -> log(detailed=True)
 	# ti - -> log()
 	argv_len = len(argv)
@@ -272,7 +276,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 	if argv[1] == '-':
 		return log, {'detailed': False}
 
-	# ti thursday
+	# ** ti thursday
 	if len(argv[1]) > 1:
 		if argv[1].lower() == 'yesterday':
 			return log, {'period': argv[1], 'detailed': True}
@@ -283,9 +287,30 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 	head = argv[1]
 	tail = argv[2:]
 
-	if 'help' in head or head in ('-h', 'h'):
-		raise BadArguments()
+	# ** log
+	if head in ('l', 'l-', 'log', 'log-'):
+		groupby = None
+		with suppress(ValueError, AttributeError):
+			groupby_idx = tail.index('-g')
+			groupby = tail[groupby_idx + 1]
+			tail = tail[:groupby_idx]
+		if tail:
+			period = ' '.join(tail)
+		else:
+			period = 'today'
+		args = {
+			'period':   period,
+			'detailed': '-' not in head,
+			'groupby':  groupby
+			}
+		return log, args
 
+	# *** help
+	if 'help' in head or head in ('-h', 'h'):
+		print(__doc__, file=sys.stderr)
+		sys.exit(1)
+
+	# *** edit
 	elif head in ('e', 'edit'):
 		return edit, {}
 
@@ -317,6 +342,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 			}
 		return on, args
 
+	# *** fin
 	elif head in ('f', 'fin'):
 		args = {
 			'time':                human2formatted(' '.join(tail) if tail else 'now'),
@@ -324,27 +350,14 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 			}
 		return fin, args
 
+	# *** status
 	elif head in ('s', 's+', 'status', 'status+'):
 		args = {'show_notes': '+' in head}
 		return status, args
 
-	elif head in ('l', 'l-', 'log', 'log-'):
-		groupby = None
-		with suppress(ValueError, AttributeError):
-			groupby_idx = tail.index('-g')
-			groupby = tail[groupby_idx + 1]
-			tail = tail[:groupby_idx]
-		if tail:
-			period = ' '.join(tail)
-		else:
-			period = 'today'
-		args = {
-			'period':   period,
-			'detailed': '-' not in head,
-			'groupby':  groupby
-			}
-		return log, args
 
+
+	# *** tag
 	elif head in ('t', 'tag'):
 		if not tail:
 			raise BadArguments("Please provide a tag.")
@@ -361,6 +374,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 			args = {'_tag': ' '.join(tail)}
 		return tag, args
 
+	# *** note
 	elif head in ('n', 'note'):
 		if not tail:
 			raise BadArguments("Please provide some text to be noted.")
@@ -376,6 +390,8 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 		else:
 			args = {'content': ' '.join(tail)}
 		return note, args
+
+	# *** interrupt
 	elif head in ('i', 'interrupt'):
 		if not tail:
 			raise BadArguments("Need the name of whatever you are working on.")
@@ -387,6 +403,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 			}
 		return interrupt, args
 
+	# *** aggregate
 	elif head in ('a', 'ag', 'agg', 'aggreg', 'aggregate'):
 		if not tail:
 			raise BadArguments("Need at least <start> <stop>")
