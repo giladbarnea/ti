@@ -35,7 +35,7 @@ import subprocess
 import sys
 import tempfile
 from contextlib import suppress
-from typing import Callable, Tuple, TypeVar, Union
+from typing import Callable, Tuple, TypeVar, Union, List
 
 import yaml
 from arrow import Arrow
@@ -43,6 +43,7 @@ from rich import print as rprint
 
 from ti import color as c
 from ti.action import log
+from ti._dev import generate_completion
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
 from ti.item import Item
 from ti.store import store
@@ -104,7 +105,7 @@ def fin(time: Union[str, Arrow], back_from_interrupt=True) -> bool:
 		return False
 	if item.start.day < end.day:
 		print(end)
-		if not confirm(f'{item.name_colored} started on {c.time(item.start.MMDDYYHHmmss)}, continue?'):
+		if not confirm(f'{item.name_colored} started on {c.time(item.start.DDMMYYHHmmss)}, continue?'):
 			return False
 	current['end'] = time
 	item.end = time
@@ -285,7 +286,7 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 			return log, {'period': argv[1], 'detailed': True}
 
 	head = argv[1]
-	tail = argv[2:]
+	tail: List[str] = argv[2:]
 
 	# ** log
 	if head in ('l', 'l-', 'log', 'log-'):
@@ -420,6 +421,11 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 		start_arw = human2arrow(start)
 		stop_arw = human2arrow(stop)
 		breakpoint()
+
+	# *** _dev
+	if head == '_dev':
+		if tail[0] == 'generate completion':
+			return generate_completion, {}
 
 	raise BadArguments("I don't understand %r" % (head,))
 

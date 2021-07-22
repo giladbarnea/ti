@@ -12,21 +12,8 @@ from arrow.locales import EnglishLocale
 
 from ti.config import config
 
-# from dateparser import parse as _parsedate
-# from functools import partial
-
-if config.time:
-    # parsedate = partial(_parsedate, settings={'TIMEZONE': config.time.tz, 'RETURN_AS_TIMEZONE_AWARE': True})
-    TZINFO = config.time.tz
-    FMT = config.time.format
-    DT_FMT = FMT + f" HH:mm:ss"
-    # dtnow = partial(datetime.now, TZINFO)
-else:
-    # parsedate = _parsedate
-    TZINFO = None
-    FMT = 'MM/DD/YY'
-    DT_FMT = FMT + f" HH:mm:ss"
-    # dtnow = datetime.now
+TZINFO = config.time.tz
+FORMATS = config.time.formats
 
 ABBREVS = {
     's': 'seconds',
@@ -88,11 +75,11 @@ def _day2arrow(day: str) -> XArrow:  # perf: µs
     return _now.shift(days=shift)
 
 
-def reformat(date: Union[str, Arrow], fmt=DT_FMT) -> str:
+def reformat(date: Union[str, Arrow], fmt=FORMATS.date_time) -> str:
     return formatted2arrow(date).format(fmt)
 
 
-def human2formatted(engtime: str = "now", fmt=DT_FMT) -> str:
+def human2formatted(engtime: str = "now", fmt=FORMATS.date_time) -> str:
     """Called by parse_args(), written as 'start' and 'end' values
 
     >>> human2formatted("yesterday")
@@ -251,10 +238,10 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> XArrow:
 def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     """Called by log() and status() with 'start' and 'end' values.
 
-    >>> formatted2arrow('04/19/21 10:13:11')
+    >>> formatted2arrow('19/04/21 10:13:11')
     datetime(2021, 4, 19, 10, 13, 11)
 
-    >>> formatted2arrow('04/19/21')
+    >>> formatted2arrow('19/04/21')
     datetime.datetime(2021, 4, 19, 0, 0)
 
     >>> formatted2arrow('10:13:11')
@@ -263,16 +250,14 @@ def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     if isinstance(date, Arrow):
         if not isinstance(date, XArrow) \
                 and confirm(f'formatted2arrow(date) is regular Arrow, debug?'):
-            from pudb import set_trace; set_trace()
+            breakpoint()
         return date
     if ' ' in date:
-        # "04/19/21 10:13:11" → arrow(...)
-        return xarrow_factory.get(date, DT_FMT, tzinfo=TZINFO)
-        # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
+        # "19/04/21 10:13:11" → arrow(...)
+        return xarrow_factory.get(date, FORMATS.date_time, tzinfo=TZINFO)
     if '/' in date:
-        # "04/19/21" → arrow(...)
-        return xarrow_factory.get(date, FMT, tzinfo=TZINFO)
-        # return datetime.strptime(date, DT_FMT).astimezone(TZINFO)
+        # "19/04/21" → arrow(...)
+        return xarrow_factory.get(date, FORMATS.date, tzinfo=TZINFO)
     # "10:13:11" → datetime(...)
     today = datetime.today()
     return XArrow(today.year, today.month, today.day, *map(int, date.split(':')))

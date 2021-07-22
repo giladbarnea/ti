@@ -96,7 +96,7 @@ def test__day2arrow():
 
 
 def test__formatted2arrow():
-    arrw = formatted2arrow('04/19/21 10:13:11')
+    arrw = formatted2arrow('19/04/21 10:13:11')
     assert arrw.year == 2021
     assert arrw.month == 4
     assert arrw.day == 19
@@ -104,7 +104,7 @@ def test__formatted2arrow():
     assert arrw.minute == 13
     assert arrw.second == 11
 
-    arrw = formatted2arrow('04/19/21')
+    arrw = formatted2arrow('19/04/21')
     assert arrw.year == 2021
     assert arrw.month == 4
     assert arrw.day == 19

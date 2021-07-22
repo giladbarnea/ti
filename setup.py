@@ -19,18 +19,18 @@ testing = bool({"pytest", "test"}.intersection(sys.argv))
 
 setup(
         name="ti",
-        version="0.0.3",
-        author="Shrikant Sharat & Trevor Bekolay",
-        author_email="tbekolay@gmail.com",
+        version="0.0.1",
+        author="Gilad Barnea",
+        author_email="giladbrn@gmail.com",
         packages=find_packages(),
         include_package_data=True,
         scripts=[],
-        url="http://ti.sharats.me/",
-        description="A silly simple time tracker",
+        url="https://github.com/giladbarnea/ti",
+        description="Not a silly simple time tracker",
         long_description=read("README.rst", "CHANGES.rst"),
         entry_points={
             "console_scripts": [
-                "ti = ti:main",
+                "tf = ti:main",
                 ]
             },
         install_requires=['arrow>=1.1.0,<2.0.0', 'rich>=10,<11', 'toml>=0.10,<0.11'],

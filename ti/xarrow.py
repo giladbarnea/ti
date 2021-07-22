@@ -13,8 +13,8 @@ class XArrow(Arrow):
         super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
         self.colored = c.time(self)
         self._HHmmss = None
-        self._MMDDYY = None
-        self._MMDDYYHHmmss = None
+        self._DDMMYY = None
+        self._DDMMYYHHmmss = None
         self._full = None
 
     @property
@@ -24,20 +24,20 @@ class XArrow(Arrow):
         return self._HHmmss
 
     @property
-    def MMDDYY(self):
-        if not self._MMDDYY:
-            self._MMDDYY: str = times.reformat(self, times.FMT)
-        return self._MMDDYY
+    def DDMMYY(self):
+        if not self._DDMMYY:
+            self._DDMMYY: str = times.reformat(self, times.FMT)
+        return self._DDMMYY
 
     @property
-    def MMDDYYHHmmss(self):
-        if not self._MMDDYYHHmmss:
-            self._MMDDYYHHmmss: str = times.reformat(self, times.DT_FMT)
-        return self._MMDDYYHHmmss
+    def DDMMYYHHmmss(self):
+        if not self._DDMMYYHHmmss:
+            self._DDMMYYHHmmss: str = times.reformat(self, times.DT_FMT)
+        return self._DDMMYYHHmmss
 
     @property
     def full(self):
-        """'Thursday 05/20/21'"""
+        """'Thursday 20/05/21'"""
         if not self._full:
             self._full: str = self.strftime('%A %x')
         return self._full
