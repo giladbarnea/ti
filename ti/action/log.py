@@ -2,8 +2,7 @@ import re
 from collections import defaultdict, UserDict, namedtuple
 from dataclasses import dataclass, field
 from datetime import timedelta
-from itertools import dropwhile
-from typing import List, Tuple, Literal, TypeVar, MutableMapping
+from typing import List, Tuple, Literal, TypeVar, MutableMapping, Optional, overload, Any
 
 from ti import color as c
 from ti.item import Item
@@ -21,14 +20,34 @@ class Timespan(namedtuple('Timespan', 'start end')):
 	start: XArrow
 	end: XArrow
 
+	def __radd__(self, other):
+		self_td = self.timedelta()
+		try:
+			return self_td + other.timedelta()
+		except AttributeError:
+			return self_td.total_seconds() + other
+
+	def timedelta(self) -> timedelta:
+		return self.end - self.start
+
+	def seconds(self) -> int:
+		return int(self.timedelta().total_seconds())
+
+	def human_duration(self) -> str:
+		return secs2human(self.seconds())
+
 
 @dataclass
 class LogEntry:
 	timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
 	notes: List[Note] = field(default_factory=list)
-	duration: timedelta = timedelta()
 	tags: List[str] = field(default_factory=list)
-	pretty: str = ''
+
+	def seconds(self) -> int:
+		return sum(self.timespans)
+
+	def human_duration(self) -> str:
+		return secs2human(self.seconds())
 
 	def earliest_start(self) -> XArrow:
 		return min(timespan.start for timespan in self.timespans)
@@ -44,7 +63,7 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
 		self.data[key] = LogEntry()
 		return self.data[key]
 
-	def entries_sorted(self) -> List[Tuple[K, LogEntry]]:
+	def sorted_entries(self) -> List[Tuple[K, LogEntry]]:
 		"""Takes each log entry's earliest start time and compares to other log entries"""
 
 		def by_earliest_start(name_log_entry_pair):
@@ -53,28 +72,25 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
 
 		return sorted(self.items(), key=by_earliest_start)
 
+	def total_seconds(self) -> int:
+		total = 0
+		for name, log_entry in self.items():
+			duration = int(log_entry.seconds())
+			total += duration
+		return total
 
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 	if groupby and groupby not in ('t', 'tag'):
 		raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
 	data = store.load()
 	work = data['work'] + data['interrupt_stack']
-	# _log = defaultdict(lambda: {'duration': timedelta(), 'timespans': [], 'notes': []})
-	# _log = defaultdict(LogEntry)
 	_log = Log()
 	current = None
 	period_arrow = human2arrow(period)
 	_now = now()
 
 	by_tag = defaultdict(set)
-	# try:
-	# 	item = next(item for item in map(lambda w: Item(**w), reversed(work)) if item.start.full == period_arrow.full)
-	# except StopIteration:
-	# 	# Optimization: for loop, stop when already passed
-	# 	print(f"{c.orange('Missing')} logs for {period_arrow.full}")
-	# 	return False
-	stop = False
-	total_secs = 0
+
 	for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
 		if item.start.DDMMYY != period_arrow.DDMMYY:
 			if period_arrow > item.start:
@@ -95,25 +111,19 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 		log_entry.notes.extend(item.notes)
 		log_entry.tags = item.tags
 
-		log_entry.timespans.append(Timespan(item.start, item.end))
+		timespan = Timespan(item.start, item.end or _now)
+		log_entry.timespans.append(timespan)
 
-		if item.end:
-			log_entry.duration += item.end - item.start
-		else:
-			log_entry.duration += _now - item.start
+
+		if not timespan.end:
 			current = item.name
 
-	# Get total duration and make it pretty
+	# Calculate total duration
 	name_col_len = 0
-	total_secs = 0
 	for name, log_entry in _log.items():
-		name_col_len = max(name_col_len, len(c.strip_color(name)), 24)
+		name_col_len = max(name_col_len, len(name), 24)
 
-		duration = int(log_entry.duration.total_seconds())
-		total_secs += duration
-		pretty = secs2human(duration)
-		log_entry.pretty = pretty
-
+	total_secs = _log.total_seconds()
 	title = c.title(period_arrow.full)
 	ago = arrows2rel_time(_now, period_arrow)
 	if ago:
@@ -124,16 +134,14 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 	#     title = f"{period[0]} {timespans.ABBREVS[period[1]]} ago"
 	print(title + '\n' if detailed else '')
 
-	# rprint(f"[b bright_white]{title}'s logs:[/]" + arrows2rel_time(_now, period_arrow) + '\n' if detailed else '')
 	if groupby:
 		for _tag, names in by_tag.items():
 			print(c.tag(_tag))
-			# print(f"\x1b[38;2;204;120;50m{_tag}\x1b[39m")
 			for name in names:
 				print_log(name, _log[name], current, detailed, name_col_len)
 		return
 
-	for name, log_entry in _log.entries_sorted():
+	for name, log_entry in _log.sorted_entries():
 		print_log(name, log_entry, current, detailed, name_col_len)
 
 	print(c.title('Total: ') + re.sub(r'\d', lambda match: f'{c.digit(match.group())}', secs2human(total_secs)))
@@ -148,24 +156,24 @@ def print_log(name: str, log_entry: LogEntry, current: str, detailed: bool, name
 
 		for start, end in log_entry.timespans:
 			if end:
-				time += f'\n  {start.strftime("%X")} → {end.strftime("%X")} ({end - start})'
+				time += f'\n  {start.HHmmss} → {end.HHmmss} ({end - start})'
 			else:
-				time += f'\n  {start.strftime("%X")}'
+				time += f'\n  {start.HHmmss}'
 
 		if log_entry.notes:
 			time += '\n\n  ' + c.grey150('Notes')
 
 		# for note_time, note_content in sorted(log_entry.notes, key=lambda _n: _n[0] if _n[0] else '0'):
-		for note_time, note_content in dropwhile(lambda _n: not _n[0], log_entry.notes):
+		for note_content, note_time in filter(bool, log_entry.notes):
 			if note_time:
-				time += f'\n  {note_time}: {note_content}'
+				time += f'\n  {note_content} ({note_time.HHmmss})'
 			else:
 				time += f'\n  {note_content}'
 
 		time += "\x1b[0m\n"
 	else:
 		earliest_start_time = log_entry.earliest_start()
-		time = c.dim('started ' + earliest_start_time.strftime("%X"))
+		time = c.i(c.dim('   started ' + earliest_start_time.HHmmss))
 
 	if current == name:
 		name = c.title(name)
@@ -177,5 +185,5 @@ def print_log(name: str, log_entry: LogEntry, current: str, detailed: bool, name
 
 	print(c.ljust_with_color(name, name_col_len),
 		  '\x1b[2m\t\x1b[0m ',
-		  log_entry.pretty,
+		  log_entry.human_duration(),
 		  time)

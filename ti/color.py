@@ -89,6 +89,9 @@ def b(s):
 def dim(s):
 	return f'\x1b[2m{s}\x1b[22m'
 
+def i(s):
+	return f'\x1b[3m{s}\x1b[23m'
+
 
 COLOR_RE = re.compile("(\x1B\\[)[0-?]*[ -/]*[@-~]")
 

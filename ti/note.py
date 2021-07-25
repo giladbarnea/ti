@@ -24,18 +24,24 @@ class Note:
 			self.content = note
 			self._time = None
 
+	def __iter__(self):
+		yield self.content
+		yield self.time
+
+	def __bool__(self):
+		return bool(self.content)
+
 	def __str__(self) -> str:
-		return f'{self.content} ({self.time.HHmmss})'
+		return f'{self.content} ({self.time.HHmmss})' if self.time else self.content
 
 	def pretty(self):
-		return c.note(f'{c.b(self.content)} ({self.time.HHmmss})')
+		return c.note(f'{c.b(self.content)} ({self.time.HHmmss})') if self.time else c.b(self.content)
 
 	@property
 	def time(self) -> XArrow:
 		if self._time and not isinstance(self._time, Arrow):
 			self._time = formatted2arrow(self._time)
 		return self._time
-
 
 	def looks_same(self, other: Union[str, 'Note']) -> bool:
 		def _normalize(_s: str) -> str:
