@@ -16,12 +16,12 @@ class myproperty(property):
 
 	def fget(self) -> Any:
 		rv = super().fget()
-		breakpoint()
+		# breakpoint()
 		return rv
 
 	def getter(self, fget: Callable[[Any], Any]) -> property:
 		rv = super().getter(fget)
-		breakpoint()
+		# breakpoint()
 		return rv
 
 	def __get__(self, obj: Any, type: Optional[type] = ...) -> Any:

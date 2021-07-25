@@ -4,7 +4,7 @@ import yaml
 
 
 # @dataclass
-from ti.util import timeit
+# from ti.util import timeit
 
 
 class Data(dict):
@@ -42,5 +42,6 @@ class Store:
 			return True
 
 
-store = Store(getenv('SHEET_FILE', None) or
-			  path.expanduser('~/.ti-sheet.yml'))
+
+from ti.config import config
+store = Store(path.expanduser(config.sheet.path))

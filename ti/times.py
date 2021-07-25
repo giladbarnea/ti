@@ -7,7 +7,6 @@ from arrow import Arrow
 from arrow.locales import EnglishLocale
 
 from ti.config import config
-# import arrow
 from ti.util import confirm
 from ti.xarrow import XArrow
 from ti.xarrow import xarrow_factory
@@ -261,7 +260,10 @@ def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
         return xarrow_factory.get(date, FORMATS.date_time, tzinfo=TZINFO)
     if '/' in date:
         # "19/04/21" → arrow(...)
+        if date.count('/') == 1:
+            date += '/' + str(datetime.today().year)[-2:]
         return xarrow_factory.get(date, FORMATS.date, tzinfo=TZINFO)
+
     # "10:13:11" → datetime(...)
     today = datetime.today()
     return XArrow(today.year, today.month, today.day, *map(int, date.split(':')))

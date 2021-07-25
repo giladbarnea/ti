@@ -1,6 +1,7 @@
 import inspect
 import typing
 from functools import wraps
+from typing import Any, Mapping, overload, Iterable, Tuple
 
 
 def extract_initable(t):
@@ -73,17 +74,24 @@ class ValidatorError(TypeError): ...
 class ConflictsAnnotation(ValidatorError): ...
 
 
-class Dikt(dict):
+class DiktMeta(type):
+	def __getitem__(self, item):
+		self.__annotations__.update(item)
+		for k, v in item.items():
+			setattr(self, k, v)
+		return item
+
+
+class Dikt(dict, metaclass=DiktMeta):
 	__cache__: dict
+
 	# TODO:
 	#  inherit from Generic?
 	#  if a key not in mapping, but in annotations (not optional), initialize
 	def __init__(self, mapping=()) -> None:
 		super().__init__({**{'__cache__': dict()}, **dict(mapping)})
-		# super().__init__(mapping)
 		self.refresh()
-		# if '__cache__' not in self:
-		# 	self.__cache__ = dict()
+
 
 	def update_by_annotation(self, k, v) -> bool:
 		try:
@@ -103,6 +111,11 @@ class Dikt(dict):
 		try:
 			constructed_val = initable(v)
 		except:
+			# if not v and getattr(self.__class__, k):
+			# 	# Default was specified on class level
+			# 	breakpoint()
+			# 	self.update({k: getattr(self.__class__, k)})
+			# 	return True
 			return False
 
 		self.update({k: constructed_val})
@@ -132,6 +145,11 @@ class Dikt(dict):
 			rv += f"{str(k).ljust(max_key_len, ' ')} : {repr(v).replace('  ', '    ')},\n  "
 		rv += "})"
 		return rv
+
+	def update(self, mapping, **kwargs) -> None:
+		for k,v in {**dict(mapping), **kwargs}.items():
+			self.__setattr__(k, v)
+		super().update(mapping, **kwargs)
 
 	def __repr__(self) -> str:
 		return self.repr()

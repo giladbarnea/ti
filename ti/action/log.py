@@ -125,7 +125,8 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
     def human_duration(self):
         return secs2human(self.total_seconds())
 
-
+from pdbpp import break_on_exc
+@break_on_exc
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
@@ -172,7 +173,8 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
         title += f' {c.dim("| " + ago)}'
 
     print(title + '\n')
-
+    if not _log:
+        return
     name_column_width = max(*map(len, map(lambda entry: entry.name, _log.values())), 24)
     if groupby:
         for _tag, names in by_tag.items():
