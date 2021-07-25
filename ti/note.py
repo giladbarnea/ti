@@ -3,6 +3,7 @@ from typing import Optional, Union
 
 from arrow import Arrow
 
+from ti import color as c
 from ti.times import formatted2arrow
 from ti.xarrow import XArrow
 
@@ -23,11 +24,18 @@ class Note:
 			self.content = note
 			self._time = None
 
+	def __str__(self) -> str:
+		return f'{self.content} ({self.time.HHmmss})'
+
+	def pretty(self):
+		return c.note(f'{c.b(self.content)} ({self.time.HHmmss})')
+
 	@property
 	def time(self) -> XArrow:
 		if self._time and not isinstance(self._time, Arrow):
 			self._time = formatted2arrow(self._time)
 		return self._time
+
 
 	def looks_same(self, other: Union[str, 'Note']) -> bool:
 		def _normalize(_s: str) -> str:

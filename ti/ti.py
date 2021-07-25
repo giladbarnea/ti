@@ -35,20 +35,19 @@ import subprocess
 import sys
 import tempfile
 from contextlib import suppress
-from typing import Callable, Tuple, TypeVar, Union, List
+from typing import Callable, Tuple, Union, List
 
 import yaml
 from arrow import Arrow
-from rich import print as rprint
 
 from ti import color as c
-from ti.action import log
+from ti import times
 from ti._dev import generate_completion
+from ti.action import log
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
 from ti.item import Item
 from ti.store import store
-from ti import times
-from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday, arrows2rel_time
+from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday
 from ti.util import confirm
 from ti.xarrow import XArrow
 
@@ -194,7 +193,7 @@ def tag(_tag, time="now"):
 					   f'Tag {item_in_range.name_colored} (started at {c.time(item_in_range.start.strftime("%X"))})?'):
 			return
 		item = item_in_range
-	tag_colored = c.b(c.tag(_tag))
+	tag_colored = c.tag(_tag)
 	if _tag.lower() in [t.lower() for t in item.tags]:
 		print(f'{item.name_colored} already has tag {tag_colored}.')
 		return
@@ -210,19 +209,19 @@ def status(show_notes=False):
 	ensure_working()
 
 	data = store.load()
-	current = data['work'][-1]
+	current = Item(**data['work'][-1])
 
-	start_time = formatted2arrow(current['start'])
-	diff = timegap(start_time, now())
+	diff = timegap(current.start, now())
 
-	notes = current.get('notes')
-	if not show_notes or not notes:
-		print(f'You have been working on {c.task(current["name"])} for {c.b(c.time(diff))}.')
+	# notes = current.get('notes')
+	if not show_notes or not current.notes:
+		print(f'You have been working on {current.name_colored} for {c.time(diff)}.')
 		return
 
-	rprint('\n    '.join([f'You have been working on {c.task(current["name"])} for {c.b(c.time(diff))}.\nNotes:[rgb(170,170,170)]',
-						  *[f'[rgb(100,100,100)]o[/rgb(100,100,100)] {n}' for n in notes],
-						  '[/]']))
+	print('\n    '.join([f'You have been working on {current.name_colored} for {c.time(diff)}.\nNotes:',  # [rgb(170,170,170)]
+
+						 *[f'{c.grey100("o")} {n.pretty()}' for n in current.notes]
+						 ]))
 
 
 def edit():
@@ -264,7 +263,9 @@ def ensure_working():
 	raise NoTask("For all I know, you aren't working on anything.")
 
 
-def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
+def parse_args(argv=[]) -> Tuple[Callable, dict]:
+	if not argv:
+		argv = sys.argv
 	# *** log
 	# ** ti [-]
 	# ti -> log(detailed=True)
@@ -428,9 +429,9 @@ def parse_args(argv=sys.argv) -> Tuple[Callable, dict]:
 	raise BadArguments("I don't understand %r" % (head,))
 
 
-def main():
+def main(argv=[]):
 	try:
-		fn, args = parse_args()
+		fn, args = parse_args([__name__, *argv] if argv else None)
 		fn(**args)
 	except TIError as e:
 		msg = str(e) if len(str(e)) > 0 else __doc__

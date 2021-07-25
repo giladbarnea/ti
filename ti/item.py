@@ -1,7 +1,6 @@
 from typing import List, Optional, Callable, Any
 
 from arrow import Arrow
-from pydantic import BaseModel
 
 from ti import color as c
 from ti.dikt import Dikt
@@ -52,16 +51,27 @@ class Item(Dikt):
 
     def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
         super().__init__(dict(name=name,
-                         _start=start,
-                         _end=end,
-                         notes=notes if notes is not None else [],
-                         tags=tags if tags is not None else [],
-                         name_colored=c.task(name),
-                         jira=jira))
+                              _start=start,
+                              _end=end,
+                              _name_colored='',
+                              _notes=notes if notes is not None else [],
+                              tags=tags if tags is not None else [],
+                              jira=jira))
 
-    # @property
-    # def name(self):
-    #     return self._name
+    @property
+    def notes(self):
+        if self.__cache__.notes:
+            return self._notes
+        for i, note in enumerate(self._notes):
+            if not isinstance(note, Note):
+                self._notes[i] = Note(note)
+        self.__cache__.notes = True
+        return self._notes
+    @property
+    def name_colored(self):
+        if not self._name_colored:
+            self._name_colored = c.task(self.name)
+        return self._name_colored
 
     @property
     def start(self) -> XArrow:

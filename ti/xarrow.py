@@ -39,7 +39,7 @@ class XArrow(Arrow):
     def full(self):
         """'Thursday 20/05/21'"""
         if not self._full:
-            self._full: str = self.strftime('%A %x')
+            self._full: str = f"{self.strftime('%A')} {self.DDMMYY}"
         return self._full
 
 

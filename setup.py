@@ -33,13 +33,13 @@ setup(
                 "tf = ti:main",
                 ]
             },
-        install_requires=['arrow>=1.1.0,<2.0.0', 'rich>=10,<11', 'toml>=0.10,<0.11'],
+        install_requires=['arrow>=1.1.0,<2.0.0', 'toml>=0.10,<0.11'],
         setup_requires=["pytest-runner"] if testing else [],
         tests_require=["pytest",
                        # "cram", "pytest-cram"
                        ],
         extras_require={
             "docs": ["ghp-import", "pygreen"],
-            "dev":  "IPython"
+            "dev":  ["IPython", 'rich>=10,<11']
             }
         )
