@@ -15,6 +15,7 @@ class Config(Dikt):
             date: str = 'DD/MM/YY'
             short_date: str = 'DD/MM'
             date_time: str = 'DD/MM/YY HH:mm:ss'
+            time: str = 'HH:mm:ss'
 
         tz: BaseTzInfo
         formats: TimeFormats

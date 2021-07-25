@@ -3,14 +3,14 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Union
 
-# import arrow
-from ti.util import confirm
-from ti.xarrow import xarrow_factory
 from arrow import Arrow
-from ti.xarrow import XArrow
 from arrow.locales import EnglishLocale
 
 from ti.config import config
+# import arrow
+from ti.util import confirm
+from ti.xarrow import XArrow
+from ti.xarrow import xarrow_factory
 
 TZINFO = config.time.tz
 FORMATS = config.time.formats
@@ -24,12 +24,14 @@ ABBREVS = {
     'M': 'months'
     }
 
-# {'fri', 'friday', ...}
 DAYS = set(map(str.lower, EnglishLocale.day_abbreviations[1:] + EnglishLocale.day_names[1:]))
+"""{'fri', 'friday', ...}"""
 
-# [(1, 'monday'), ..., (7, 'sunday')]
 NUM2DAY = list(enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1))
+"""[(1, 'monday'), ..., (7, 'sunday')]"""
+
 TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|eek|onth)?s?"
+
 HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
                              rf'('
                                rf'(?P<amount2>\d+)\s*(?P<fullunit2>(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
@@ -39,6 +41,8 @@ HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smh
                              rf')?'
                              rf'\s*'
                              r'(?:\s+ago\s*)?$'), re.IGNORECASE)
+"""3 hours 2m 15 secs ago
+Used in `_rel_time2arrow`"""
 
 
 def now() -> XArrow:
@@ -178,8 +182,8 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> XArrow:
     """
     if isinstance(engtime, Arrow):
         if not isinstance(engtime, XArrow) \
-                and confirm(f'human2arrow(engtime) is regular Arrow, debug?'):
-            from pudb import set_trace; set_trace()
+                and confirm(f'human2arrow({engtime = }) is regular Arrow, debug?'):
+            breakpoint()
         return engtime
     engtime = engtime.lower()
 

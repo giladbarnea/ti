@@ -88,8 +88,8 @@ class Dikt(dict):
         initable = extract_initable(annotation)
         if not initable:
             return False
-        if not have_common_ancestor(v, initable):
-            raise ConflictsAnnotation(f'{k} = {repr(v)} is not an instance of {initable} (annotation: {annotation})')
+        # if not have_common_ancestor(v, initable): # not good because str and XArrow
+        #     raise ConflictsAnnotation(f'({type(self)}) | {k} = {repr(v)} is not an instance of {initable} (annotation: {annotation})')
         try:
             constructed_val = initable(v)
         except:

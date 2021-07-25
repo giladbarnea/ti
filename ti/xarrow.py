@@ -20,19 +20,19 @@ class XArrow(Arrow):
     @property
     def HHmmss(self):
         if not self._HHmmss:
-            self._HHmmss: str = times.reformat(self, "HH:mm:ss")
+            self._HHmmss: str = times.reformat(self, times.FORMATS.time)
         return self._HHmmss
 
     @property
     def DDMMYY(self):
         if not self._DDMMYY:
-            self._DDMMYY: str = times.reformat(self, times.FMT)
+            self._DDMMYY: str = times.reformat(self, times.FORMATS.date)
         return self._DDMMYY
 
     @property
     def DDMMYYHHmmss(self):
         if not self._DDMMYYHHmmss:
-            self._DDMMYYHHmmss: str = times.reformat(self, times.DT_FMT)
+            self._DDMMYYHHmmss: str = times.reformat(self, times.FORMATS.date_time)
         return self._DDMMYYHHmmss
 
     @property

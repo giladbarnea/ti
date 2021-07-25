@@ -47,6 +47,7 @@ from ti._dev import generate_completion
 from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
 from ti.item import Item
 from ti.store import store
+from ti import times
 from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday, arrows2rel_time
 from ti.util import confirm
 from ti.xarrow import XArrow
@@ -61,7 +62,7 @@ def on(name, time="now", _tag=None, _note=None):
 		current_name__lower = current["name"].lower()
 		name_lower = name.lower()
 		if current_name__lower == name_lower:
-			print(f'{c.orange("Already")} working on {c.task(current["name"])} since {c.b(c.time(reformat(current["start"], "HH:mm:ss")))} ;)')
+			print(f'{c.orange("Already")} working on {c.task(current["name"])} since {c.time(reformat(current["start"], times.FORMATS.date_time))} ;)')
 			return True
 		ok = fin(time)
 		if ok:
@@ -82,7 +83,7 @@ def on(name, time="now", _tag=None, _note=None):
 	work.append(entry)
 	store.dump(data)
 
-	message = f'{c.green("Started")} working on {c.task(name)} at {c.b(c.time(reformat(time, "HH:mm:ss")))}'
+	message = f'{c.green("Started")} working on {c.task(name)} at {c.time(reformat(time, times.FORMATS.date_time))}'
 	if _tag:
 		message += f". tag: {c.tag(_tag)}"
 
@@ -101,7 +102,7 @@ def fin(time: Union[str, Arrow], back_from_interrupt=True) -> bool:
 
 	end: XArrow = formatted2arrow(time)
 	if item.start > end:
-		print(f'{c.orange("Cannot")} finish {item.name_colored} at {c.time(end.HHmmss)} because it only started at {c.time(item.start.HHmmss)}.')
+		print(f'{c.orange("Cannot")} finish {item.name_colored} at {c.time(end.DDMMYYHHmmss)} because it only started at {c.time(item.start.DDMMYYHHmmss)}.')
 		return False
 	if item.start.day < end.day:
 		print(end)
@@ -110,7 +111,7 @@ def fin(time: Union[str, Arrow], back_from_interrupt=True) -> bool:
 	current['end'] = time
 	item.end = time
 	ok = store.dump(data)
-	print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.HHmmss)}')
+	print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.DDMMYYHHmmss)}')
 	if not ok:
 		return False
 	if back_from_interrupt and len(data['interrupt_stack']) > 0:
@@ -148,7 +149,6 @@ def note(content, time="now"):
 	time = human2arrow(time)
 	if time > now():
 		raise BadTime(f"in the future: {time}")
-	breakpoint()
 	content_and_time = content.strip() + f' ({time.HHmmss})'
 	data = store.load()
 	idx = -1
@@ -166,10 +166,8 @@ def note(content, time="now"):
 				return
 			item = item_in_range
 
-	# refactor this out when Note class
-	content_lower = content.lower()
 	for n in item.notes:
-		if n.lower().startswith(content_lower):
+		if n.looks_same(content):
 			if not confirm(f'{item.name_colored} already has this note: {c.b(c.note(n))}.\n'
 						   'Add anyway?'):
 				return
