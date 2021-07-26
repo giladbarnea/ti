@@ -1,4 +1,4 @@
-from ti.store import store
+from timefred.store import store
 
 
 def generate_completion():

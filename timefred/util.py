@@ -1,4 +1,4 @@
-from ti import color as c
+from timefred import color as c
 
 
 def confirm(question):

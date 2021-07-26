@@ -5,7 +5,7 @@ from pathlib import Path
 import toml
 from pytz import timezone, BaseTzInfo
 
-from ti.dikt import Dikt
+from timefred.dikt import Dikt
 
 
 class Config(Dikt):

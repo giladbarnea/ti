@@ -4,12 +4,12 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import List, Tuple, Literal, TypeVar, MutableMapping, Set
 
-from ti import color as c
-from ti.item import Item
-from ti.note import Note
-from ti.store import store
-from ti.times import human2arrow, secs2human, now, arrows2rel_time
-from ti.xarrow import XArrow
+from timefred import color as c
+from timefred.item import Item
+from timefred.note import Note
+from timefred.store import store
+from timefred.times import human2arrow, secs2human, now, arrows2rel_time
+from timefred.xarrow import XArrow
 
 # from loguru import logger
 

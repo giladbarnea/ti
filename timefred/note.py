@@ -3,9 +3,9 @@ from typing import Optional, Union
 
 from arrow import Arrow
 
-from ti import color as c
-from ti.times import formatted2arrow
-from ti.xarrow import XArrow
+from timefred import color as c
+from timefred.times import formatted2arrow
+from timefred.xarrow import XArrow
 
 NOTE_TIME_RE = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 

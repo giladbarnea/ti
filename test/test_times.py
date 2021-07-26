@@ -2,7 +2,7 @@ from typing import NoReturn
 
 import arrow
 
-from ti.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, isoweekday, _day2arrow, human2formatted
+from timefred.times import formatted2arrow, human2arrow, TZINFO, ABBREVS, isoweekday, _day2arrow, human2formatted
 from random import randint
 
 

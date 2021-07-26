@@ -4,11 +4,11 @@ import yaml
 
 
 # @dataclass
-# from ti.util import timeit
+# from timefred.util import timeit
 
 
 class Data(dict):
-	# doesn't write well to .ti-sheet
+	# doesn't write well to .timefred-sheet
 	pass
 	# work: List[Item]
 	# interrupt_stack: List
@@ -43,5 +43,5 @@ class Store:
 
 
 
-from ti.config import config
+from timefred.config import config
 store = Store(path.expanduser(config.sheet.path))

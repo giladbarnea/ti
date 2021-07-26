@@ -2,11 +2,11 @@ from typing import List, Optional, Callable, Any, Set
 
 from arrow import Arrow
 
-from ti import color as c
-from ti.dikt import Dikt
-from ti.note import Note
-from ti.times import formatted2arrow
-from ti.xarrow import XArrow
+from timefred import color as c
+from timefred.dikt import Dikt
+from timefred.note import Note
+from timefred.times import formatted2arrow
+from timefred.xarrow import XArrow
 
 
 class myproperty(property):

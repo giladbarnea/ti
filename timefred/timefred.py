@@ -1,24 +1,24 @@
 # coding: utf-8
 
 """
-ti is a simple and extensible time tracker for the command line. Visit the
+timefred is a simple and extensible time tracker for the command line. Visit the
 project page (http://ti.sharats.me) for more details.
 
 Usage:
-  ti (o|on) <name> [start time = "now"]
-  ti (f|fin) [end time = "now"]
-  ti (s|status)
-  ti (t|tag) <tag> [time = "now"]
-    Add tag to current activity, e.g `ti tag research`.
-  ti (n|note) <note-text> [time = "now"]
-    ti note Discuss this with the other team.
-  ti (l|log) [period = "today"]
-  ti (e|edit)
-  ti (a|agg|aggregate)
-  ti (i|interrupt)
+  timefred (o|on) <name> [start time = "now"]
+  timefred (f|fin) [end time = "now"]
+  timefred (s|status)
+  timefred (t|tag) <tag> [time = "now"]
+    Add tag to current activity, e.g `timefred tag research`.
+  timefred (n|note) <note-text> [time = "now"]
+    timefred note Discuss this with the other team.
+  timefred (l|log) [period = "today"]
+  timefred (e|edit)
+  timefred (a|agg|aggregate)
+  timefred (i|interrupt)
     Marks end time of current activity, pushes it to interrupt stack, and starts an "interrupt" activity.
-  ti --no-color
-  ti -h | --help
+  timefred --no-color
+  timefred -h | --help
 
 Options:
   -h --help         Show this help.
@@ -40,16 +40,16 @@ from typing import Callable, Tuple, Union, List
 import yaml
 from arrow import Arrow
 
-from ti import color as c
-from ti import times
-from ti._dev import generate_completion
-from ti.action import log
-from ti.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
-from ti.item import Item
-from ti.store import store
-from ti.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday
-from ti.util import confirm
-from ti.xarrow import XArrow
+from timefred import color as c
+from timefred import times
+from timefred._dev import generate_completion
+from timefred.action import log
+from timefred.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
+from timefred.item import Item
+from timefred.store import store
+from timefred.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday
+from timefred.util import confirm
+from timefred.xarrow import XArrow
 
 
 def on(name, time="now", _tag=None, _note=None):
@@ -232,7 +232,7 @@ def edit():
 	yml = yaml.safe_dump(data, default_flow_style=False, allow_unicode=True)
 
 	cmd = os.getenv('EDITOR')
-	fd, temp_path = tempfile.mkstemp(prefix='ti.')
+	fd, temp_path = tempfile.mkstemp(prefix='timefred.')
 	with open(temp_path, "r+") as f:
 		f.write(yml.replace('\n- ', '\n\n- '))
 		f.seek(0)
@@ -267,16 +267,16 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
 	if not argv:
 		argv = sys.argv
 	# *** log
-	# ** ti [-]
-	# ti -> log(detailed=True)
-	# ti - -> log()
+	# ** timefred [-]
+	# timefred -> log(detailed=True)
+	# timefred - -> log()
 	argv_len = len(argv)
 	if argv_len == 1:
 		return log, {'detailed': True}
 	if argv[1] == '-':
 		return log, {'detailed': False}
 
-	# ** ti thursday
+	# ** timefred thursday
 	if len(argv[1]) > 1:
 		if argv[1].lower() == 'yesterday':
 			return log, {'period': argv[1], 'detailed': True}

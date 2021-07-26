@@ -1,10 +1,10 @@
-from ti import times
+from timefred import times
 from typing import Type, Optional, Any
 
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
 
-import ti.color as c
+import timefred.color as c
 
 
 class XArrow(Arrow):

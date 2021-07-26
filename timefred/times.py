@@ -6,10 +6,10 @@ from typing import Union
 from arrow import Arrow
 from arrow.locales import EnglishLocale
 
-from ti.config import config
-from ti.util import confirm
-from ti.xarrow import XArrow
-from ti.xarrow import xarrow_factory
+from timefred.config import config
+from timefred.util import confirm
+from timefred.xarrow import XArrow
+from timefred.xarrow import xarrow_factory
 
 TZINFO = config.time.tz
 FORMATS = config.time.formats
