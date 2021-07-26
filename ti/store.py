@@ -33,7 +33,7 @@ class Store:
 		return data
 
 	def dump(self, data):
-		if getenv('TI_DRYRUN', "").lower() in ('1', 'true'):
+		if getenv('TF_DRYRUN', "").lower() in ('1', 'true'):
 			print('\n\tDRY RUN, NOT DUMPING\n')
 			return False
 		with open(self.filename, 'w') as f:

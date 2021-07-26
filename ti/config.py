@@ -1,6 +1,6 @@
 import os
+import sys
 from pathlib import Path
-from typing import TypedDict
 
 import toml
 from pytz import timezone, BaseTzInfo
@@ -36,11 +36,14 @@ class Config(Dikt):
 		if self.dev.debugger:
 			os.environ['PYTHONBREAKPOINT'] = self.dev.debugger
 		if self.dev.traceback:
-			if self.dev.traceback == "rich.traceback":
-				from rich.traceback import install
-				install(show_locals=True)
-			else:
-				print(f'dont support {self.dev.traceback}')
+			try:
+				if self.dev.traceback == "rich.traceback":
+					from rich.traceback import install
+					install(show_locals=True)
+				else:
+					print(f"Don't support {self.dev.traceback}")
+			except Exception as e:
+				print(f'{e.__class__.__qualname__} caught in Config.__init__: {e}', file=sys.stderr)
 
 
 config = Config()
