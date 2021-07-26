@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "ti"
-version = "0.0.1"
+name = "timefred"
+version = "0.0.2"
 description = "Not a silly simple time tracker"
 authors = ["Gilad Barnea <giladbrn@gmail.com>"]
 license = "MIT"
@@ -9,17 +9,14 @@ license = "MIT"
 python = "^3.8"
 toml = "^0.10"
 arrow = "^1.1.0"
-pydantic = "^1.8.2"
 pytz = "^2021.1"
 PyYAML = "^5.4.1"
 
 [tool.poetry.dev-dependencies]
-# cram = { version = "^0.7" , optional = true}
-# pytest-cram = { version = "^0.2.2" , optional = true}
-ipython = { version = "^7.22.0", optional = true }
-pudb = "^2021.1"
-pytest-pudb = "^0.7.0"
-rich = "^10"
+ipython = { git = "https://github.com/ipython/ipython.git" }
+pdbpp = {git = "https://github.com/giladbarnea/pdbpp.git"}
+pytest = { version = "latest", optional = true }
+rich = { version = "^10", optional = true }
 loguru = { version = "^0.5.3", optional = true }
 
 [build-system]

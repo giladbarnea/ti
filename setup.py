@@ -18,8 +18,8 @@ def read(*filenames, **kwargs):
 testing = bool({"pytest", "test"}.intersection(sys.argv))
 
 setup(
-        name="ti",
-        version="0.0.1",
+        name="timefred",
+        version="0.0.2",
         author="Gilad Barnea",
         author_email="giladbrn@gmail.com",
         packages=find_packages(),
@@ -30,7 +30,7 @@ setup(
         long_description=read("README.rst", "CHANGES.rst"),
         entry_points={
             "console_scripts": [
-                "tf = ti:main",
+                "tf = tf:main",
                 ]
             },
         install_requires=['arrow>=1.1.0,<2.0.0', 'toml>=0.10,<0.11'],
