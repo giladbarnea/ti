@@ -2,6 +2,8 @@ from os import path, getenv
 
 import yaml
 
+from pdbpp import break_on_exc
+
 
 # @dataclass
 # from timefred.util import timeit
@@ -19,6 +21,7 @@ class Store:
 	def __init__(self, filename):
 		self.filename = filename
 
+	@break_on_exc
 	def load(self): # perf: 150ms
 		if path.exists(self.filename):
 			with open(self.filename) as f:
