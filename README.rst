@@ -1,36 +1,36 @@
 =================================
-ti -- A silly simple time tracker
+Timefred -- Not a silly simple time tracker
 =================================
 
-``ti`` is a small command line time-tracking application.
+``Timefred`` is a small command line time-tracking application.
 Simple basic usage looks like this::
 
-    $ ti on my-project
-    $ ti fin
+    $ tf on my-project
+    $ tf fin
 
 You can also give it human-readable times::
 
-    $ ti on my-project 30mins ago
+    $ tf on my-project 30mins ago
 
-``ti`` sports many other cool features. Read along to discover.
+``Timefred`` sports many other cool features. Read along to discover.
 
 Wat?
 ====
 
-``ti`` is a simple command line time tracker. It has been completely rewritten
+``Timefred`` is a simple command line time tracker. It has been completely rewritten
 in Python (originally a bash script) and has (almost) complete test coverage. It
 is inspired by `timed <http://adeel.github.com/timed>`_, which is a nice project
-that you should check out if you don't like ``ti``. ``ti`` also takes
+that you should check out if you don't like ``Timefred``. ``Timefred`` also takes
 inspiration from the simplicity of `t <http://stevelosh.com/projects/t/>`_.
 
 If a time-tracking tool makes me think for more than 3-5 seconds, I lose my line
-of thought and forget what I was doing. This is why I created ``ti``. With
-``ti``, you'll be as fast as you can type, which you should be good with anyway.
+of thought and forget what I was doing. This is why I created ``Timefred``. With
+``Timefred``, you'll be as fast as you can type, which you should be good with anyway.
 
-The most important part about ``ti`` is that it provides just a few commands to
+The most important part about ``Timefred`` is that it provides just a few commands to
 manage your time-tracking and then gets out of your way.
 
-All data is saved in a JSON file ,``~/.ti-sheet``. (This can be changed using the
+All data is saved in a JSON file ,``~/.tf-sheet``. (This can be changed using the
 ``$SHEET_FILE``  environment variable.) The JSON is easy to access and can be
 processed into other more stylized documents. Some ideas:
 
@@ -44,7 +44,7 @@ It's *your* data.
 Oh and by the way, the source is a fairly small Python script, so if you know
 Python, you may want to skim over it to get a better feel of how it works.
 
-*Note*: If you have used the previous bash version of ``ti``, which was horribly
+*Note*: If you have used the previous bash version of ``Timefred``, which was horribly
 tied up to only work on Linux, you might notice the lack of plugins in this
 Python version. I am not really missing them, so I might not add them. If anyone
 has any interesting use cases for it, I'm willing to consider.
@@ -54,25 +54,25 @@ Usage
 
 Here's the minimal usage style::
 
-    $ ti on my-project
+    $ tf on my-project
     Start working on my-project.
 
-    $ ti status
+    $ tf status
     You have been working on my-project for less than a minute.
 
-    $ ti fin
+    $ tf fin
     So you stopped working on my-project.
 
 ``on`` and ``fin`` can take a time (format described further down) at which to
 apply the action::
 
-    $ ti on another-project 2 hours ago
+    $ tf on another-project 2 hours ago
     Start working on another-project.
 
-    $ ti s
+    $ tf s
     You have been working on another-project for about 2 hours.
 
-    $ ti fin 30 minutes ago
+    $ tf fin 30 minutes ago
     So you stopped working on another-project.
 
 Also illustrating in the previous example is short aliases of all commands,
@@ -81,37 +81,37 @@ their first letter. Like, ``s`` for ``status``, ``o`` for ``on``,
 
 Put brief notes on what you've been doing::
 
-    $ ti note waiting for Napoleon to take over the world
-    $ ti n another simple note for demo purposes
+    $ tf note waiting for Napoleon to take over the world
+    $ tf n another simple note for demo purposes
 
 Tag your activities for fun and profit::
 
-    $ ti tag imp
+    $ tf tag imp
 
 Get a log of all activities with the ``log`` (or ``l``) command::
 
-    $ ti log
+    $ tf log
 
 Command reference
 =================
 
-Run ``ti -h`` (or ``--help`` or ``help`` or just ``h``)
+Run ``tf -h`` (or ``--help`` or ``help`` or just ``h``)
 to get a short command summary of commands.
 
 ``on``
 ------
 
 - Short: ``o``
-- Syntax: ``ti (o|on) <name> [<time>...]``
+- Syntax: ``tf (o|on) <name> [<time>...]``
 
 Start tracking time for the project/activity given by `<name>`. For example::
 
-    ti on conquest
+    tf on conquest
 
-tells ``ti`` to start tracking for the activity ``conquest`` *now*.
+tells ``tf`` to start tracking for the activity ``conquest`` *now*.
 You can optionally specify a relative time in the past like so::
 
-    ti on conquest 10mins ago
+    tf on conquest 10mins ago
 
 The format of the time is detailed further below.
 
@@ -119,47 +119,47 @@ The format of the time is detailed further below.
 -------
 
 - Short: ``f``
-- Syntax: ``ti (f|fin) [<time>...]``
+- Syntax: ``tf (f|fin) [<time>...]``
 
 End tracking for the current activity *now*. Just like with ``on`` command
 above, you can give an optional time to the past. Example::
 
-    ti fin 10mins ago
+    tf fin 10mins ago
 
-tells ``ti`` that you finished working on the current activity at, well, 10
+tells ``Timefred`` that you finished working on the current activity at, well, 10
 minutes ago.
 
 ``status``
 ----------
 
 - Short: ``s``
-- Syntax: ``ti (s|status)``
+- Syntax: ``tf (s|status)``
 
 Gives short human-readable message on the current status, i.e., whether anything
 is being tracked currently or not. Example::
 
-    $ ti on conqering-the-world
+    $ tf on conqering-the-world
     Start working on conqering-the-world.
-    $ ti status
+    $ tf status
     You have been working on `conqering-the-world` for less than a minute.
 
 ``tag``
 -------
 
 - Short: ``t``
-- Syntax: ``ti (t|tag) <tag>...``
+- Syntax: ``tf (t|tag) <tag>...``
 
 This command adds the given tags to the current activity. Tags are not currently
-used within the ``ti`` time tracker, but they will be saved in the JSON data
+used within the ``Timefred`` time tracker, but they will be saved in the JSON data
 file. You may use them for whatever purposes you like.
 
-For example, if you have a script to generate a HTML report from your ``ti``
+For example, if you have a script to generate a HTML report from your ``Timefred``
 data, you could tag some activities with a tag like ``red`` or ``important`` so
 that activity will appear in red in the final HTML report.
 
 Use it like::
 
-    ti tag red for-joe
+    tf tag red for-joe
 
 adds the tags ``red`` and ``for-joe`` to the current activitiy. You can specify
 any number of tags.
@@ -170,15 +170,15 @@ Tags are currently for your purpose. Use them as you see fit.
 --------
 
 - Short: ``n``
-- Syntax: ``ti (n|note) <note-text>...``
+- Syntax: ``tf (n|note) <note-text>...``
 
 This command adds a note on the current activity. Again, like tags, this has no
-significance with the time tracking aspect of ``ti``. This is for your own
-recording purposes and for the scripts your write to process your ``ti`` data.
+significance with the time tracking aspect of ``Timefred``. This is for your own
+recording purposes and for the scripts your write to process your ``Timefred`` data.
 
 Use it like::
 
-    ti note Discuss this with the other team.
+    tf note Discuss this with the other team.
 
 adds the note ``Discuss this with the other team.`` to the current activity.
 
@@ -186,7 +186,7 @@ adds the note ``Discuss this with the other team.`` to the current activity.
 -------
 
 - Short: ``l1``
-- Syntax: ``ti (l|log) [today]``
+- Syntax: ``tf (l|log) [today]``
 
 Gives a table like representation of all activities and total time spent on each
 of them.
@@ -230,22 +230,22 @@ Status
 ======
 
 The project is in beta. If you find any bug or have any feedback, please do open
-`a GitHub issue <https://github.com/tbekolay/ti/issues>`_.
+`a GitHub issue <https://github.com/tbekolay/Timefred/issues>`_.
 
 
 Gimme!
 ======
 
-You can download ``ti`` `from the source on
-GitHub <https://raw.github.com/tbekolay/ti/master/bin/ti>`_.
+You can download ``Timefred`` `from the source on
+GitHub <https://raw.github.com/giladbarnea/timefred/master/bin/Timefred>`_.
 
 - Put it somewhere in your ``$PATH`` and make sure it has executable permissions.
 - Install ``pyyaml`` using the command ``pip install --user pyyaml``.
 - Install ``colorama`` using the command ``pip install --user colorama``.
 
-After that, ``ti`` should be working fine.
+After that, ``Timefred`` should be working fine.
 
-Also, visit the `project page on GitHub <https://github.com/tbekolay/ti>`_ for
+Also, visit the `project page on GitHub <https://github.com/giladbanrea/timefred>`_ for
 any further details.
 
 Who?
@@ -253,8 +253,8 @@ Who?
 
 Originally created and fed by Shrikant Sharat
 (`@sharat87 <https://twitter.com/#!sharat87>`_).
-Now forked and maintained by Trevor Bekolay
-(`@tbekolay <https://github.com/tbekolay>`_) and friends on GitHub.
+Now forked and maintained by Gilad Barnea
+(`@tbekolay <https://github.com/giladbarnea>`_) on GitHub.
 
 License
 =======

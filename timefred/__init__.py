@@ -1,2 +1,2 @@
-# This is so entrypoint "timefred = timefred:main" can work
-from timefred.timefred import main
+# This is so entrypoint "tf = timefred:main" can work
+# from timefred.timefred import main

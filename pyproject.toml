@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "timefred"
-version = "0.0.2"
+version = "0.0.3"
 description = "Not a silly simple time tracker"
 authors = ["Gilad Barnea <giladbrn@gmail.com>"]
 license = "MIT"
@@ -13,11 +13,11 @@ pytz = "^2021.1"
 PyYAML = "^5.4.1"
 
 [tool.poetry.dev-dependencies]
-ipython = { git = "https://github.com/ipython/ipython.git" }
-pdbpp = {git = "https://github.com/giladbarnea/pdbpp.git"}
+# ipython = { git = "https://github.com/ipython/ipython.git", optional = true }
+pdbpp = { git = "https://github.com/giladbarnea/pdbpp.git", optional = true }
 pytest = { version = "latest", optional = true }
-rich = { version = "^10", optional = true }
-loguru = { version = "^0.5.3", optional = true }
+# rich = { version = "^10", optional = true }
+# loguru = { version = "^0.5.3", optional = true }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

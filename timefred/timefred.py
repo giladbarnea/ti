@@ -1,28 +1,28 @@
 # coding: utf-8
 
 """
-timefred is a simple and extensible time tracker for the command line. Visit the
-project page (http://ti.sharats.me) for more details.
+Timefred is a beautiful and intelligent time tracker for the command line. Visit the
+project page (https://github.com/giladbarnea/timefred) for more details.
 
 Usage:
-  timefred (o|on) <name> [start time = "now"]
-  timefred (f|fin) [end time = "now"]
-  timefred (s|status)
-  timefred (t|tag) <tag> [time = "now"]
-    Add tag to current activity, e.g `timefred tag research`.
-  timefred (n|note) <note-text> [time = "now"]
-    timefred note Discuss this with the other team.
-  timefred (l|log) [period = "today"]
-  timefred (e|edit)
-  timefred (a|agg|aggregate)
-  timefred (i|interrupt)
+  tf (o|on) <name> [start time = "now"]
+  tf (f|fin) [end time = "now"]
+  tf (s|status)
+  tf (t|tag) <tag> [time = "now"]
+    Add tag to current activity, e.g `tf tag research`.
+  tf (n|note) <note-text> [time = "now"]
+    tf note Discuss this with the other team.
+  tf (l|log) [period = "today"]
+  tf (e|edit)
+  tf (a|agg|aggregate)
+  tf (i|interrupt)
     Marks end time of current activity, pushes it to interrupt stack, and starts an "interrupt" activity.
-  timefred --no-color
-  timefred -h | --help
+  tf --no-color
+  tf -h | --help
 
 Options:
   -h --help         Show this help.
-  <start-time>...   A time specification (goto http://ti.sharats.me for more on
+  <start-time>...   A time specification (goto https://github.com/giladbarnea/timefred for more on
                     this).
   <tag>...          Tags can be made of any characters, but its probably a good
                     idea to avoid whitespace.

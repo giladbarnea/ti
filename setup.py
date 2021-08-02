@@ -19,27 +19,31 @@ testing = bool({"pytest", "test"}.intersection(sys.argv))
 
 setup(
         name="timefred",
-        version="0.0.2",
+        version="0.0.3",
         author="Gilad Barnea",
         author_email="giladbrn@gmail.com",
         packages=find_packages(),
         include_package_data=True,
         scripts=[],
-        url="https://github.com/giladbarnea/ti",
-        description="Not a silly simple time tracker",
+        url="https://github.com/giladbarnea/timefred",
+        description="A beautiful and intelligent time tracker",
         long_description=read("README.rst", "CHANGES.rst"),
         entry_points={
             "console_scripts": [
-                "tf = tf:main",
+                "tf = timefred:main",
                 ]
             },
-        install_requires=['arrow>=1.1.0,<2.0.0', 'toml>=0.10,<0.11'],
-        setup_requires=["pytest-runner"] if testing else [],
+        install_requires=['arrow>=1.1.0,<2.0.0',
+                          'toml>=0.10,<0.11',
+                          'PyYAML>=5.4.1',
+                          'pytz>=2021.1'
+                          ],
+        # setup_requires=["pytest-runner"] if testing else [],
         tests_require=["pytest",
                        # "cram", "pytest-cram"
                        ],
         extras_require={
-            "docs": ["ghp-import", "pygreen"],
-            "dev":  ["IPython", 'rich>=10,<11']
+            # "docs": ["ghp-import", "pygreen"],
+            # "dev":  ["IPython", 'rich>=10,<11']
             }
         )
