@@ -15,7 +15,7 @@ class Config(Dikt):
     dev: Dikt = {"debugger": None, "traceback": None}
 
 
-def test__refresh():
+def test__annotated_no_default():
     config = Config()
     assert isinstance(config.time, Config.TimeCfg)
     assert isinstance(config.time, Dikt)
@@ -25,3 +25,9 @@ def test__refresh():
     assert config.time.formats.short_date == 'DD/MM'
     assert config.time.formats.date_time == 'DD/MM/YY HH:mm:ss'
     assert config.time.formats.time == 'HH:mm:ss'
+
+def test__annotated_with_default():
+    config = Config()
+    dev = config.dev
+    actual = isinstance(dev, Dikt)
+    assert actual

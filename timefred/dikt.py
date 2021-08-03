@@ -2,6 +2,9 @@ import typing
 import inspect
 from functools import wraps
 from typing import Any, Mapping, overload, Iterable, Tuple, Type, Union, Optional, Callable
+import os
+# os.environ['PREBREAK_PATCH_PRINT'] = '1'
+# from timefred import prebreak
 
 UNSET = object()
 
@@ -102,6 +105,25 @@ def strict_inherits_from(inst, t) -> bool:
     return inst_type is not t_type
 
 
+def annotate(method, *args, **kwargs):
+    # print(method, args, kwargs)
+    @wraps(method)
+    def decorator(self, item):
+        if item == '__rich_repr__':
+            return lambda: repr(self)
+        # print(self, item)
+        rv = method(self, item)
+        if item in self.__class__.__annotations__:
+            initable = extract_initable(self.__class__.__annotations__[item])
+        else:
+            initable = lambda _=None: _
+        if rv is UNSET:
+            return initable()
+        return initable(rv)
+
+    return decorator
+
+
 class ValidatorError(TypeError): ...
 
 
@@ -119,10 +141,6 @@ class DiktMeta(type):
 # class BaseDikt(dict, metaclass=DiktMeta):
 class BaseDikt(dict):
     __config__: dict
-
-    # TODO:
-    #  inherit from Generic?
-    #  if a key not in mapping, but in annotations (not optional), initialize
 
     def repr(self, *, private=False, dunder=False, methods=False):
         name = self.__class__.__qualname__
@@ -145,8 +163,8 @@ class BaseDikt(dict):
     #         # setattr(self, k, v)
     #     super().update(mapping, **kwargs)
 
-    # def __repr__(self) -> str:
-    #     return self.repr()
+    def __repr__(self) -> str:
+        return self.repr()
 
     @classmethod
     def __safe_annotations(cls):
@@ -155,22 +173,39 @@ class BaseDikt(dict):
         except AttributeError:
             return dict()
 
+    def __getattribute__(self, name: str) -> Any:
+        value = super().__getattribute__(name)
+        if name == '__annotations__':
+            return value
+        if name not in self.__annotations__:
+            return value
+        annotation = self.__annotations__[name]
+        initable = extract_initable(annotation)
+        # TODO: build defaults from annotation:
+        if not initable or isinstance(value, initable):
+            return value
+        constructed = initable(value)
+        return constructed
+
+    @annotate
     def __getattr__(self, item):
         """Makes d.foo return d['foo']"""
-        # annotations = self.__class__.__safe_annotations()
-        annotations = self.__class__.__annotations__
-        if item in annotations:
-            initable = extract_initable(annotations[item])
-        else:
-            initable = UNSET
-
         if item in self:
-            if initable is None or initable is UNSET:
-                return self[item]
-            return initable(self[item])
-        if initable is UNSET:
-            return None
-        return initable()
+            return self[item]
+        return UNSET
+        # annotations = self.__class__.__annotations__
+        # if item in annotations:
+        #     initable = extract_initable(annotations[item])
+        # else:
+        #     initable = UNSET
+        #
+        # if item in self:
+        #     if initable is None or initable is UNSET:
+        #         return self[item]
+        #     return initable(self[item])
+        # if initable is UNSET:
+        #     return None
+        # return initable()
 
     def __setattr__(self, name: str, value) -> None:
         """Makes d.foo = 'bar' set d['foo']"""
