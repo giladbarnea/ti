@@ -11,12 +11,14 @@ class Config(Dikt):
 
         formats: TimeFormats
 
+    hobbies: list
     time: TimeCfg
     dev: Dikt = {"debugger": None, "traceback": None}
 
 
 def test__annotated_no_default():
     config = Config()
+    assert config.hobbies == []
     assert isinstance(config.time, Config.TimeCfg)
     assert isinstance(config.time, Dikt)
     assert isinstance(config.time.formats, Config.TimeCfg.TimeFormats)
@@ -28,12 +30,25 @@ def test__annotated_no_default():
 
 def test__annotated_with_default():
     config = Config()
-    dev = config.dev
-    actual = isinstance(dev, Dikt)
-    assert actual
+    assert isinstance(config.dev, Dikt)
+    assert config.dev.debugger is None
+    assert config.dev.traceback is None
 
 def test__doctest():
     import doctest
     from timefred import dikt
     failed, attempted = doctest.testmod(dikt)
     assert not failed
+
+class GenericDikt(Dikt):
+    class FooDikt(Dikt):
+        bar: list
+    foo: FooDikt
+    baz: Dikt[dict(bar=list)]
+
+def test__annotated_as_generic():
+    dikt = GenericDikt()
+    assert isinstance(dikt.foo, GenericDikt.FooDikt)
+    assert dikt.foo.bar == []
+    assert isinstance(dikt.baz, Dikt)
+    assert dikt.baz.bar == []

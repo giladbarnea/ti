@@ -1,6 +1,6 @@
 import typing
 import inspect
-from functools import wraps
+from functools import wraps, partial
 from typing import Any, Mapping, overload, Iterable, Tuple, Type, Union, Optional, Callable
 import os
 # os.environ['PREBREAK_PATCH_PRINT'] = '1'
@@ -114,12 +114,23 @@ def annotate(method, *args, **kwargs):
         # print(self, item)
         rv = method(self, item)
         if item in self.__class__.__annotations__:
-            initable = extract_initable(self.__class__.__annotations__[item])
+            annotation = self.__class__.__annotations__[item]
+            initable = extract_initable(annotation)
+            type_args = typing.get_args(annotation)
+            # if type_args:
+            #     initable = partial(initable, *type_args)
         else:
             initable = lambda _=None: _
+            type_args = tuple()
+
         if rv is UNSET:
-            return initable()
-        return initable(rv)
+            initiated = initable()
+        else:
+            initiated = initable(rv)
+        if type_args:
+            initiated.__annotations__.update(dict(*type_args))
+            initiated.refresh()
+        return initiated
 
     return decorator
 
