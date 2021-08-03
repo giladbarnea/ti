@@ -31,3 +31,9 @@ def test__annotated_with_default():
     dev = config.dev
     actual = isinstance(dev, Dikt)
     assert actual
+
+def test__doctest():
+    import doctest
+    from timefred import dikt
+    failed, attempted = doctest.testmod(dikt)
+    assert not failed
