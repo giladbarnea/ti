@@ -10,7 +10,7 @@ from timefred.note import Note
 from timefred.store import store
 from timefred.times import human2arrow, secs2human, now, arrows2rel_time
 from timefred.xarrow import XArrow
-
+from pdbpp import break_on_exc
 # from loguru import logger
 
 NOTE_TIME_RE = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
@@ -20,12 +20,12 @@ class Timespan(namedtuple('Timespan', 'start end')):
     start: XArrow
     end: XArrow
 
-    def __radd__(self, other):
-        self_td = self.timedelta()
+    def __radd__(self, other) -> int:
+        self_seconds = self.seconds()
         try:
-            return self_td + other.timedelta()
-        except AttributeError:
-            return self_td.total_seconds() + other
+            return self_seconds + int(other.timedelta().total_seconds())
+        except AttributeError: # other is int
+            return self_seconds + other
 
     def timedelta(self) -> timedelta:
         return self.end - self.start
@@ -125,7 +125,6 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
     def human_duration(self):
         return secs2human(self.total_seconds())
 
-from pdbpp import break_on_exc
 @break_on_exc
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):

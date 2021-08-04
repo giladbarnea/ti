@@ -33,10 +33,10 @@ TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|eek|onth)?s?"
 
 HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
                              rf'('
-                               rf'(?P<amount2>\d+)\s*(?P<fullunit2>(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
-                               rf'('
-                                 rf'(?P<amount3>\d+)\s*(?P<fullunit3>(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})'
-                               rf')?'
+                             rf'(?P<amount2>\d+)\s*(?P<fullunit2>(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
+                             rf'('
+                             rf'(?P<amount3>\d+)\s*(?P<fullunit3>(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})'
+                             rf')?'
                              rf')?'
                              rf'\s*'
                              r'(?:\s+ago\s*)?$'), re.IGNORECASE)
@@ -54,7 +54,7 @@ def isoweekday(day: str) -> int:  # perf: µs
     >>> isoweekday('f') == 5
     """
     day = day.lower()
-    if len(day) == 1 and day in ('t','s'):
+    if len(day) == 1 and day in ('t', 's'):
         raise ValueError(f"ambiguous day: {repr(day)} (tuesday/thursday, saturday/sunday)")
     for num, day_name in NUM2DAY:
         if day_name.startswith(day):
@@ -270,6 +270,10 @@ def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     # return dt
 
 
+from pdbpp import break_before_call
+
+
+@break_before_call(condition=lambda secs: not isinstance(secs, int))
 def secs2human(secs: int) -> str:
     """
     >>> secs2human(777600)

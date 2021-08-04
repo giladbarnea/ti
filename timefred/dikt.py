@@ -4,7 +4,7 @@ import typing
 from functools import wraps
 from typing import Any, Type, Union, Optional, Callable
 
-
+SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
 # os.environ['PREBREAK_PATCH_PRINT'] = '1'
 # from timefred import prebreak
 
@@ -116,8 +116,8 @@ def annotate(method, *args, **kwargs):
             return lambda: repr(self)
         # print(self, item)
         rv = method(self, item)
-        should_annotate = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
-        if not should_annotate:
+
+        if not SHOULD_ANNOTATE:
             return None if rv is UNSET else rv
         if item in self.__class__.__annotations__:
             annotation = self.__class__.__annotations__[item]
@@ -191,6 +191,8 @@ class BaseDikt(dict):
 
     def __getattribute__(self, name: str) -> Any:
         value = super().__getattribute__(name)
+        if not SHOULD_ANNOTATE:
+            return value
         if name == '__annotations__':
             return value
         if name not in self.__annotations__:
