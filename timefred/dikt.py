@@ -1,8 +1,10 @@
-import typing
-import inspect
-from functools import wraps, partial
-from typing import Any, Mapping, overload, Iterable, Tuple, Type, Union, Optional, Callable
 import os
+import inspect
+import typing
+from functools import wraps
+from typing import Any, Type, Union, Optional, Callable
+
+
 # os.environ['PREBREAK_PATCH_PRINT'] = '1'
 # from timefred import prebreak
 
@@ -106,6 +108,7 @@ def strict_inherits_from(inst, t) -> bool:
 
 
 def annotate(method, *args, **kwargs):
+
     # print(method, args, kwargs)
     @wraps(method)
     def decorator(self, item):
@@ -113,6 +116,9 @@ def annotate(method, *args, **kwargs):
             return lambda: repr(self)
         # print(self, item)
         rv = method(self, item)
+        should_annotate = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
+        if not should_annotate:
+            return None if rv is UNSET else rv
         if item in self.__class__.__annotations__:
             annotation = self.__class__.__annotations__[item]
             initable = extract_initable(annotation)
@@ -149,7 +155,6 @@ class DiktMeta(type):
         return item
 
 
-# class BaseDikt(dict, metaclass=DiktMeta):
 class BaseDikt(dict):
     __config__: dict
 
@@ -204,6 +209,7 @@ class BaseDikt(dict):
         if item in self:
             return self[item]
         return UNSET
+        # return None
         # annotations = self.__class__.__annotations__
         # if item in annotations:
         #     initable = extract_initable(annotations[item])

@@ -30,7 +30,7 @@ setup(
         long_description=read("README.rst", "CHANGES.rst"),
         entry_points={
             "console_scripts": [
-                "tf = timefred:main",
+                "tf = timefred.timefred:main",
                 ]
             },
         install_requires=['arrow>=1.1.0,<2.0.0',

@@ -1,11 +1,12 @@
+import datetime
 import os
 import sys
+from datetime import datetime as dt
 from pathlib import Path
+from typing import Optional
 
 import toml
-from pytz import timezone, BaseTzInfo
-import datetime
-from datetime import datetime as dt
+
 from timefred.dikt import Dikt
 
 
@@ -21,13 +22,18 @@ class Config(Dikt):
         tz: datetime.timezone = dt.now().astimezone().tzinfo
         formats: TimeFormats
 
-        def __init__(self, timecfg: dict):
-            super().__init__(timecfg)
-            # self.tz = timezone(self.tz)
+        # def __init__(self, timecfg: dict):
+        #     super().__init__(timecfg)
+        # self.tz = timezone(self.tz)
+
+    class DevCfg(Dikt):
+        debugger: Optional[str]
+        traceback: Optional[str]
+        features: Dikt
 
     time: TimeCfg
     sheet: Dikt = Dikt({"path": os.path.expanduser(os.environ.get('TF_SHEET', "~/.timefred-sheet.yml"))})
-    dev: Dikt = Dikt({"debugger": None, "traceback": None})
+    dev: DevCfg
 
     def __init__(self) -> None:
         cfg_file = Path(os.path.expanduser(os.environ.get('TF_CONFIG', "~/.timefred.toml")))
