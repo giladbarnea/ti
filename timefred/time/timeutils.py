@@ -8,8 +8,7 @@ from arrow.locales import EnglishLocale
 
 from timefred.config import config
 from timefred.util import confirm
-from timefred.xarrow import XArrow
-from timefred.xarrow import xarrow_factory
+from timefred.time import XArrow, xarrow_factory
 
 TZINFO = config.time.tz
 FORMATS = config.time.formats
@@ -236,7 +235,6 @@ def human2arrow(engtime: Union[str, Arrow] = "now") -> XArrow:
     #     return now - timedelta(hours=hours)
     #
     # raise BadTime(f"Don't understand the time {engtime!r}")
-
 
 def formatted2arrow(date: Union[str, Arrow]) -> XArrow:
     """Called by log() and status() with 'start' and 'end' values.

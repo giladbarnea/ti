@@ -1,3 +1,4 @@
+import re
 from typing import List, Optional, Callable, Any, Set
 
 from arrow import Arrow
@@ -5,8 +6,10 @@ from arrow import Arrow
 from timefred import color as c
 from timefred.dikt import Dikt
 from timefred.note import Note
-from timefred.times import formatted2arrow
-from timefred.xarrow import XArrow
+from timefred.time import XArrow, Timespan
+from multimethod import multimethod
+
+from timefred.util import normalize_str
 
 
 class myproperty(property):
@@ -59,7 +62,7 @@ class Item(Dikt):
 							  jira=jira))
 
 	@property
-	def notes(self):
+	def notes(self) -> List[Note]:
 		if self.__cache__.notes:
 			return self._notes
 		for i, note in enumerate(self._notes):
@@ -77,7 +80,7 @@ class Item(Dikt):
 	@property
 	def start(self) -> XArrow:
 		if self._start and not isinstance(self._start, Arrow):
-			self._start = formatted2arrow(self._start)
+			self._start = XArrow.from_formatted(self._start)
 		return self._start
 
 	@start.setter
@@ -87,9 +90,23 @@ class Item(Dikt):
 	@property
 	def end(self) -> XArrow:
 		if self._end and not isinstance(self._end, Arrow):
-			self._end = formatted2arrow(self._end)
+			self._end = XArrow.from_formatted(self._end)
 		return self._end
 
 	@end.setter
 	def end(self, val):
 		self._end = val
+
+	@property
+	def timespan(self) -> Timespan:
+		if not self._timespan:
+			self._timespan = Timespan(self.start, self.end)
+		return self._timespan
+
+	@multimethod
+	def has_similar_name(self, other: 'Item') -> bool:
+		return self.has_similar_name(other.name)
+
+	@multimethod
+	def has_similar_name(self, other: str) -> bool:
+		return normalize_str(self.name) == normalize_str(other)

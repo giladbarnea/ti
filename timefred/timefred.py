@@ -41,48 +41,52 @@ import yaml
 from arrow import Arrow
 
 from timefred import color as c
-from timefred import times
+from timefred.config import config
+from timefred.note import Note
+from timefred.time import timeutils
 from timefred._dev import generate_completion
 from timefred.action import log
 from timefred.error import TIError, NoEditor, InvalidYAML, NoTask, BadArguments, BadTime
 from timefred.item import Item
 from timefred.store import store
-from timefred.times import formatted2arrow, timegap, human2formatted, reformat, now, human2arrow, isoweekday
+from timefred.time.timeutils import formatted2arrow, human2formatted, reformat, now, human2arrow, isoweekday
 from timefred.util import confirm
-from timefred.xarrow import XArrow
+from timefred.time.xarrow import XArrow
+from timefred.time.timespan import Timespan
+FORMATS = config.time.formats
+from pdbpp import break_on_exc
 
-
-def on(name, time="now", _tag=None, _note=None):
+@break_on_exc
+def on(name: str, time="now", _tag=None, _note=None):
 	data = store.load()
 	work = data['work']
 
-	if work and 'end' not in (current := work[-1]):
+	if work and 'end' not in (current := Item(**work[-1])):
 		# Finish current, then start (recursively)
-		current_name__lower = current["name"].lower()
-		name_lower = name.lower()
-		if current_name__lower == name_lower:
-			print(f'{c.orange("Already")} working on {c.task(current["name"])} since {c.time(reformat(current["start"], times.FORMATS.date_time))} ;)')
+		if current.has_similar_name(name):
+			# print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
+			print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(current.start.DDMMYYHHmmss)} ;)')
 			return True
 		ok = fin(time)
 		if ok:
 			return on(name, time, _tag)
 		return False
 
-	entry = {
-		'name':  name,
-		'start': time,
-		}
+	item = Item(name, start=time)
 
 	if _tag:
-		entry.update({'tags': [_tag]})
+		item.tags.add(_tag)
+		# entry.update({'tags': [_tag]})
 
 	if _note:
+		item.notes.append(Note(note, time))
 		entry.update({'notes': [_note]})
 
 	work.append(entry)
 	store.dump(data)
 
-	message = f'{c.green("Started")} working on {c.task(name)} at {c.time(reformat(time, times.FORMATS.date_time))}'
+	current.name_colored
+	message = f'{c.green("Started")} working on {c.task(name)} at {c.time(reformat(time, timeutils.FORMATS.date_time))}'
 	if _tag:
 		message += f". tag: {c.tag(_tag)}"
 
@@ -166,7 +170,7 @@ def note(content, time="now"):
 			item = item_in_range
 
 	for n in item.notes:
-		if n.looks_same(content):
+		if n.is_similar(content):
 			if not confirm(f'{item.name_colored} already has this note: {c.b(c.note(n))}.\n'
 						   'Add anyway?'):
 				return
@@ -205,21 +209,20 @@ def tag(_tag, time="now"):
 	print(f"Okay, tagged {item.name_colored} with {tag_colored}.")
 
 
-def status(show_notes=False):
+def status(show_notes=True):
 	ensure_working()
 
 	data = store.load()
 	current = Item(**data['work'][-1])
-
-	diff = timegap(current.start, now())
+	duration = Timespan(current.start, now()).human_duration()
+	# diff = timegap(current.start, now())
 
 	# notes = current.get('notes')
 	if not show_notes or not current.notes:
-		print(f'You have been working on {current.name_colored} for {c.time(diff)}.')
+		print(f'You have been working on {current.name_colored} for {c.time(duration)}.')
 		return
 
-	print('\n    '.join([f'You have been working on {current.name_colored} for {c.time(diff)}.\nNotes:',  # [rgb(170,170,170)]
-
+	print('\n    '.join([f'You have been working on {current.name_colored} for {c.time(duration)}.\nNotes:',  # [rgb(170,170,170)]
 						 *[f'{c.grey100("o")} {n.pretty()}' for n in current.notes]
 						 ]))
 
