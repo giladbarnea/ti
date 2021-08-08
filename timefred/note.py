@@ -5,7 +5,6 @@ from arrow import Arrow
 from multimethod import multimethod
 
 from timefred import color as c
-from timefred.time.timeutils import formatted2arrow
 from timefred.time.xarrow import XArrow
 from timefred.util import normalize_str
 
@@ -17,7 +16,7 @@ class Note:
 	content: str
 
 	@multimethod
-	def __init__(self, note: str, time: str):
+	def __init__(self, note: str, time: Union[str, XArrow]):
 		self.content = note
 		self._time = time
 
@@ -45,15 +44,15 @@ class Note:
 		return self.content
 
 	def pretty(self):
-		colored_content = c.b(self.content)
+		content_bold = c.b(self.content)
 		if self.time:
-			return c.note(f'{colored_content} ({self.time.HHmmss})')
-		return colored_content
+			return c.note(f'{content_bold} ({self.time.HHmmss})')
+		return c.note(content_bold)
 
 	@property
 	def time(self) -> XArrow:
 		if self._time and not isinstance(self._time, Arrow):
-			self._time = formatted2arrow(self._time)
+			self._time = XArrow.from_formatted(self._time)
 		return self._time
 
 	@multimethod

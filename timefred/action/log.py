@@ -9,7 +9,7 @@ from timefred import color as c
 from timefred.item import Item
 from timefred.note import Note
 from timefred.store import store
-from timefred.time.timeutils import human2arrow, secs2human, now, arrows2rel_time
+from timefred.time.timeutils import secs2human, arrows2rel_time
 from timefred.time.xarrow import XArrow
 from timefred.time.timespan import Timespan
 
@@ -110,12 +110,12 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
-    data = store.load()
-    work = data['work'] + data['interrupt_stack']
+    work = store.load()
     _log = Log()
     current = None
-    period_arrow = human2arrow(period)
-    _now = now()
+    # period_arrow = human2arrow(period)
+    period_arrow = XArrow.from_human(period)
+    now = period_arrow.now()
 
     by_tag = defaultdict(set)
 
@@ -140,14 +140,14 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
         log_entry.notes.extend(item.notes)
         log_entry.tags |= item.tags
 
-        timespan = Timespan(item.start, item.end or _now)
+        timespan = Timespan(item.start, item.end or now)
         log_entry.timespans.append(timespan)
 
         if not timespan.end:
             log_entry.is_current = True
 
     title = c.title(period_arrow.full)
-    ago = arrows2rel_time(_now, period_arrow)
+    ago = arrows2rel_time(now, period_arrow)
     if ago:
         title += f' {c.dim("| " + ago)}'
 
