@@ -14,9 +14,6 @@ from timefred.time.xarrow import XArrow
 from timefred.time.timespan import Timespan
 
 
-# from loguru import logger
-
-
 @dataclass
 class LogEntry:
     name: str = ''

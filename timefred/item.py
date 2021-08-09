@@ -1,5 +1,4 @@
-import re
-from typing import List, Optional, Callable, Any, Set
+from typing import Optional, Callable, Any
 
 from arrow import Arrow
 
@@ -45,24 +44,31 @@ class myproperty(property):
 
 class Item(Dikt):
 	name: str
-	name_colored: str
-	_start: XArrow
-	_end: Optional[XArrow]
-	notes: List[Note]
-	tags: Optional[Set[str]]
+	#name_colored: str = ''
+	start: XArrow
+	end: Optional[XArrow]
+	notes: list[Note]
+	tags: Optional[set[str]]
 	jira: Optional[str]
+	timespan: Timespan
 
 	def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
+		# super().__init__(dict(name=name,
+		# 					  _start=start,
+		# 					  _end=end,
+		# 					  _name_colored='',
+		# 					  _notes=notes if notes is not None else [],
+		# 					  tags=tags if tags is not None else {},
+		# 					  jira=jira))
 		super().__init__(dict(name=name,
-							  _start=start,
-							  _end=end,
-							  _name_colored='',
-							  _notes=notes if notes is not None else [],
-							  tags=tags if tags is not None else {},
+							  start=start,
+							  end=end,
+							  notes=notes or [],
+							  tags=tags or set(),
 							  jira=jira))
 
 	@property
-	def notes(self) -> List[Note]:
+	def notes(self) -> list[Note]:
 		if self.__cache__.notes:
 			return self._notes
 		for i, note in enumerate(self._notes):

@@ -1,8 +1,8 @@
-import os
 import inspect
+import os
 import typing
 from functools import wraps
-from typing import Any, Type, Union, Optional, Callable
+from typing import Any, Type, Union, Optional, ForwardRef, Callable
 
 SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
 # os.environ['PREBREAK_PATCH_PRINT'] = '1'
@@ -11,7 +11,7 @@ SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lo
 UNSET = object()
 
 
-def extract_initable(t: type) -> Optional[Callable[[...], type]]:
+def extract_initable(t: type) -> Optional[Callable[Optional[Any], type]]:
     """Extract e.g `dict` from `Optional[dict]`.
     Returns None if non-extractable.
 
@@ -44,6 +44,7 @@ def extract_initable(t: type) -> Optional[Callable[[...], type]]:
     return None
 
 
+# unused
 def return_None_on(exc: Type[BaseException]):
     def decorator(fn):
         @wraps(fn)
@@ -58,6 +59,7 @@ def return_None_on(exc: Type[BaseException]):
     return decorator
 
 
+# unused
 def gettype(x: Union[type, Type[Any]]) -> type:
     if type(x) is type:
         # This includes gettype(type) and gettype(dict)
@@ -66,17 +68,19 @@ def gettype(x: Union[type, Type[Any]]) -> type:
     return type(x)
 
 
+# unused
 def mro(t) -> list[type]:
     return gettype(t).mro()
 
 
+# unused
 def trunc_mro(t) -> list[type]:
     t_mro = gettype(t).mro()
     t_mro.remove(object)
     return t_mro
 
 
-@return_None_on(AttributeError)
+@return_None_on(AttributeError)  # unused
 def have_common_ancestor(t1, t2) -> bool:
     # t1_mro = mro(t1)
     # t2_mro = mro(t2)
@@ -89,6 +93,7 @@ def have_common_ancestor(t1, t2) -> bool:
     return bool(set(t1_truncated_mro) & set(t2_truncated_mro))
 
 
+# unused
 def strict_inherits_from(inst, t) -> bool:
     """
     >>> strict_inherits_from(dict(), dict)
@@ -107,38 +112,63 @@ def strict_inherits_from(inst, t) -> bool:
     return inst_type is not t_type
 
 
-def annotate(method, *args, **kwargs):
+Annotated = Any
+Annotatable = Callable[[ForwardRef('Dikt'), Any], Annotated]
 
-    # print(method, args, kwargs)
-    @wraps(method)
-    def decorator(self, item):
-        if item == '__rich_repr__':
-            return lambda: repr(self)
-        # print(self, item)
-        rv = method(self, item)
 
-        if not SHOULD_ANNOTATE:
-            return None if rv is UNSET else rv
-        if item in self.__class__.__annotations__:
-            annotation = self.__class__.__annotations__[item]
-            initable = extract_initable(annotation)
-            type_args = typing.get_args(annotation)
-            # if type_args:
-            #     initable = partial(initable, *type_args)
-        else:
-            initable = lambda _=None: _
-            type_args = tuple()
+def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotatable:
+    def _annotate(method: Annotatable = None) -> Annotatable:
+        @wraps(method)
+        def decorator(self: 'Dikt', item: Any) -> Annotated:
+            if item == '__rich_repr__':
+                return lambda: repr(self)
 
-        if rv is UNSET:
-            initiated = initable()
-        else:
-            initiated = initable(rv)
-        if type_args:
-            initiated.__annotations__.update(dict(*type_args))
-            initiated.refresh()
-        return initiated
+            rv = method(self, item)
 
-    return decorator
+            if not SHOULD_ANNOTATE:
+                return None if rv is UNSET else rv
+
+            if item.startswith('_'):
+                return rv
+            annotations = self.__annotations__
+            # annotations = self.__class__.__annotations__
+            if item in annotations:
+                annotation = annotations[item]
+                initable = extract_initable(annotation)
+                type_args = typing.get_args(annotation)
+            else:
+                initable = lambda _=None: _
+                type_args = tuple()
+
+            if type(rv) is initable:
+                return rv
+
+            if rv is UNSET:
+                constructed_val = initable()
+            else:
+                constructed_val = initable(rv)
+
+            if set_in_self:
+                # Assumes `__setattr__` override sets ['foo']
+                self.__setattr__(item, constructed_val)
+
+            if type_args:
+                try:
+                    constructed_val.__annotations__.update(dict(*type_args))
+                    constructed_val.refresh()
+                except Exception as e:
+                    # This assumes constructed_val is a Dikt :/
+                    print(e.__class__.__qualname__, e)
+                    breakpoint()
+
+            return constructed_val
+
+        return decorator
+
+    if callable(maybe_method):
+        return _annotate(maybe_method)
+
+    return _annotate
 
 
 class ValidatorError(TypeError): ...
@@ -153,6 +183,11 @@ class DiktMeta(type):
         for k, v in item.items():
             setattr(self, k, v)
         return item
+
+
+class Field:
+    def __init__(self, default_factory=UNSET):
+        self.default_factory = default_factory
 
 
 class BaseDikt(dict):
@@ -173,14 +208,20 @@ class BaseDikt(dict):
         rv += "})"
         return rv
 
+    def dict(self):
+        rv = {}
+        annotations = self.__safe_annotations()
+        self_dict = self.__dict__
+        breakpoint()
+
     # def update(self, mapping, **kwargs) -> None:
     #     for k, v in {**dict(mapping), **kwargs}.items():
     #         # maybe this is redundant with __setitem__ override?
     #         # setattr(self, k, v)
     #     super().update(mapping, **kwargs)
 
-    def __repr__(self) -> str:
-        return self.repr()
+    # def __repr__(self) -> str:
+    # return self.repr()
 
     @classmethod
     def __safe_annotations(cls):
@@ -189,45 +230,54 @@ class BaseDikt(dict):
         except AttributeError:
             return dict()
 
-    def __getattribute__(self, name: str) -> Any:
-        value = super().__getattribute__(name)
-        if not SHOULD_ANNOTATE:
-            return value
-        if name == '__annotations__':
-            return value
-        if name not in self.__annotations__:
-            return value
-        annotation = self.__annotations__[name]
-        initable = extract_initable(annotation)
-        # TODO: build defaults from annotation:
-        if not initable or isinstance(value, initable):
-            return value
-        constructed = initable(value)
-        return constructed
+    # def __getattribute__(self, name: str) -> Any:
+    #     value = super().__getattribute__(name)
+    #     if not SHOULD_ANNOTATE:
+    #         return value
+    #     if name == '__annotations__':
+    #         return value
+    #     if name not in self.__annotations__:
+    #         return value
+    #     annotation = self.__annotations__[name]
+    #     initable = extract_initable(annotation)
+    #     # TODO: build defaults from annotation:
+    #     if not initable or isinstance(value, initable):
+    #         return value
+    #     constructed = initable(value)
+    #     return constructed
 
-    @annotate
-    def __getattr__(self, item):
+    # def __getitem__(self, k):
+    #     print(f'__getitem__({self = } | {k = })')
+    #     return super().__getitem__(k)
+
+    @annotate(set_in_self=True)
+    def __getattribute__(self, item):
         """Makes d.foo return d['foo']"""
-        if item in self:
-            return self[item]
-        return UNSET
-        # return None
-        # annotations = self.__class__.__annotations__
-        # if item in annotations:
-        #     initable = extract_initable(annotations[item])
-        # else:
-        #     initable = UNSET
-        #
-        # if item in self:
-        #     if initable is None or initable is UNSET:
-        #         return self[item]
-        #     return initable(self[item])
-        # if initable is UNSET:
-        #     return None
-        # return initable()
+        try:
+            return super().__getitem__(item)
+        except KeyError as e:
+            return super().__getattribute__(item)
+            # return UNSET
+        # rv =
+        # return rv
+        # return UNSET
+        # try:
+        #     rv = super().__getattribute__(item)
+        #     return rv
+        # except AttributeError:
+        #     return UNSET
+
+    # @annotate(set_in_self=True)
+    # def __getattr__(self, item):
+    #     """Makes d.foo return d['foo']"""
+    #     print(f'__getattr__({self = } | {item = })')
+    #     if item in self:
+    #         return self[item]
+    #     return UNSET
 
     def __setattr__(self, name: str, value) -> None:
-        """Makes d.foo = 'bar' set d['foo']"""
+        """Makes d.foo = 'bar' also set d['foo']"""
+        print(f'__setattr__({self = } | {name = } | {value = })')
         super().__setattr__(name, value)
         self[name] = value
 
@@ -259,39 +309,9 @@ class Dikt(BaseDikt):
     """
     __cache__: BaseDikt
 
-    def __init__(self, mapping=()) -> None:
-        super().__init__({**{'__cache__': BaseDikt()}, **dict(mapping)})
-        self.refresh()
-
-    def update_by_annotation(self, k, v=UNSET) -> bool:
-        annotations = self.__class__.__annotations__
-
-        if k not in annotations:
-            return False
-
-        annotation = annotations[k]
-        initable = extract_initable(annotation)
-        if not initable:
-            return False
-        # if not have_common_ancestor(v, initable): # not good because str and XArrow
-        #     raise ConflictsAnnotation(f'({type(self)}) | {k} = {repr(v)} is not an instance of {initable} (annotation: {annotation})')
-        try:
-            if v is UNSET:
-                # v = getattr(self.__class__, k)
-                constructed_val = initable()
-            else:
-                constructed_val = initable(v)
-            # constructed_val = initable(v)
-        except:
-            # if not v and getattr(self.__class__, k):
-            # 	# Default was specified on class level
-            # 	breakpoint()
-            # 	self.update({k: getattr(self.__class__, k)})
-            # 	return True
-            return False
-
-        self.update({k: constructed_val})
-        return True
+    def __init__(self, mapping=(), **kwargs) -> None:
+        super().__init__({**{'__cache__': BaseDikt()}, **dict(mapping, **kwargs)})
+        # self.refresh()
 
     def refresh(self):
         # self_keys = set()
@@ -304,9 +324,43 @@ class Dikt(BaseDikt):
             if type(v) is dict:  # Wrap only raw dict, not subclasses
                 self.update({k: Dikt(v)})
             else:  # is this necessary? maybe, because update also sets attr
-
                 self.update({k: v})
 
         # annotations = self.__safe_annotations()
         # for annotation_name in set(annotations) - self_keys:
         #     self.update_by_annotation(annotation_name)
+
+    def update_by_annotation(self, k, v=UNSET) -> bool:
+        """Returns True if v's type was updated to match, or already was of the annotated type"""
+        if not SHOULD_ANNOTATE:
+            return False
+
+        annotations = self.__class__.__annotations__
+
+        if k not in annotations:
+            return False
+
+        annotation = annotations[k]
+        initable = extract_initable(annotation)
+        if not initable:
+            return False
+
+        if type(v) is initable:
+            return True
+        try:
+            if v is UNSET:
+                # v = getattr(self.__class__, k)
+                constructed_val = initable()
+            else:
+                constructed_val = initable(v)
+            # constructed_val = initable(v)
+        except Exception as e:
+            # if not v and getattr(self.__class__, k):
+            # 	# Default was specified on class level
+            # 	breakpoint()
+            # 	self.update({k: getattr(self.__class__, k)})
+            # 	return True
+            return False
+
+        self.update({k: constructed_val})
+        return True

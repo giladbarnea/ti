@@ -1,5 +1,4 @@
 # coding: utf-8
-
 """
 Timefred is a beautiful and intelligent time tracker for the command line. Visit the
 project page (https://github.com/giladbarnea/timefred) for more details.
@@ -7,7 +6,7 @@ project page (https://github.com/giladbarnea/timefred) for more details.
 Usage:
   tf (o|on) <name> [start time = "now"]
   tf (f|fin) [end time = "now"]
-  tf (s|status)
+  tf (s|status)[+]
   tf (t|tag) <tag> [time = "now"]
     Add tag to current activity, e.g `tf tag research`.
   tf (n|note) <note-text> [time = "now"]
@@ -59,7 +58,7 @@ from pdbpp import break_on_exc
 def on(name: str, time: XArrow, _tag=None, _note=None):
     work = store.load()
 
-    if work and 'end' not in (current := Item(**work[-1])):
+    if work and not (current := Item(**work[-1])).end:
         # Finish current, then start (recursively)
         if current.has_similar_name(name):
             # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
@@ -68,6 +67,7 @@ def on(name: str, time: XArrow, _tag=None, _note=None):
         ok = fin(time)
         if ok:
             return on(name, time, _tag)
+        breakpoint()
         return False
 
     item = Item(name, start=time)
@@ -78,8 +78,10 @@ def on(name: str, time: XArrow, _tag=None, _note=None):
     if _note:
         item.notes.append(Note(_note, time))
 
-    work.append(dict(item))
-    store.dump(work)
+    work.append(item.dict())
+    ok = store.dump(work)
+    if not ok:
+        breakpoint()
 
     # message = f'{c.green("Started")} working on {item.name_colored} at {c.time(reformat(time, timeutils.FORMATS.date_time))}'
     message = f'{c.green("Started")} working on {item.name_colored} at {c.time(item.start.DDMMYYHHmmss)}'
@@ -108,7 +110,7 @@ def fin(end: XArrow) -> bool:
     data[-1]['end'] = end.DDMMYYHHmmss
     item.end = end
     ok = store.dump(data)
-    print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.DDMMYYHHmmss)}')
+    print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.DDMMYYHHmmss)}. ok: {ok}')
     return ok
 
 
@@ -196,7 +198,7 @@ def tag(_tag, time="now") -> bool:
     return ok
 
 
-def status(show_notes=True):
+def status(show_notes=False):
     ensure_working()
 
     data = store.load()
@@ -241,7 +243,7 @@ def edit():
     store.dump(data)
 
 
-def is_working():
+def is_working() -> bool:
     data = store.load()
     return data and 'end' not in data[-1]
 

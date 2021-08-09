@@ -1,6 +1,9 @@
+import os
+
+os.environ['TF_FEATURE_DIKT_ANNOTATE_GETATTR'] = 'true'
 from timefred.dikt import Dikt
-
-
+from test.util import assert_doesnt_raise, assert_raises
+from pytest import mark
 class Config(Dikt):
     class TimeCfg(Dikt):
         class TimeFormats(Dikt):
@@ -16,6 +19,7 @@ class Config(Dikt):
     dev: Dikt = {"debugger": None, "traceback": None}
 
 
+@mark.skip('Field(default_factory=list) is not implemented yet')
 def test__annotated_no_default():
     config = Config()
     assert config.hobbies == []
@@ -28,11 +32,13 @@ def test__annotated_no_default():
     assert config.time.formats.date_time == 'DD/MM/YY HH:mm:ss'
     assert config.time.formats.time == 'HH:mm:ss'
 
+
 def test__annotated_with_default():
     config = Config()
     assert isinstance(config.dev, Dikt)
     assert config.dev.debugger is None
     assert config.dev.traceback is None
+
 
 def test__doctest():
     import doctest
@@ -40,15 +46,45 @@ def test__doctest():
     failed, attempted = doctest.testmod(dikt)
     assert not failed
 
-class GenericDikt(Dikt):
-    class FooDikt(Dikt):
-        bar: list
-    foo: FooDikt
-    baz: Dikt[dict(bar=list)]
 
+class GenericDikt(Dikt):
+    foo: Dikt[dict(bar=list)]
+
+@mark.skip('Field(default_factory=list) is not implemented yet')
 def test__annotated_as_generic():
     dikt = GenericDikt()
-    assert isinstance(dikt.foo, GenericDikt.FooDikt)
+    assert isinstance(dikt.foo, Dikt)
     assert dikt.foo.bar == []
-    assert isinstance(dikt.baz, Dikt)
-    assert dikt.baz.bar == []
+
+
+class Foo(Dikt):
+    class Bar(Dikt):
+        baz: int = 5
+    bar: Bar
+
+
+def test__init_mismatches_annotation_but_buildable():
+    print()
+    foo = Foo(bar={'baz': 6})
+    bar = getattr(foo, 'bar')
+    assert isinstance(bar, Foo.Bar)
+    baz = getattr(bar, 'baz')
+    assert baz == 6
+
+
+def test__init_mismatches_annotation_but_not_buildable():
+    foo = Foo(bar={'baz': 'NOT A NUMBER'})
+    bar = foo.bar
+    assert isinstance(bar, Foo.Bar)
+    with assert_raises(ValueError):
+        baz = bar.baz
+        # assert bar.baz == 'buzz'
+
+@mark.skip('dict() is not implemented yet')
+def test__dict():
+    foo = Foo(bar={'baz': 6})
+    assert isinstance(foo.bar, Foo.Bar)
+    assert foo.bar.baz == 6
+    foo_dict = foo.dict()
+    assert isinstance(foo_dict, dict)
+    assert foo_dict['bar'] == {'baz': 6}
