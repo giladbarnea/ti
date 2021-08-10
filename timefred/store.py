@@ -8,7 +8,7 @@ from pdbpp import break_on_exc, rerun_and_break_on_exc
 
 # @dataclass
 # from timefred.util import timeit
-from timefred.dikt import Dikt
+from timefred.dikt import Dikt, DefaultDikt
 
 Entry = TypedDict('Entry', {
     'name':  str,
@@ -29,11 +29,12 @@ class Data(dict):
 # interrupt_stack: List
 
 
-class Store(Dikt):
+class Store(DefaultDikt):
 
     def __init__(self, filename):
         self.filename = Path(filename)
 
+    # @rerun_and_break_on_exc
     def load(self) -> list[Entry]:  # perf: 150ms
         if self.__cache__.data:
             return self.__cache__.data

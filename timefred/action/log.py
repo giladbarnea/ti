@@ -103,7 +103,7 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
         return secs2human(self.total_seconds())
 
 
-@break_on_exc
+# @break_on_exc
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")

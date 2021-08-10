@@ -1,6 +1,6 @@
-from pdbpp import break_on_exc
+from typing import ForwardRef, Any
 
-from timefred.dikt.diktutils import UNSET, annotate
+from timefred.dikt.diktutils import UNSET, annotate, resolve_forwardref
 
 
 class DiktMeta(type):
@@ -17,9 +17,18 @@ class Field:
 
 
 class BaseDikt(dict):
-    __config__: dict
-    __items__: dict
-    __attrs__: dict
+    __config__: ForwardRef('NestedDikt')
+    __items__: ForwardRef('NestedDikt')
+    __attrs__: ForwardRef('NestedDikt')
+
+    def __new__(cls, *args: Any, **kwargs: Any):
+        for item, annotation in cls.__annotations__.items():
+            if isinstance(annotation, ForwardRef):
+                evaluated = resolve_forwardref(annotation, cls)
+                cls.__annotations__[item] = evaluated
+
+        inst = super().__new__(cls, *args, **kwargs)
+        return inst
 
     def repr(self, *, private=False, dunder=False, methods=False):
         name = self.__class__.__qualname__
@@ -42,6 +51,13 @@ class BaseDikt(dict):
         self_dict = self.__dict__
         raise NotImplementedError()
 
+    def __iter__(self):
+        """
+        so `dict(model)` works.
+        pydantic/main.py#L733
+        """
+        yield from self.__dict__.items()
+
     def __class_getitem__(cls, item):
         cls.__annotations__.update(item)
         return super().__class_getitem__(item)
@@ -52,8 +68,8 @@ class BaseDikt(dict):
     #         # setattr(self, k, v)
     #     super().update(mapping, **kwargs)
 
-    # def __repr__(self) -> str:
-    #     return self.repr()
+    def __repr__(self) -> str:
+        return self.repr()
 
     @property
     def __safe_annotations__(self) -> dict:
@@ -78,10 +94,8 @@ class BaseDikt(dict):
         self[name] = value
 
 
-class DefaultDikt(BaseDikt):
-    @annotate(set_in_self=True)
-    def __getattr__(self, item):
-        return UNSET
+class InternalState(BaseDikt):
+    pass
 
 
 class Dikt(BaseDikt):
@@ -104,4 +118,19 @@ class Dikt(BaseDikt):
     3. dikt.bad is None
 
     """
-    __cache__: BaseDikt
+    __cache__: ForwardRef('NestedDikt')
+
+
+class DefaultDikt(Dikt):
+    @annotate(set_in_self=True)
+    def __getattr__(self, item):
+        return UNSET
+
+
+class NestedDikt(Dikt):
+    @annotate(set_in_self=True)
+    def __getattr__(self, item):
+        return NestedDikt()
+
+
+print()

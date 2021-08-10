@@ -1,15 +1,21 @@
 import inspect
+import sys
 import os
 import typing
 from functools import wraps
 from typing import Union, Any, Type, Optional, Callable, ForwardRef
 
-from pdbpp import break_on_exc, rerun_and_break_on_exc
+DONT_ANNOTATE = set(dir(dict)) | {'__annotations__', '__safe_annotations__'}
 
-SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
+SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'true').lower() in ('1', 'yes', 'true')
 
 UNSET = object()
 
+def resolve_forwardref(t: ForwardRef, cls):
+    globalns = sys.modules[cls.__module__].__dict__.copy()
+    globalns.setdefault(cls.__name__, cls)
+    evaluated = t._evaluate(globalns, None, frozenset())
+    return evaluated
 
 def gettype(x: Union[type, Type[Any]]) -> type:
     if type(x) is type:
@@ -43,7 +49,11 @@ def strict_inherits_from(inst, t) -> bool:
     return inst_type is not t_type
 
 
-def extract_initable(t: type) -> Optional[Callable[..., type]]:
+from pdbpp import rerun_and_break_if_returns, break_on_return, break_before_call
+
+
+# @break_before_call(condition=lambda *_args, **_kwargs: isinstance(_args[0], ForwardRef))
+def extract_initable(t: type, inst=None) -> Optional[Callable[..., type]]:
     """Extract e.g `dict` from `Optional[dict]`.
     Returns None if non-extractable.
 
@@ -60,6 +70,11 @@ def extract_initable(t: type) -> Optional[Callable[..., type]]:
     >>> ei(Foo) is Foo
     True
     """
+    if isinstance(t, ForwardRef):
+        evaluated = resolve_forwardref(t, inst.__class__)
+        return extract_initable(evaluated)
+        # breakpoint()
+        # return evaluated
     origin = typing.get_origin(t)
     if origin is None:  # Any
         if inspect.getmodule(t) is typing:
@@ -83,29 +98,50 @@ def mro(t) -> list[type]:
 Annotated = Any
 Annotatable = Callable[[ForwardRef('Dikt'), Any], Annotated]
 
+
 def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotatable:
     def _annotate(method: Annotatable = None) -> Annotatable:
         @wraps(method)
         def decorator(self: ForwardRef('Dikt'), item: Any) -> Annotated:
+            # from timefred.dikt import Dikt, InternalState
+            # DONT_ANNOTATE = set(dir(Dikt))
             if item == '__rich_repr__':
-                return lambda: repr(self)
+                return lambda: self
 
             rv = method(self, item)
 
             if not SHOULD_ANNOTATE:
                 return None if rv is UNSET else rv
 
-            if item.startswith('_'):
+            if item in DONT_ANNOTATE:
+                if rv is UNSET:
+                    raise NotImplementedError(f"This shouldn't happen? {item = } in DONT_ANNOTATE, and rv is UNSET", locals())
                 return rv
+
+
+            # if isinstance(rv, InternalState):
+            #     breakpoint()
+            #     return rv
+
+            # if item.startswith('_'):
+            #     # otherwise self.__safe_annotations__ RecursionError
+            #     print(rv, item)
+            #     return rv
 
             annotations = self.__safe_annotations__
             if item not in annotations:
                 if rv is UNSET:
-                    raise NotImplementedError("This shouldn't happen?", locals())
+                    raise NotImplementedError(f"This shouldn't happen? {item = } not in annotations, and rv is UNSET", locals())
                 return rv
 
             annotation = annotations[item]
-            initable = extract_initable(annotation)
+            if isinstance(annotation, ForwardRef):
+                breakpoint()
+                # cls = self.__class__
+                # globalns = sys.modules[cls.__module__].__dict__.copy()
+                # globalns.setdefault(cls.__name__, cls)
+                # evaluated = annotation._evaluate(globalns, None, frozenset())
+            initable = extract_initable(annotation, self)
 
             if type(rv) is initable:
                 return rv

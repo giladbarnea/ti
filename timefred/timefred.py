@@ -28,6 +28,7 @@ Options:
   <note-text>...    Some arbitrary text to be added as `notes` to the currently
                     working project.
 """
+import prebreak
 
 import os
 import subprocess
