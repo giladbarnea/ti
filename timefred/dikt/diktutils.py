@@ -4,6 +4,8 @@ import typing
 from functools import wraps
 from typing import Union, Any, Type, Optional, Callable, ForwardRef
 
+from pdbpp import break_on_exc, rerun_and_break_on_exc
+
 SHOULD_ANNOTATE = os.environ.get('TF_FEATURE_DIKT_ANNOTATE_GETATTR', 'false').lower() in ('1', 'yes', 'true')
 
 UNSET = object()
@@ -81,7 +83,6 @@ def mro(t) -> list[type]:
 Annotated = Any
 Annotatable = Callable[[ForwardRef('Dikt'), Any], Annotated]
 
-
 def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotatable:
     def _annotate(method: Annotatable = None) -> Annotatable:
         @wraps(method)
@@ -96,7 +97,8 @@ def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotata
 
             if item.startswith('_'):
                 return rv
-            annotations = self.__annotations__
+            # annotations = self.__annotations__
+            annotations = self.__safe_annotations__
             # annotations = self.__class__.__annotations__
             if item in annotations:
                 annotation = annotations[item]

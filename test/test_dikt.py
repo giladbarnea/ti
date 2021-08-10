@@ -2,7 +2,7 @@ print()
 import os
 
 os.environ['TF_FEATURE_DIKT_ANNOTATE_GETATTR'] = 'true'
-from timefred.dikt import Dikt
+from timefred.dikt import Dikt, BaseDikt
 from test.util import assert_raises
 from pytest import mark
 
@@ -157,3 +157,8 @@ def test__set__attr_item_symmetry__setitem():
     assert baz == 6
     assert bar.baz == 3
     assert bar['baz'] == 3
+
+
+######################
+# *** Edge Cases
+######################

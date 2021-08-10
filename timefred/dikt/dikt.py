@@ -18,7 +18,9 @@ class Field:
 
 
 class BaseDikt(dict):
-    __config__: dict
+    __config__ = dict()
+    __items__ = dict()
+    __attrs__ = dict()
 
     def repr(self, *, private=False, dunder=False, methods=False):
         name = self.__class__.__qualname__
@@ -37,13 +39,13 @@ class BaseDikt(dict):
 
     def dict(self):
         rv = {}
-        annotations = self.__safe_annotations()
+        annotations = self.__safe_annotations__
         self_dict = self.__dict__
         raise NotImplementedError()
 
-    def __class_getitem__(cls, item: Any) -> GenericAlias:
-        cls.__annotations__.update(item)
-        return super().__class_getitem__(item)
+    # def __class_getitem__(cls, item: Any) -> GenericAlias:
+    #     cls.__safe_annotations().update(item)
+    #     return super().__class_getitem__(item)
 
     # def update(self, mapping, **kwargs) -> None:
     #     for k, v in {**dict(mapping), **kwargs}.items():
@@ -51,27 +53,27 @@ class BaseDikt(dict):
     #         # setattr(self, k, v)
     #     super().update(mapping, **kwargs)
 
-    def __repr__(self) -> str:
-        return self.repr()
+    # def __repr__(self) -> str:
+    #     return self.repr()
 
-    @classmethod
-    def __safe_annotations(cls):
+    @property
+    def __safe_annotations__(self):
         try:
-            return cls.__annotations__
+            return self.__annotations__
         except AttributeError:
             return dict()
 
+
     @annotate(set_in_self=True)
-    def __getattribute__(self, item):
+    def __getattribute__(self, name):
         """Makes d.foo return d['foo']"""
         try:
-            return super().__getitem__(item)
+            return super().__getitem__(name)
         except KeyError as e:
-            return super().__getattribute__(item)
+            return super().__getattribute__(name)
 
     def __setattr__(self, name: str, value) -> None:
         """Makes d.foo = 'bar' also set d['foo']"""
-        # print(f'__setattr__({self = } | {name = } | {value = })')
         super().__setattr__(name, value)
         self[name] = value
 
@@ -103,11 +105,11 @@ class Dikt(BaseDikt):
     3. dikt.bad is None
 
     """
-    __cache__: BaseDikt
+    __cache__ = BaseDikt()
 
-    def __init__(self, mapping=(), **kwargs) -> None:
-        super().__init__({**{'__cache__': BaseDikt()}, **dict(mapping, **kwargs)})
-        # self.refresh()
+    # def __init__(self, mapping=(), **kwargs) -> None:
+    #     super().__init__({**{'__cache__': BaseDikt()}, **dict(mapping, **kwargs)})
+    #     self.refresh()
 
     # todo: unused and should delete because done lazily via dunders
     def refresh(self):
