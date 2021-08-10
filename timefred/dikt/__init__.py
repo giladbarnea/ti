@@ -1,1 +1,1 @@
-from .dikt import Dikt, BaseDikt
+from .dikt import Dikt, BaseDikt, DefaultDikt

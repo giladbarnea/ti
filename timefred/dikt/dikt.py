@@ -83,7 +83,9 @@ class BaseDikt(dict):
     #     setattr(self, k, v)
 
 class DefaultDikt(BaseDikt):
-    pass
+    @annotate(set_in_self=True)
+    def __getattr__(self, item):
+        return UNSET
 
 class Dikt(BaseDikt):
     """
