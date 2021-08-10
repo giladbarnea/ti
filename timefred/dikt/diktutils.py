@@ -119,32 +119,27 @@ def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotata
                 return rv
 
 
-            # if isinstance(rv, InternalState):
-            #     breakpoint()
-            #     return rv
-
-            # if item.startswith('_'):
-            #     # otherwise self.__safe_annotations__ RecursionError
-            #     print(rv, item)
-            #     return rv
-
             annotations = self.__safe_annotations__
             if item not in annotations:
+                clsvar_val = getattr(self.__class__, item, UNSET)
                 if rv is UNSET:
                     raise NotImplementedError(f"This shouldn't happen? {item = } not in annotations, and rv is UNSET", locals())
                 return rv
 
             annotation = annotations[item]
             if isinstance(annotation, ForwardRef):
-                breakpoint()
-                # cls = self.__class__
-                # globalns = sys.modules[cls.__module__].__dict__.copy()
-                # globalns.setdefault(cls.__name__, cls)
-                # evaluated = annotation._evaluate(globalns, None, frozenset())
+                breakpoint() # Shouldn't happen because BaseDikt.__new__
             initable = extract_initable(annotation, self)
 
-            if type(rv) is initable:
+            rv_type = type(rv)
+            if rv_type is initable:
                 return rv
+
+            try:
+                if rv_type.__qualname__ is initable.default_factory.__annotations__['return']:
+                    return rv
+            except AttributeError:
+                pass
 
             if rv is UNSET:
                 constructed_val = initable()
@@ -152,7 +147,8 @@ def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotata
                 try:
                     constructed_val = initable(rv)
                 except TypeError as e:
-                    raise TypeError(f"{e}. Tried to construct a {initable.__qualname__}({repr(rv)})") from None
+                    name = getattr(initable, '__qualname__', repr(initable))
+                    raise TypeError(f"{e}. Tried to construct a {name}({repr(rv)})") from None
 
             if set_in_self:
                 self.__setattr__(item, constructed_val)

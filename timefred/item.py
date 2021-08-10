@@ -3,7 +3,7 @@ from typing import Optional, Callable, Any
 from arrow import Arrow
 
 from timefred import color as c
-from timefred.dikt import Dikt
+from timefred.dikt import Dikt, Field
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
 from multimethod import multimethod
@@ -45,8 +45,9 @@ class myproperty(property):
 class Item(Dikt):
 	name: str
 	#name_colored: str = ''
-	start: XArrow
-	end: Optional[XArrow]
+	# start = Field(XArrow.from_formatted)
+	start: Field(XArrow.from_formatted)
+	end: Optional[Field(XArrow.from_formatted)]
 	notes: list[Note]
 	tags: Optional[set[str]]
 	jira: Optional[str]
@@ -83,15 +84,15 @@ class Item(Dikt):
 			self._name_colored = c.task(self.name)
 		return self._name_colored
 
-	@property
-	def start(self) -> XArrow:
-		if self._start and not isinstance(self._start, Arrow):
-			self._start = XArrow.from_formatted(self._start)
-		return self._start
+	# @property
+	# def start(self) -> XArrow:
+	# 	if self._start and not isinstance(self._start, Arrow):
+	# 		self._start = XArrow.from_formatted(self._start)
+	# 	return self._start
 
-	@start.setter
-	def start(self, val):
-		self._start = val
+	# @start.setter
+	# def start(self, val):
+	# 	self._start = val
 
 	@property
 	def end(self) -> XArrow:

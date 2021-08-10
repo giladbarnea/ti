@@ -8,6 +8,7 @@ from arrow.arrow import TZ_EXPR
 
 import timefred.color as c
 from timefred.config import config
+from timefred.dikt import Field, Dikt
 from timefred.time.timeutils import isoweekday
 from timefred.util import confirm
 
@@ -42,6 +43,7 @@ Used in `XArrow._from_relative`"""
 
 
 class XArrow(Arrow):
+
     def __init__(self, year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: int = 0, microsecond: int = 0, tzinfo: Optional[TZ_EXPR] = None, **kwargs: Any) -> None:
         super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
         self.colored = c.time(self)

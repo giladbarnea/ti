@@ -15,6 +15,9 @@ class Field:
     def __init__(self, default_factory=UNSET):
         self.default_factory = default_factory
 
+    def __call__(self, *args, **kwargs):
+        return self.default_factory(*args, **kwargs)
+
 
 class BaseDikt(dict):
     __config__: ForwardRef('NestedDikt')

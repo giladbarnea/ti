@@ -1,1 +1,1 @@
-from .dikt import Dikt, BaseDikt, DefaultDikt, InternalState, NestedDikt
+from .dikt import Dikt, BaseDikt, DefaultDikt, InternalState, NestedDikt, Field

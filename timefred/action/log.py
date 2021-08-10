@@ -116,8 +116,13 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 
     by_tag = defaultdict(set)
 
-    for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
-        if item.start.DDMMYY != period_arrow.DDMMYY:
+    for i, entry in enumerate(reversed(work)):
+        item = Item(**entry)
+    # for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
+        item_start = item.start
+        item_start_DDMMYY = item_start.DDMMYY
+        period_arrow_DDMMYY = period_arrow.DDMMYY
+        if item_start_DDMMYY != period_arrow_DDMMYY:
             if period_arrow > item.start:
                 # We have iterated past period
                 break
