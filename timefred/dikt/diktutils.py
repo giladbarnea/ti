@@ -97,16 +97,15 @@ def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotata
 
             if item.startswith('_'):
                 return rv
-            # annotations = self.__annotations__
+
             annotations = self.__safe_annotations__
-            # annotations = self.__class__.__annotations__
-            if item in annotations:
-                annotation = annotations[item]
-                initable = extract_initable(annotation)
-                type_args = typing.get_args(annotation)
-            else:
-                initable = lambda _=None: _
-                type_args = tuple()
+            if item not in annotations:
+                if rv is UNSET:
+                    raise NotImplementedError("This shouldn't happen?", locals())
+                return rv
+
+            annotation = annotations[item]
+            initable = extract_initable(annotation)
 
             if type(rv) is initable:
                 return rv
@@ -114,20 +113,13 @@ def annotate(maybe_method: Annotatable = None, *, set_in_self=False) -> Annotata
             if rv is UNSET:
                 constructed_val = initable()
             else:
-                constructed_val = initable(rv)
+                try:
+                    constructed_val = initable(rv)
+                except TypeError as e:
+                    raise TypeError(f"{e}. Tried to construct a {initable.__qualname__}({repr(rv)})") from None
 
             if set_in_self:
-                # Assumes `__setattr__` sets ['foo']
                 self.__setattr__(item, constructed_val)
-
-            if type_args:
-                try:
-                    constructed_val.__annotations__.update(dict(*type_args))
-                    constructed_val.refresh()
-                except Exception as e:
-                    # This assumes constructed_val is a Dikt :/
-                    print(e.__class__.__qualname__, e)
-                    breakpoint()
 
             return constructed_val
 

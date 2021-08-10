@@ -3,7 +3,7 @@ import os
 
 os.environ['TF_FEATURE_DIKT_ANNOTATE_GETATTR'] = 'true'
 from timefred.dikt import Dikt, DefaultDikt
-from test.util import assert_raises
+from test.testutils import assert_raises
 from pytest import mark
 
 
@@ -34,17 +34,6 @@ def test__doctest():
     from timefred import dikt
     failed, attempted = doctest.testmod(dikt)
     assert not failed
-
-
-class GenericDikt(Dikt):
-    foo: Dikt[{'bar': list}]
-
-
-@mark.skip('Field(default_factory=list) is not implemented yet')
-def test__annotated_as_generic():
-    dikt = GenericDikt()
-    assert isinstance(dikt.foo, Dikt)
-    assert dikt.foo.bar == []
 
 
 class Foo(Dikt):
@@ -185,8 +174,39 @@ def test__defaultdikt__annotated():
     assert config.time.formats.date_time == 'DD/MM/YY HH:mm:ss'
     assert config.time.formats.time == 'HH:mm:ss'
 
+class GenericDikt(DefaultDikt):
+    foo: DefaultDikt[{'bar': list}]
+
+
+def test__annotated_as_generic():
+    dikt = GenericDikt()
+    assert isinstance(dikt.foo, DefaultDikt)
+    assert dikt.foo.bar == []
+
 ######################
 # *** Edge Cases
 ######################
 
-# TODO: returns None explicitly and not UNSET
+# TODO:
+#  returns None explicitly and not UNSET
+
+######################
+# *** Native dict methods
+######################
+
+# TODO:
+#  setdefault()
+
+def test__contains__():
+    dikt = Dikt()
+    dikt.foo = 'bar'
+    assert 'foo' in dikt
+    assert hasattr(dikt, 'foo')
+
+def test__update():
+    dikt = Dikt()
+    dikt.update(foo='bar')
+    assert dikt.foo == 'bar'
+    assert dikt['foo'] == 'bar'
+    assert 'foo' in dikt
+    assert hasattr(dikt, 'foo')

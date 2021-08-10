@@ -52,7 +52,7 @@ class XArrow(Arrow):
 
     @classmethod
     # @break_on_return(condition=lambda rv:not isinstance(rv, XArrow))
-    def now(cls, tzinfo: Optional[dt_tzinfo] = TZINFO) -> "XArrow":
+    def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> "XArrow":
         return super().now(tzinfo)
         # return xarrow_factory.now(TZINFO)
 

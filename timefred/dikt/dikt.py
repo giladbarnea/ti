@@ -1,7 +1,6 @@
-from types import GenericAlias
-from typing import Any
+from pdbpp import break_on_exc
 
-from timefred.dikt.diktutils import UNSET, annotate, SHOULD_ANNOTATE, extract_initable
+from timefred.dikt.diktutils import UNSET, annotate
 
 
 class DiktMeta(type):
@@ -18,9 +17,9 @@ class Field:
 
 
 class BaseDikt(dict):
-    __config__ = dict()
-    __items__ = dict()
-    __attrs__ = dict()
+    __config__: dict
+    __items__: dict
+    __attrs__: dict
 
     def repr(self, *, private=False, dunder=False, methods=False):
         name = self.__class__.__qualname__
@@ -43,9 +42,9 @@ class BaseDikt(dict):
         self_dict = self.__dict__
         raise NotImplementedError()
 
-    # def __class_getitem__(cls, item: Any) -> GenericAlias:
-    #     cls.__safe_annotations().update(item)
-    #     return super().__class_getitem__(item)
+    def __class_getitem__(cls, item):
+        cls.__annotations__.update(item)
+        return super().__class_getitem__(item)
 
     # def update(self, mapping, **kwargs) -> None:
     #     for k, v in {**dict(mapping), **kwargs}.items():
@@ -57,35 +56,33 @@ class BaseDikt(dict):
     #     return self.repr()
 
     @property
-    def __safe_annotations__(self):
+    def __safe_annotations__(self) -> dict:
         try:
             return self.__annotations__
         except AttributeError:
             return dict()
 
-
     @annotate(set_in_self=True)
     def __getattribute__(self, name):
         """Makes d.foo return d['foo']"""
         try:
-            return super().__getitem__(name)
+            item = super().__getitem__(name)
+            return item
         except KeyError as e:
-            return super().__getattribute__(name)
+            attr = super().__getattribute__(name)
+            return attr
 
     def __setattr__(self, name: str, value) -> None:
         """Makes d.foo = 'bar' also set d['foo']"""
         super().__setattr__(name, value)
         self[name] = value
 
-    # def __setitem__(self, k, v) -> None:
-    #     """Makes d['foo'] = 'bar' set d.foo"""
-    #     super().__setitem__(k, v)
-    #     setattr(self, k, v)
 
 class DefaultDikt(BaseDikt):
     @annotate(set_in_self=True)
     def __getattr__(self, item):
         return UNSET
+
 
 class Dikt(BaseDikt):
     """
@@ -107,58 +104,4 @@ class Dikt(BaseDikt):
     3. dikt.bad is None
 
     """
-    __cache__ = BaseDikt()
-
-    # def __init__(self, mapping=(), **kwargs) -> None:
-    #     super().__init__({**{'__cache__': BaseDikt()}, **dict(mapping, **kwargs)})
-    #     self.refresh()
-
-    # todo: unused and should delete because done lazily via dunders
-    def refresh(self):
-        # self_keys = set()
-        for k, v in self.items():
-            # self_keys.add(k)
-            if self.update_by_annotation(k, v):
-                continue
-
-            # if isinstance(v, dict) and strict_inherits_from(v, dict):
-            if type(v) is dict:  # Wrap only raw dict, not subclasses
-                self.update({k: Dikt(v)})
-            else:  # is this necessary? maybe, because update also sets attr
-                self.update({k: v})
-
-    # todo: unused and should delete because done lazily via dunders
-    def update_by_annotation(self, k, v=UNSET) -> bool:
-        """Returns True if v's type was updated to match, or already was of the annotated type"""
-        if not SHOULD_ANNOTATE:
-            return False
-
-        annotations = self.__class__.__annotations__
-
-        if k not in annotations:
-            return False
-
-        annotation = annotations[k]
-        initable = extract_initable(annotation)
-        if not initable:
-            return False
-
-        if type(v) is initable:
-            return True
-        try:
-            if v is UNSET:
-                # v = getattr(self.__class__, k)
-                constructed_val = initable()
-            else:
-                constructed_val = initable(v)
-            # constructed_val = initable(v)
-        except Exception as e:
-            # if not v and getattr(self.__class__, k):
-            # 	# Default was specified on class level
-            # 	breakpoint()
-            # 	self.update({k: getattr(self.__class__, k)})
-            # 	return True
-            return False
-
-        self.update({k: constructed_val})
-        return True
+    __cache__: BaseDikt

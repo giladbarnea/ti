@@ -1,9 +1,6 @@
 from typing import NoReturn
 
-import arrow
-
-from timefred.time.timeutils import TZINFO, ABBREVS, isoweekday, _day2arrow, human2formatted
-from random import randint
+from timefred.time.xarrow import isoweekday, XArrow
 
 
 def _arrow_assert_soft_eq(arrw1, arrw2) -> NoReturn:
@@ -16,6 +13,7 @@ def _arrow_assert_same_day(arrw1, arrw2) -> NoReturn:
     assert arrw1.year == arrw2.year
     assert arrw1.month == arrw2.month
     assert arrw1.day == arrw2.day
+
 
 def _arrow_assert_same_time(arrw1, arrw2) -> NoReturn:
     assert arrw1.hour == arrw2.hour
@@ -89,9 +87,9 @@ def test__day_num():
             assert isoweekday(day.title()) == num
 
 
-def test__day2arrow():
-    sunday = _day2arrow('sun')
-    saturday = _day2arrow('sat')
+def test__XArrow_from_day():
+    sunday = XArrow._from_day('sun')
+    saturday = XArrow._from_day('sat')
     assert sunday.day - saturday.day == 1
 
 
@@ -118,9 +116,9 @@ def test__day2arrow():
 #     assert arrw.second == 11
 
 
-def test__human2formatted():
-    assert human2formatted() is not None
-    now = arrow.now(TZINFO)
-    assert human2formatted(fmt="HH") == str(now.hour).rjust(2, '0')
-    assert human2formatted('07:39', fmt="HH") == '07'
-    assert human2formatted('07:39', fmt="mm") == '39'
+def test__XArrow_from_human():
+    assert XArrow.from_human() is not None
+    now = XArrow.now()
+    assert now.format(fmt="HH") == str(now.hour).rjust(2, '0')
+    # assert human2formatted('07:39', fmt="HH") == '07'
+    # assert human2formatted('07:39', fmt="mm") == '39'

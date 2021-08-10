@@ -4,7 +4,7 @@ from typing import Union, Type
 
 
 @contextmanager
-def assert_raises(exc: Type[BaseException], match_exc_arg: Union[str, re.Match] = None):
+def assert_raises(exc: Type[BaseException] = BaseException, match_exc_arg: Union[str, re.Match] = None):
     try:
         yield
     except exc as e:
@@ -17,7 +17,7 @@ def assert_raises(exc: Type[BaseException], match_exc_arg: Union[str, re.Match] 
         raise
 
 @contextmanager
-def assert_doesnt_raise(exc: Type[BaseException], match_exc_arg: Union[str, re.Match] = None):
+def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg: Union[str, re.Match] = None):
     try:
         yield
     except exc as e:
