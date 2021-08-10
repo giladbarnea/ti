@@ -1,0 +1,1 @@
+from .dikt import Dikt
