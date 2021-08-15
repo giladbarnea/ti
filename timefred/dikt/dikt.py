@@ -4,7 +4,7 @@ import typing
 from collections.abc import Iterable
 from contextlib import suppress
 from functools import wraps
-from typing import ForwardRef, Any, Callable, Optional
+from typing import ForwardRef, Any, Callable, Optional, Type, TypeVar, Generic
 
 
 class UNSET_TYPE:
@@ -22,22 +22,36 @@ DONT_ANNOTATE = set(dir(dict)) | {'__annotations__', '__safe_annotations__', '__
 Annotated = Any
 Annotatable = Callable[[ForwardRef('Dikt'), Any], Annotated]
 
+Instance = TypeVar('Instance')
+_T = TypeVar('_T')
 
-class Field:
-    def __init__(self, default_factory: Callable = UNSET, *, default=UNSET, optional=False):
+def cache(*, setitem=False):
+    def _cache(fn: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
+        def decorator(self: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
+            if self.__cached_value__ is not UNSET:
+                return self.__cached_value__
+            rv = fn(self, instance, objtype)
+            self.__cached_value__ = rv
+            if setitem:
+                instance[self.name] = rv
+            return rv
+
+        return decorator
+    return _cache
+
+class Field(Generic[_T]):
+    def __init__(self, default_factory: Callable[..., _T] = UNSET, *, default=UNSET, optional=False):
         self.default_factory = default_factory
         self.default = default
-        self.__cached_value__ = UNSET
+        self.__cached_value__: _T = UNSET
         self.optional = optional
 
     def __set_name__(self, owner, name):
         self.name = name
         self.__private_name__ = f'__field_{name}'
 
-    def __get__(self, instance, objtype=None):
-        if self.__cached_value__ is not UNSET:
-            return self.__cached_value__
-
+    @cache()
+    def __get__(self, instance: Instance, objtype: Type[Instance] = None) -> _T:
         value = getattr(instance, self.__private_name__, UNSET)
         if value is UNSET:
             if self.default is UNSET and self.default_factory is UNSET:
@@ -45,26 +59,28 @@ class Field:
 
             if self.default is UNSET:
                 value = self.default_factory()
-            else:
-                value = self.default
+                return value
+
+            value = self.default
 
         if self.default_factory is UNSET:
-            self.__cached_value__ = value
             return value
+        return self.default_factory(value)
 
-        constructed = self.default_factory(value)
-        # setattr(instance, self.__private_name__, constructed)
-        self.__cached_value__ = constructed
-        return constructed
-
-    def __set__(self, instance, value):
+    def __set__(self, instance: Instance, value):
         self.__cached_value__ = UNSET
         setattr(instance, self.__private_name__, value)
 
-    def __delete__(self, instance):
+    def __delete__(self, instance: Instance):
         self.__cached_value__ = UNSET
         delattr(instance, self.__private_name__)
 
+
+class DiktField(Field):
+
+    @cache(setitem=True)
+    def __get__(self, instance: Instance, objtype: Type[Instance] = None) -> _T:
+        return super().__get__(instance, objtype)
 
 
 def extract_initable(t: type, inst=None) -> Optional[Callable[..., type]]:
@@ -277,10 +293,6 @@ class BaseDikt(dict):
         self[name] = value
 
 
-class InternalState(BaseDikt):
-    pass
-
-
 class Dikt(BaseDikt):
     """
     Features:
@@ -288,29 +300,31 @@ class Dikt(BaseDikt):
     1. Attributes
         - setting is 2-way: setting ['key'] also sets .key, and setting .key sets ['key']
         - getting is 1-way: .key -> ['key'], and ['key'] -> ['key']
-        - lazy with __getattr__
-        - eager with update()
-        - eager with __setattr__()
-        - eager with __setitem__()
 
     2. Annotations | dikt.foo: Foo
-        - constructs Foo() by default on __init__
         - dikt.foo = "hi"; isinstance(dikt.foo, Foo) -> True
-        - update_by_annotation()
-
-    3. dikt.bad is None
 
     """
     __cache__: ForwardRef('NestedDikt')
 
 
 class DefaultDikt(Dikt):
+    """
+    Annotations | dikt.foo: Foo
+        - dikt.foo == Foo() -> True
+    """
+
     @annotate(set_in_self=True)
     def __getattr__(self, item):
         return UNSET
 
 
 class NestedDikt(Dikt):
+    """
+    Attributes
+        dikt.bad.nope == NestedDikt()
+    """
+
     @annotate(set_in_self=True)
     def __getattr__(self, item):
         return NestedDikt()

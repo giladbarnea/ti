@@ -1,4 +1,4 @@
-from timefred.dikt import Dikt, DefaultDikt, Field
+from timefred.dikt import Dikt, DefaultDikt, Field, DiktField
 from test.testutils import assert_raises
 from pytest import mark
 
@@ -190,34 +190,36 @@ def test_dikt_with_field():
     print('\n\n\n')
     class BaseDiktMock(dict):
         pass
+
     class BaseDiktMockWithField(BaseDiktMock):
-        foo = Field(lambda x: x + 1)
+        foo = DiktField(default_factory=lambda x: x + 1)
 
         def __init__(self, foo) -> None:
             super().__init__()
             self.foo = foo
 
-        def __getattribute__(self, name):
-            """Makes d.foo return d['foo']"""
-            try:
-                item = super().__getitem__(name)
-                print(f'__getattribute__({name}) -> got item: {item}')
-                return item
-            except KeyError as e:
-                attr = super().__getattribute__(name)
-                print(f'__getattribute__({name}) -> got attr: {attr}')
-                return attr
+        # def __getattribute__(self, name):
+        #     """Makes d.foo return d['foo']"""
+        #     try:
+        #         item = super().__getitem__(name)
+        #         return item
+        #     except KeyError as e:
+        #         attr = super().__getattribute__(name)
+        #         return attr
 
-        def __setattr__(self, name: str, value) -> None:
-            """Makes d.foo = 'bar' also set d['foo']"""
-            super().__setattr__(name, value)
-            self[name] = value
+        # def __setattr__(self, name: str, value) -> None:
+        #     """Makes d.foo = 'bar' also set d['foo']"""
+        #     super().__setattr__(name, value)
+        #     self[name] = value
 
+    # TODO: turn everything to Field on __setattr__
     dikt_with_field = BaseDiktMockWithField(5)
     assert dikt_with_field.foo == 6
+    assert dikt_with_field['foo'] == 6
     assert dikt_with_field.foo == 6
     dikt_with_field.foo = 10
     assert dikt_with_field.foo == 11
+    assert dikt_with_field['foo'] == 11
 
 ######################
 # *** Edge Cases
