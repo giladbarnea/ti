@@ -32,7 +32,7 @@ class Field:
 
     def __set_name__(self, owner, name):
         self.name = name
-        self.__private_name__ = '_' + name
+        self.__private_name__ = f'__field_{name}'
 
     def __get__(self, instance, objtype=None):
         if self.__cached_value__ is not UNSET:
@@ -41,9 +41,7 @@ class Field:
         value = getattr(instance, self.__private_name__, UNSET)
         if value is UNSET:
             if self.default is UNSET and self.default_factory is UNSET:
-                error = (f"{objtype.__name__} object has no attribute {self.__private_name__!r}, "
-                         f"and {objtype.__name__}.{self.name} {self.__class__.__name__}'s `default` and `default_factory` are both unset")
-                raise AttributeError(error)
+                raise AttributeError(f"{objtype.__name__}.{self.name} is unset")
 
             if self.default is UNSET:
                 value = self.default_factory()

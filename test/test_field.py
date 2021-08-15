@@ -11,7 +11,7 @@ def test__get__():
         foo = Field()
 
     has_field = HasField()
-    with assert_raises(AttributeError, re.compile(r"HasField object has no attribute '_foo', and HasField\.foo Field's `default` and `default_factory` are both unset")):
+    with assert_raises(AttributeError, re.compile(r"HasField\.foo is unset")):
         getattr(has_field, 'foo')
 
     class HasFieldWithDefault:
@@ -122,7 +122,7 @@ def test__delete__():
     assert has_field.foo == "bar"
 
     del has_field.foo
-    with assert_raises(AttributeError, re.compile(r"HasField object has no attribute '_foo', and HasField\.foo Field's `default` and `default_factory` are both unset")):
+    with assert_raises(AttributeError, re.compile(r"HasField\.foo is unset")):
         getattr(has_field, 'foo')
 
     foo_field = inspect.getattr_static(has_field, 'foo')
