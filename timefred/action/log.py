@@ -1,26 +1,27 @@
 import re
 from collections import defaultdict, UserDict
-from dataclasses import dataclass, field
-from typing import List, Tuple, Literal, TypeVar, MutableMapping, Set
-
-from pdbpp import break_on_exc
+from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
 from timefred import color as c
+from timefred.dikt import Field, DefaultDikt
 from timefred.item import Item
 from timefred.note import Note
 from timefred.store import store
+from timefred.time.timespan import Timespan
 from timefred.time.timeutils import secs2human, arrows2rel_time
 from timefred.time.xarrow import XArrow
-from timefred.time.timespan import Timespan
 
 
-@dataclass
-class LogEntry:
+# @dataclass
+class LogEntry(DefaultDikt):
     name: str = ''
     is_current: bool = False
-    timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
-    notes: List[Note] = field(default_factory=list)
-    tags: Set[str] = field(default_factory=set)
+    # timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
+    timespans = Field(list[Timespan])  # Multiple (start, end) pairs
+    # notes: List[Note] = field(default_factory=list)
+    notes = Field(list[Note])
+    # tags: Set[str] = field(default_factory=set)
+    tags = Field(set[str])
 
     def seconds(self) -> int:
         return sum(self.timespans)
@@ -34,6 +35,7 @@ class LogEntry:
     def pretty(self, detailed: bool = True, width: int = 24):
         if detailed:
             time = "\n  \x1b[2m"
+            notes = self.notes
             if self.notes:
                 time += '\n  ' + c.grey150('Times')
 
@@ -118,7 +120,7 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 
     for i, entry in enumerate(reversed(work)):
         item = Item(**entry)
-    # for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
+        # for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
         item_start = item.start
         item_start_DDMMYY = item_start.DDMMYY
         period_arrow_DDMMYY = period_arrow.DDMMYY
@@ -139,7 +141,9 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 
         log_entry = _log[item.name]
         log_entry.name = item.name
-        log_entry.notes.extend(item.notes)
+        item_notes = item.notes
+        log_entry_notes = log_entry.notes
+        log_entry_notes.extend(item_notes)
         log_entry.tags |= item.tags
 
         timespan = Timespan(item.start, item.end or now)
@@ -156,7 +160,7 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     print(title + '\n')
     if not _log:
         return
-    name_column_width = max(*map(len, map(lambda entry: entry.name, _log.values())), 24)
+    name_column_width = max(*map(len, map(lambda _: _.name, _log.values())), 24)
     if groupby:
         for _tag, names in by_tag.items():
             print(c.tag(_tag))

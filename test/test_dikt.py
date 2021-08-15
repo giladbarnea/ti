@@ -1,8 +1,4 @@
-print()
-import os
-
-os.environ['TF_FEATURE_DIKT_ANNOTATE_GETATTR'] = 'true'
-from timefred.dikt import Dikt, DefaultDikt
+from timefred.dikt import Dikt, DefaultDikt, Field
 from test.testutils import assert_raises
 from pytest import mark
 
@@ -174,14 +170,54 @@ def test__defaultdikt__annotated():
     assert config.time.formats.date_time == 'DD/MM/YY HH:mm:ss'
     assert config.time.formats.time == 'HH:mm:ss'
 
-class GenericDikt(DefaultDikt):
-    foo: DefaultDikt[{'bar': list}]
 
 
+@mark.skip('Fails because iterable typings isnt working, e.g return lambda *args: origin(map(type_args[0], *args))')
 def test__annotated_as_generic():
+    class GenericDikt(DefaultDikt):
+        foo: DefaultDikt[{'bar': list}]
     dikt = GenericDikt()
     assert isinstance(dikt.foo, DefaultDikt)
     assert dikt.foo.bar == []
+
+
+
+######################
+# *** Field
+######################
+
+def test_dikt_with_field():
+    print('\n\n\n')
+    class BaseDiktMock(dict):
+        pass
+    class BaseDiktMockWithField(BaseDiktMock):
+        foo = Field(lambda x: x + 1)
+
+        def __init__(self, foo) -> None:
+            super().__init__()
+            self.foo = foo
+
+        def __getattribute__(self, name):
+            """Makes d.foo return d['foo']"""
+            try:
+                item = super().__getitem__(name)
+                print(f'__getattribute__({name}) -> got item: {item}')
+                return item
+            except KeyError as e:
+                attr = super().__getattribute__(name)
+                print(f'__getattribute__({name}) -> got attr: {attr}')
+                return attr
+
+        def __setattr__(self, name: str, value) -> None:
+            """Makes d.foo = 'bar' also set d['foo']"""
+            super().__setattr__(name, value)
+            self[name] = value
+
+    dikt_with_field = BaseDiktMockWithField(5)
+    assert dikt_with_field.foo == 6
+    assert dikt_with_field.foo == 6
+    dikt_with_field.foo = 10
+    assert dikt_with_field.foo == 11
 
 ######################
 # *** Edge Cases

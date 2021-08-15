@@ -1,6 +1,5 @@
 from collections import namedtuple
 from datetime import timedelta
-from typing import Iterable, Any, Tuple
 
 from multimethod import multimethod
 

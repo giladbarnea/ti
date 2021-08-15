@@ -1,7 +1,5 @@
-import datetime
 import os
 import sys
-from datetime import datetime as dt
 from pathlib import Path
 from typing import Optional
 
@@ -54,6 +52,5 @@ class Config(DefaultDikt):
                     print(f"Don't support {self.dev.traceback}", file=sys.stderr)
             except Exception as e:
                 print(f'{e.__class__.__qualname__} caught in Config.__init__: {e}', file=sys.stderr)
-
 
 config = Config()

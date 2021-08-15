@@ -1,14 +1,15 @@
 import sys
 from os import path, getenv
 from pathlib import Path
-from typing import TypedDict, Optional
 from subprocess import getstatusoutput
+from typing import TypedDict, Optional
+
 import yaml
-from pdbpp import break_on_exc, rerun_and_break_on_exc
+from pdbpp import break_on_exc
 
 # @dataclass
 # from timefred.util import timeit
-from timefred.dikt import Dikt, DefaultDikt
+from timefred.dikt import DefaultDikt
 
 Entry = TypedDict('Entry', {
     'name':  str,

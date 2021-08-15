@@ -8,7 +8,6 @@ from arrow.arrow import TZ_EXPR
 
 import timefred.color as c
 from timefred.config import config
-from timefred.dikt import Field, Dikt
 from timefred.time.timeutils import isoweekday
 from timefred.util import confirm
 
