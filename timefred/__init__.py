@@ -5,8 +5,8 @@ from contextlib import suppress
 
 with suppress(ImportError):
     import os
-    os.environ['PREBREAK_PATCH_PRINT'] = '1'
-    import prebreak
+    os.environ['DEBUGFILE_PATCH_PRINT'] = '1'
+    import debug
     # from icecream import ic
     # ic.configureOutput(prefix='', includeContext=True)
     # from copy import deepcopy
