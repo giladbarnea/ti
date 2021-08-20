@@ -1,1 +1,1 @@
-from .dikt import Dikt, BaseDikt, DefaultDikt, NestedDikt, Field, DiktField
+from .dikt import Dikt, BaseDikt, DefaultDikt, NestedDikt, Field, DiktField, UnsetFieldError

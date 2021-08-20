@@ -1,7 +1,9 @@
-from timefred.dikt import Dikt, DefaultDikt, Field, DiktField
-from test.testutils import assert_raises
+import re
+
 from pytest import mark
 
+from test.testutils import assert_raises
+from timefred.dikt import Dikt, DefaultDikt, DiktField
 
 
 def test__annotated_with_default():
@@ -39,7 +41,7 @@ class Foo(Dikt):
     bar: Bar
 
 
-def test__init_mismatches_annotation_but_buildable():
+def test__init__annotation_mismatch_but_buildable():
     foo = Foo(bar={'baz': 6})
     bar = getattr(foo, 'bar')
     assert isinstance(bar, Foo.Bar)
@@ -47,7 +49,7 @@ def test__init_mismatches_annotation_but_buildable():
     assert baz == 6
 
 
-def test__init_mismatches_annotation_but_not_buildable():
+def test__init__annotation_mismatch_but_not_buildable():
     foo = Foo(bar={'baz': 'NOT A NUMBER'})
     bar = foo.bar
     assert isinstance(bar, Foo.Bar)
@@ -65,7 +67,7 @@ def test__dict():
     assert foo_dict['bar'] == {'baz': 6}
 
 
-def test__get__attr_item_symmetry():
+def test__getattr_getitem_symmetry():
     foo = Foo(bar={'baz': 6})
     bar = getattr(foo, 'bar')
     assert isinstance(bar, Foo.Bar)
@@ -79,7 +81,7 @@ def test__get__attr_item_symmetry():
     assert foo.bar.baz == 6
 
 
-def test__set__attr_item_symmetry__setattr():
+def test__setattr_setitem_symmetry__setattr():
     foo = Foo()
     bar = Foo.Bar()
     baz = 6
@@ -95,12 +97,11 @@ def test__set__attr_item_symmetry__setattr():
     assert foo.bar.baz == 6
 
     foo.bar.baz = 5
-    assert baz == 6 # primitive
+    assert baz == 6  # primitive
     assert bar.baz == 5
 
 
-
-def test__set__attr_item_symmetry__setitem():
+def test__setattr_setitem_symmetry__setitem():
     foo = Foo()
     bar = Foo.Bar()
     baz = 6
@@ -116,7 +117,7 @@ def test__set__attr_item_symmetry__setitem():
     assert foo.bar.baz == 6
 
     foo['bar']['baz'] = 5
-    assert baz == 6 # primitive
+    assert baz == 6  # primitive
     assert bar.baz == 5
 
     foo['bar'].baz = 4
@@ -128,6 +129,32 @@ def test__set__attr_item_symmetry__setitem():
     assert baz == 6
     assert bar.baz == 3
     assert bar['baz'] == 3
+
+def test__setattr_setitem_symmetry__arbitrary_attr__setitem():
+    foo = Foo()
+    foo['hello'] = 'world'
+    assert foo.hello == 'world'
+    assert foo['hello'] == 'world'
+
+def test__setattr_setitem_symmetry__arbitrary_attr__setattr():
+    foo = Foo()
+    foo.hello = 'world'
+    assert foo['hello'] == 'world'
+    assert foo.hello == 'world'
+
+def test__setattr_setitem_symmetry__annotation_mismatch_but_buildable():
+    foo = Foo()
+    foo.bar = Foo.Bar()
+    foo.bar.baz = '5'
+    assert foo.bar.baz == 5
+
+
+def test__setattr_setitem_symmetry__annotation_mismatch_but_not_buildable():
+    foo = Foo()
+    foo.bar = Foo.Bar()
+    foo.bar.baz = ['hello', 'world']
+    with assert_raises(TypeError, re.compile("argument must be.*not 'list'")):
+        foo.bar.baz
 
 
 def test__set__type_coersion():
@@ -171,55 +198,16 @@ def test__defaultdikt__annotated():
     assert config.time.formats.time == 'HH:mm:ss'
 
 
-
 @mark.skip('Fails because iterable typings isnt working, e.g return lambda *args: origin(map(type_args[0], *args))')
 def test__annotated_as_generic():
     class GenericDikt(DefaultDikt):
         foo: DefaultDikt[{'bar': list}]
+
     dikt = GenericDikt()
     assert isinstance(dikt.foo, DefaultDikt)
     assert dikt.foo.bar == []
 
 
-
-######################
-# *** Field
-######################
-
-def test_dikt_with_field():
-    print('\n\n\n')
-    class BaseDiktMock(dict):
-        pass
-
-    class BaseDiktMockWithField(BaseDiktMock):
-        foo = DiktField(default_factory=lambda x: x + 1)
-
-        def __init__(self, foo) -> None:
-            super().__init__()
-            self.foo = foo
-
-        # def __getattribute__(self, name):
-        #     """Makes d.foo return d['foo']"""
-        #     try:
-        #         item = super().__getitem__(name)
-        #         return item
-        #     except KeyError as e:
-        #         attr = super().__getattribute__(name)
-        #         return attr
-
-        # def __setattr__(self, name: str, value) -> None:
-        #     """Makes d.foo = 'bar' also set d['foo']"""
-        #     super().__setattr__(name, value)
-        #     self[name] = value
-
-    # TODO: turn everything to Field on __setattr__
-    dikt_with_field = BaseDiktMockWithField(5)
-    assert dikt_with_field.foo == 6
-    assert dikt_with_field['foo'] == 6
-    assert dikt_with_field.foo == 6
-    dikt_with_field.foo = 10
-    assert dikt_with_field.foo == 11
-    assert dikt_with_field['foo'] == 11
 
 ######################
 # *** Edge Cases
@@ -240,6 +228,7 @@ def test__contains__():
     dikt.foo = 'bar'
     assert 'foo' in dikt
     assert hasattr(dikt, 'foo')
+
 
 def test__update():
     dikt = Dikt()

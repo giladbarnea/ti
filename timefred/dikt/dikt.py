@@ -1,10 +1,10 @@
 import inspect
 import sys
 import typing
-from collections.abc import Iterable
+from collections.abc import Iterable, MutableMapping
 from contextlib import suppress
 from functools import wraps
-from typing import ForwardRef, Any, Callable, Optional, Type, TypeVar, Generic
+from typing import ForwardRef, Any, Callable, Optional, Type, TypeVar, Generic, NewType
 
 
 class UNSET_TYPE:
@@ -22,24 +22,50 @@ DONT_ANNOTATE = set(dir(dict)) | {'__annotations__', '__safe_annotations__', '__
 Annotated = Any
 Annotatable = Callable[[ForwardRef('Dikt'), Any], Annotated]
 
-Instance = TypeVar('Instance')
+Instance = NewType('Instance', object)
+SupportsItemAssignment = NewType('SupportsItemAssignment', MutableMapping)
+
 _T = TypeVar('_T')
 
-def cache(*, setitem=False):
-    def _cache(fn: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
-        def decorator(self: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
-            if self.__cached_value__ is not UNSET:
-                return self.__cached_value__
-            rv = fn(self, instance, objtype)
-            self.__cached_value__ = rv
-            if setitem:
-                instance[self.name] = rv
-            return rv
 
-        return decorator
-    return _cache
+class UnsetFieldError(AttributeError): ...
+
+
+# def cache(*, setitem=False, getitem=False):
+#     def _cache(fn: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
+#         def decorator(self: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
+#             if self.__cached_value__ is not UNSET:
+#                 return self.__cached_value__
+#             try:
+#                 rv = fn(self, instance, objtype)
+#             except UnsetFieldError as uf:
+#                 if not getitem:
+#                     raise
+#                 try:
+#                     rv = instance[self.name]
+#                 except KeyError as ke:
+#                     raise uf from None
+#                 except TypeError as te:
+#                     if 'does not support item assignment' in str(te):
+#                         raise uf from None
+#                     raise
+#
+#             self.__cached_value__ = rv
+#             if setitem:
+#                 instance[self.name] = rv
+#             return rv
+#
+#         return decorator
+#
+#     return _cache
+
 
 class Field(Generic[_T]):
+    """getattr(instance, self.__private_name__, UNSET), then
+    self.default > self.default_factory > instance.__getitem__.
+    Caches in self.__cached_value__.
+    """
+
     def __init__(self, default_factory: Callable[..., _T] = UNSET, *, default=UNSET, optional=False):
         self.default_factory = default_factory
         self.default = default
@@ -50,12 +76,22 @@ class Field(Generic[_T]):
         self.name = name
         self.__private_name__ = f'__field_{name}'
 
-    @cache()
+    def cache(__get__: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
+        def cache_decorator(field: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
+            if field.__cached_value__ is not UNSET:
+                return field.__cached_value__
+            rv = __get__(field, instance, objtype)
+            field.__cached_value__ = rv
+            return rv
+
+        return cache_decorator
+
+    @cache
     def __get__(self, instance: Instance, objtype: Type[Instance] = None) -> _T:
         value = getattr(instance, self.__private_name__, UNSET)
         if value is UNSET:
             if self.default is UNSET and self.default_factory is UNSET:
-                raise AttributeError(f"{objtype.__name__}.{self.name} is unset")
+                raise UnsetFieldError(f"{objtype.__name__}.{self.name} is unset")
 
             if self.default is UNSET:
                 value = self.default_factory()
@@ -77,9 +113,31 @@ class Field(Generic[_T]):
 
 
 class DiktField(Field):
+    """Caches and sets value in instance[self.name]."""
 
-    @cache(setitem=True)
-    def __get__(self, instance: Instance, objtype: Type[Instance] = None) -> _T:
+    def cache(__get__: Callable[[ForwardRef('DiktField'), SupportsItemAssignment, MutableMapping], _T]):
+        def cache_decorator(field: ForwardRef('DiktField'), instance: SupportsItemAssignment, objtype: MutableMapping = None) -> _T:
+            if field.__cached_value__ is not UNSET:
+                return field.__cached_value__
+            try:
+                rv = __get__(field, instance, objtype)
+            except UnsetFieldError as uf:
+                try:
+                    rv = instance[field.name]
+                except (KeyError,TypeError) as key_or_typeerror:
+                    if isinstance(key_or_typeerror, TypeError) and 'does not support item assignment' not in str(key_or_typeerror):
+                        import logging
+                        logging.warning(f"TypeError not because item assignment: {key_or_typeerror}")
+                    raise uf from None
+
+            field.__cached_value__ = rv
+            instance[field.name] = rv
+            return rv
+
+        return cache_decorator
+
+    @cache
+    def __get__(self, instance: SupportsItemAssignment, objtype: MutableMapping = None) -> _T:
         return super().__get__(instance, objtype)
 
 
