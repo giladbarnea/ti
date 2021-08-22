@@ -28,7 +28,10 @@ Options:
   <note-text>...    Some arbitrary text to be added as `notes` to the currently
                     working project.
 """
-import debug
+try:
+    import debug
+except ModuleNotFoundError:
+    pass
 
 import os
 import subprocess
