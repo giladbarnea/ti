@@ -1,3 +1,4 @@
+from test.testutils import assert_raises
 from timefred.dikt import DiktField
 
 
@@ -49,5 +50,5 @@ def test__get__getitem_in_instance():
 
     doesnt_support_getitem = DoesntSupportGetitem()
     doesnt_support_getitem.foo = 'bar'
-    assert doesnt_support_getitem.foo == 'bar'
-    assert doesnt_support_getitem['foo'] == 'bar'
+    with assert_raises(TypeError, "'DoesntSupportGetitem' object does not support item assignment"):
+        doesnt_support_getitem.foo == 'bar'

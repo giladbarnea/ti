@@ -100,8 +100,10 @@ class XArrow(Arrow):
         now = cls.now()
         now_isoweekday = now.isoweekday()
         day_isoweekday = isoweekday(day)
+        if now_isoweekday == day_isoweekday:
+            return now
         diff = abs(now_isoweekday - day_isoweekday)
-        if now_isoweekday <= day_isoweekday:
+        if now_isoweekday < day_isoweekday:
             shift = diff - 7
         else:
             shift = diff * -1

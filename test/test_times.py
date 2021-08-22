@@ -88,9 +88,14 @@ def test__day_num():
 
 
 def test__XArrow_from_day():
+    # breakpoint()
     sunday = XArrow._from_day('sun')
     saturday = XArrow._from_day('sat')
     assert sunday.day - saturday.day == 1
+    friday = XArrow._from_day('friday')
+    assert sunday.day - friday.day == 2
+    assert isinstance(sunday, XArrow)
+    assert isinstance(saturday, XArrow)
 
 
 # def test__formatted2arrow():
