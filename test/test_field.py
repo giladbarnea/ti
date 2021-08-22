@@ -33,24 +33,24 @@ def test__get__():
     assert has_field_w_default_val_and_factory.foo == ['h', 'i']
 
 
-def test__cached_value__():
+def testcached_value():
     class HasFieldWithDefault:
         foo = Field(default='bar')
 
     has_field_w_default = HasFieldWithDefault()
     foo_field = inspect.getattr_static(has_field_w_default, 'foo')
-    assert foo_field.__cached_value__ is UNSET
+    assert foo_field.cached_value is UNSET
     assert has_field_w_default.foo == 'bar'
-    assert foo_field.__cached_value__ == 'bar'
+    assert foo_field.cached_value == 'bar'
 
     class HasFieldWithDefaultFactory:
         foo = Field(default_factory=list)
 
     has_field_w_default_factory = HasFieldWithDefaultFactory()
     foo_field = inspect.getattr_static(has_field_w_default_factory, 'foo')
-    assert foo_field.__cached_value__ is UNSET
+    assert foo_field.cached_value is UNSET
     assert has_field_w_default_factory.foo == list()
-    assert foo_field.__cached_value__ == list()
+    assert foo_field.cached_value == list()
 
 
     class HasFieldWithDefaultValueAndFactory:
@@ -58,10 +58,10 @@ def test__cached_value__():
 
     has_field_w_default_val_and_factory = HasFieldWithDefaultValueAndFactory()
     foo_field = inspect.getattr_static(has_field_w_default_val_and_factory, 'foo')
-    assert foo_field.__cached_value__ is UNSET
+    assert foo_field.cached_value is UNSET
     assert has_field_w_default_val_and_factory.foo == 2
     assert has_field_w_default_val_and_factory.foo == 2
-    assert foo_field.__cached_value__ == 2
+    assert foo_field.cached_value == 2
 
 
 def test__set__():
@@ -83,32 +83,32 @@ def test__set__():
 
     has_field_w_default_factory = HasFieldWithDefaultFactory(42)
     foo_field = inspect.getattr_static(has_field_w_default_factory, 'foo')
-    assert foo_field.__cached_value__ is UNSET  # __cached_value__ is only set in __get__, after applying default_factory
+    assert foo_field.cached_value is UNSET  # cached_value is only set in __get__, after applying default_factory
     assert has_field_w_default_factory.foo == '42'
-    assert foo_field.__cached_value__ == '42'
+    assert foo_field.cached_value == '42'
 
     has_field_w_default_factory.foo = 1337
-    assert foo_field.__cached_value__ is UNSET  # __cached_value__ = UNSET in __set__
+    assert foo_field.cached_value is UNSET  # cached_value = UNSET in __set__
     assert has_field_w_default_factory.foo == '1337'
-    assert foo_field.__cached_value__ == '1337'
+    assert foo_field.cached_value == '1337'
 
     increases_field = inspect.getattr_static(has_field_w_default_factory, 'increases')
-    assert increases_field.__cached_value__ is UNSET
+    assert increases_field.cached_value is UNSET
     has_field_w_default_factory.increases = 1
-    assert increases_field.__cached_value__ is UNSET
+    assert increases_field.cached_value is UNSET
     assert has_field_w_default_factory.increases == 2
-    assert increases_field.__cached_value__ == 2
-    # does not increase if has __cached_value__:
+    assert increases_field.cached_value == 2
+    # does not increase if has cached_value:
     assert has_field_w_default_factory.increases == 2
-    assert increases_field.__cached_value__ == 2
+    assert increases_field.cached_value == 2
 
     has_field_w_default_factory.increases = 10
-    assert increases_field.__cached_value__ is UNSET
+    assert increases_field.cached_value is UNSET
     assert has_field_w_default_factory.increases == 11
-    assert increases_field.__cached_value__ == 11
-    # does not increase if has __cached_value__:
+    assert increases_field.cached_value == 11
+    # does not increase if has cached_value:
     assert has_field_w_default_factory.increases == 11
-    assert increases_field.__cached_value__ == 11
+    assert increases_field.cached_value == 11
 
 
 def test__delete__():
@@ -126,4 +126,4 @@ def test__delete__():
         getattr(has_field, 'foo')
 
     foo_field = inspect.getattr_static(has_field, 'foo')
-    assert foo_field.__cached_value__ is UNSET
+    assert foo_field.cached_value is UNSET

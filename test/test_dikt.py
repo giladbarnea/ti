@@ -3,7 +3,7 @@ import re
 from pytest import mark
 
 from test.testutils import assert_raises
-from timefred.dikt import Dikt, DefaultDikt, DiktField
+from timefred.dikt import Dikt, DefaultDikt
 
 
 def test__annotated_with_default():
