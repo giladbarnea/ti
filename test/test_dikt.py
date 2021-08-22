@@ -165,6 +165,7 @@ def test__set__type_coersion():
     person.age = '5'
     assert type(person.age) is int
     assert type(person['age']) is int
+    assert person.age == person['age'] == 5
 
 
 ######################

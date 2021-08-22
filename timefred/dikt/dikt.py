@@ -31,21 +31,35 @@ _T = TypeVar('_T')
 class UnsetFieldError(AttributeError): ...
 
 
+class AnnotationMismatchError(TypeError): ...
+
+
 class Field(Generic[_T]):
-    """getattr(instance, self.__private_name__, UNSET), then
+    """getattr(instance, self.private_name, UNSET), then
     self.default_value > self.default_factory > instance.__getitem__.
     Caches in self.cached_value.
     """
 
-    def __init__(self, default_factory: Callable[..., _T] = UNSET, *, default=UNSET, optional=False):
+    def __init__(self,
+                 default_factory: Callable[..., _T] = UNSET,
+                 *,
+                 default=UNSET,
+                 type: Type[_T] = UNSET,
+                 optional=False,
+                 strict=False):
         self.default_factory = default_factory
         self.default_value = default
+        self.type: Type[_T] = type
         self.cached_value: _T = UNSET
         self.optional = optional
+        self.strict = strict
+        # if self.strict and not isinstance(value, annotation := instance.__annotations__[self.name]):
+        #     raise AnnotationMismatchError(f"{objtype.__name__}.{self.name}'s type ({type(value)}) does not match its annotation ({annotation})")
 
     def __set_name__(self, owner, name):
         self.name = name
-        self.__private_name__ = f'__field_{name}'
+        self.private_name = f'__field_{name}'
+
 
     def cache(__get__: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
         def cache_decorator(field: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
@@ -59,28 +73,36 @@ class Field(Generic[_T]):
 
     @cache
     def __get__(self, instance: Instance, objtype: Type[Instance] = None) -> _T:
-        value = getattr(instance, self.__private_name__, UNSET)
+        value = getattr(instance, self.private_name, UNSET)
         if value is UNSET:
-            if self.default_value is UNSET and self.default_factory is UNSET:
-                raise UnsetFieldError(f"{objtype.__name__}.{self.name} is unset")
-
             if self.default_value is UNSET:
-                value = self.default_factory()
-                return value
+                if self.default_factory is UNSET:
+                    raise UnsetFieldError(f"{objtype.__name__}.{self.name} is unset")
 
-            value = self.default_value
+                value = self.default_factory()
+            else:
+                value = self.default_value
 
         if self.default_factory is UNSET:
+            # Type coersion: annotation works like default_factory
+            try:
+                annotation = instance.__annotations__.get(self.name)
+            except AttributeError:
+                # Happens once per instance
+                instance.__annotations__ = dict()
+                return value
+            if annotation is not None:
+                return annotation(value)
             return value
         return self.default_factory(value)
 
     def __set__(self, instance: Instance, value):
         self.cached_value = UNSET
-        setattr(instance, self.__private_name__, value)
+        setattr(instance, self.private_name, value)
 
     def __delete__(self, instance: Instance):
         self.cached_value = UNSET
-        delattr(instance, self.__private_name__)
+        delattr(instance, self.private_name)
 
 
 class DiktField(Field):
@@ -95,7 +117,7 @@ class DiktField(Field):
             except UnsetFieldError as uf:
                 try:
                     rv = instance[field.name]
-                except (KeyError,TypeError) as key_or_typeerror:
+                except (KeyError, TypeError) as key_or_typeerror:
                     if isinstance(key_or_typeerror, TypeError) and 'does not support item assignment' not in str(key_or_typeerror):
                         import logging
                         logging.warning(f"TypeError not because item assignment: {key_or_typeerror}")

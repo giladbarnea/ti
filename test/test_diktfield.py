@@ -1,6 +1,6 @@
 from test.testutils import assert_raises
 from timefred.dikt import DiktField
-
+from pytest import mark
 
 # TODO:
 #  - arbitrary attrs
@@ -77,8 +77,14 @@ def test__annotated_with_default():
 def test__set__type_coersion():
     class Person(DictSubclass):
         age: int = DiktField()
+        name = DiktField(default_factory=str)
 
     person = Person()
     person.age = '5'
     assert type(person.age) is int
     assert type(person['age']) is int
+    assert person.age == person['age'] == 5
+    person.name = 5
+    assert type(person.name) is str
+    assert type(person['name']) is str
+    assert person.name == person['name'] == '5'
