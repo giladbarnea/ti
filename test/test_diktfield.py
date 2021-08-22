@@ -2,6 +2,7 @@ from test.testutils import assert_raises
 from timefred.dikt import DiktField
 from pytest import mark
 
+
 # TODO:
 #  - arbitrary attrs
 
@@ -69,12 +70,13 @@ def test__annotated_with_default():
         time = DiktField(default='HH:mm:ss')
 
     time_formats = TimeFormats()
-    assert time_formats.date == 'DD/MM/YY'
-    assert time_formats.short_date == 'DD/MM'
-    assert time_formats.date_time == 'DD/MM/YY HH:mm:ss'
-    assert time_formats.time == 'HH:mm:ss'
+    assert time_formats.date == time_formats['date'] == 'DD/MM/YY'
+    assert time_formats.short_date == time_formats['short_date'] == 'DD/MM'
+    assert time_formats.date_time == time_formats['date_time'] == 'DD/MM/YY HH:mm:ss'
+    assert time_formats.time == time_formats['time'] == 'HH:mm:ss'
 
-def test__set__type_coersion():
+
+def test__get__type_coersion():
     class Person(DictSubclass):
         age: int = DiktField()
         name = DiktField(default_factory=str)
@@ -88,3 +90,13 @@ def test__set__type_coersion():
     assert type(person.name) is str
     assert type(person['name']) is str
     assert person.name == person['name'] == '5'
+
+
+def test__default_and_default_factory():
+    class HasBothDefaultAndDefaultFactory(DictSubclass):
+        foo = DiktField(default=1, default_factory=lambda x: x + 1)
+        bar: str = DiktField(default=10)
+
+    has_both_default_and_default_factory = HasBothDefaultAndDefaultFactory()
+    assert (has_both_default_and_default_factory.foo == 2)
+    assert (has_both_default_and_default_factory.bar == '10')

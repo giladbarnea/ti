@@ -36,8 +36,8 @@ class AnnotationMismatchError(TypeError): ...
 
 class Field(Generic[_T]):
     """getattr(instance, self.private_name, UNSET), then
-    self.default_value > self.default_factory > instance.__getitem__.
-    Caches in self.cached_value.
+    self.default_value > self.default_factory > classvar annotation > instance.__getitem__.
+    Caches in self.cached_value (In Field instance's cached_value)
     """
 
     def __init__(self,
@@ -106,7 +106,9 @@ class Field(Generic[_T]):
 
 
 class DiktField(Field):
-    """Caches and sets value in instance[self.name]."""
+    """Caches and sets value in instance[self.name].
+    Makes instance['foo'] and instance.foo indistinguishable.
+    """
 
     def cache(__get__: Callable[[ForwardRef('DiktField'), SupportsItemAssignment, MutableMapping], _T]):
         def cache_decorator(field: ForwardRef('DiktField'), instance: SupportsItemAssignment, objtype: MutableMapping = None) -> _T:
