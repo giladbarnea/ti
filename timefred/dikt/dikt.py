@@ -45,21 +45,27 @@ class Field(Generic[_T]):
                  *,
                  default=UNSET,
                  type: Type[_T] = UNSET,
+                 name: str = UNSET,
+                 validator: Callable[[Type[_T]], bool] = UNSET,
                  optional=False,
-                 strict=False):
+                 strict=False
+                 ):
         self.default_factory = default_factory
         self.default_value = default
         self.type: Type[_T] = type
         self.cached_value: _T = UNSET
+        self.validator: Callable[[Type[_T]], bool] = validator
         self.optional = optional
         self.strict = strict
+        if name:
+            self.name = name
+            self.private_name = f'__field_{name}'
         # if self.strict and not isinstance(value, annotation := instance.__annotations__[self.name]):
         #     raise AnnotationMismatchError(f"{objtype.__name__}.{self.name}'s type ({type(value)}) does not match its annotation ({annotation})")
 
     def __set_name__(self, owner, name):
         self.name = name
         self.private_name = f'__field_{name}'
-
 
     def cache(__get__: Callable[[ForwardRef('Field'), Instance, Optional[Type[Instance]]], _T]):
         def cache_decorator(field: ForwardRef('Field'), instance: Instance, objtype: Type[Instance] = None) -> _T:
@@ -113,6 +119,7 @@ class DiktField(Field):
     def cache(__get__: Callable[[ForwardRef('DiktField'), SupportsItemAssignment, MutableMapping], _T]):
         def cache_decorator(field: ForwardRef('DiktField'), instance: SupportsItemAssignment, objtype: MutableMapping = None) -> _T:
             if field.cached_value is not UNSET:
+                # print('DiktField returning cached')
                 return field.cached_value
             try:
                 rv = __get__(field, instance, objtype)
@@ -133,6 +140,7 @@ class DiktField(Field):
 
     @cache
     def __get__(self, instance: SupportsItemAssignment, objtype: MutableMapping = None) -> _T:
+        # print(f'DiktField __get__(...)')
         return super().__get__(instance, objtype)
 
 

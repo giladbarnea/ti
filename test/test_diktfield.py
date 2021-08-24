@@ -1,19 +1,15 @@
 from test.testutils import assert_raises
 from timefred.dikt import DiktField
-from pytest import mark
 
 
 # TODO:
 #  - arbitrary attrs
+from timefred.dikt.dikt import UNSET
+
 
 class DictSubclass(dict):
     pass
 
-
-class ConvertsEverythingToDiktField(DictSubclass):
-    # TODO: implement
-    #  date: str = 'DD/MM/YY' # becomes DiktField
-    ...
 
 
 def test__get__setitem_in_instance():
@@ -100,3 +96,46 @@ def test__default_and_default_factory():
     has_both_default_and_default_factory = HasBothDefaultAndDefaultFactory()
     assert (has_both_default_and_default_factory.foo == 2)
     assert (has_both_default_and_default_factory.bar == '10')
+
+# TODO - note:
+# class BuildsDiktFieldFromClassVar(DictSubclass):
+#     has_value_and_annotation: str = "gilad"
+#     only_annotation: str
+#     has_value_no_annotation = "old style"
+#     def __init__(self) -> None:
+#         dir_self = set(dir(self))
+#         attrs = dir_self - DONT_ANNOTATE  # {'has_value_no_annotation', 'has_value_and_annotation', 'foo'}
+#         annots = self.__annotations__     # {'has_value_and_annotation': <class 'str'>, 'only_annotation': <class 'str'>}
+#     def foo(self): ...
+
+# TODO - account for:
+#  1. superclass has classvar, not inheriting class
+#  2. classvar is already a Field
+class BuildsDiktFieldFromClassVar(DictSubclass):
+    # TODO: implement
+    #  date: str = 'DD/MM/YY' # becomes DiktField
+    ...
+
+
+class BuildsDiktFieldFromAnnotation(DictSubclass):
+    # TODO: implement
+    #  date: str # becomes DiktField
+    def __getattribute__(self, item):
+        try:
+            return super().__getattribute__(item)
+        except AttributeError as e:
+            annotation = super().__getattribute__('__annotations__')[item]
+            field = DiktField(default_factory=annotation, name=item)
+            # cls = super().__getattribute__('__class__')
+            # setattr(cls, item, field)
+            setattr(type(self), item, field)
+            return setattr(self, field.private_name, UNSET)
+            return getattr(self, item)
+            return field
+
+def test__build_diktfield_from_annotation():
+    class Person(BuildsDiktFieldFromAnnotation):
+        name: str
+    
+    person = Person()
+    assert isinstance(person.name, str)
