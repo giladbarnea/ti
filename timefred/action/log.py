@@ -3,6 +3,7 @@ from collections import defaultdict, UserDict
 from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
 from pydantic import BaseModel, Field
+from pydantic.fields import ModelField
 
 from timefred import color as c
 from timefred.item import Item
@@ -15,14 +16,16 @@ from timefred.time.xarrow import XArrow
 
 # @dataclass
 class LogEntry(BaseModel):
+    class Config:
+        arbitrary_types_allowed=True
     name: str = ''
     is_current: bool = False
     # timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
-    timespans = Field(default_factory=list[Timespan])  # Multiple (start, end) pairs
+    timespans: list = Field(default_factory=list)  # Multiple (start, end) pairs
     # notes: List[Note] = field(default_factory=list)
-    notes = Field(default_factory=list[Note])
+    notes: list[Note] = Field(default_factory=list[Note])
     # tags: Set[str] = field(default_factory=set)
-    tags = Field(default_factory=set[str])
+    tags: set[str] = Field(default_factory=set[str])
 
     def seconds(self) -> int:
         return sum(self.timespans)

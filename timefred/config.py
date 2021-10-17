@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 import toml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 
 class Config(BaseModel):
     class TimeCfg(BaseModel):
@@ -17,29 +18,31 @@ class Config(BaseModel):
         # tz: datetime.timezone = dt.now().astimezone().tzinfo
         # tz: datetime.tzinfo = dt.now().astimezone().tzinfo
         tz = 'Asia/Jerusalem'
-        formats: TimeFormats
+        formats: TimeFormats = Field(default_factory=TimeFormats)
 
         # def __init__(self, timecfg: dict):
         #     super().__init__(timecfg)
         # self.tz = timezone(self.tz)
 
     class DevCfg(BaseModel):
-        debugger: str
+        debugger: Optional[str]
         traceback: Optional[str]
-        features: BaseModel
+        features: Optional[BaseModel]
 
     class Sheet(BaseModel):
         path = os.path.expanduser(os.environ.get('TF_SHEET', "~/.timefred-sheet.yml"))
     
-    time: TimeCfg
-    sheet: Sheet
-    dev: DevCfg
-
+    time: TimeCfg = Field(default_factory=TimeCfg)
+    sheet: Sheet = Field(default_factory=Sheet)
+    dev: Optional[DevCfg] = Field(default_factory=DevCfg)
+    
     def __init__(self):
-        cfg_file = Path(os.path.expanduser(os.environ.get('TF_CONFIG', "~/.timefred.toml")))
+        cfg_file = Path(os.path.expanduser(os.environ.get('TF_CONFIG_PATH', "~/.timefred.toml")))
+        
         if cfg_file.exists():
             cfg = toml.load(cfg_file.open())
         else:
+            self._create_default_config_file(cfg_file)
             cfg = {}
         super().__init__(**cfg)
         if self.dev.debugger:
@@ -53,5 +56,9 @@ class Config(BaseModel):
                     print(f"Don't support {self.dev.traceback}", file=sys.stderr)
             except Exception as e:
                 print(f'{e.__class__.__qualname__} caught in Config.__init__: {e}', file=sys.stderr)
+    
+    def _create_default_config_file(self, cfg_file: Path):
+        constructed = self.construct().dict()
+        toml.dump(constructed, cfg_file.open(mode="x"))
 
 config = Config()

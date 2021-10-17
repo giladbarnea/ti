@@ -11,8 +11,8 @@ toml = "^0.10"
 arrow = "^1.1.0"
 pytz = "^2021.1"
 PyYAML = "^5.4.1"
-pydantic = "latest"
-multimethod = { git = "https://github.com/giladbarnea/multimethod.git", branch = "main"}
+multimethod = { git = "https://github.com/giladbarnea/multimethod.git", branch = "main" }
+pydantic = {url = "https://files.pythonhosted.org/packages/ff/74/54e030641601112309f6d2af620774e9080f99c7a15742fc6a0b170c4076/pydantic-1.8.2-py3-none-any.whl"}
 
 [tool.poetry.dev-dependencies]
 IPython = { path = "../ipython/", develop = true }

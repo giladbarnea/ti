@@ -8,8 +8,8 @@ from timefred.time.xarrow import XArrow
 
 
 class Timespan(namedtuple('Timespan', 'start end')):
-    start: XArrow
-    end: XArrow
+    start: XArrow= None
+    end: XArrow= None
 
     @multimethod
     def __radd__(self, other) -> int:

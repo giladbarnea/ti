@@ -9,7 +9,7 @@ from pdbpp import break_on_exc
 
 # @dataclass
 # from timefred.util import timeit
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 Entry = TypedDict('Entry', {
     'name':  str,
@@ -26,21 +26,24 @@ class Data(dict):
     pass
 
 class StoreCache(BaseModel):
-    data: list[Entry]
+    data: list[Entry] = Field(default_factory=list)
 
 # work: List[Item]
 # interrupt_stack: List
 
 
 class Store(BaseModel):
-    __cache__: StoreCache
+    cache: StoreCache = Field(default_factory=StoreCache)
+    filename: Path
+    
     def __init__(self, filename):
-        self.filename = Path(filename)
+        # self.filename = Path(filename)
+        super().__init__(filename=Path(filename))
 
     # @rerun_and_break_on_exc
     def load(self) -> list[Entry]:  # perf: 150ms
-        if self.__cache__.data:
-            return self.__cache__.data
+        if self.cache.data:
+            return self.cache.data
 
         if self.filename.exists():
             with self.filename.open() as f:
@@ -54,7 +57,7 @@ class Store(BaseModel):
             with self.filename.open('w') as f:
                 yaml.dump(data, f)
 
-        self.__cache__.data = data
+        self.cache.data = data
         return data
 
     @break_on_exc
