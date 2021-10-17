@@ -2,8 +2,9 @@ import re
 from collections import defaultdict, UserDict
 from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
+from pydantic import BaseModel, Field
+
 from timefred import color as c
-from timefred.dikt import Field, DefaultDikt
 from timefred.item import Item
 from timefred.note import Note
 from timefred.store import store
@@ -13,15 +14,15 @@ from timefred.time.xarrow import XArrow
 
 
 # @dataclass
-class LogEntry(DefaultDikt):
+class LogEntry(BaseModel):
     name: str = ''
     is_current: bool = False
     # timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
-    timespans = Field(list[Timespan])  # Multiple (start, end) pairs
+    timespans = Field(default_factory=list[Timespan])  # Multiple (start, end) pairs
     # notes: List[Note] = field(default_factory=list)
-    notes = Field(list[Note])
+    notes = Field(default_factory=list[Note])
     # tags: Set[str] = field(default_factory=set)
-    tags = Field(set[str])
+    tags = Field(default_factory=set[str])
 
     def seconds(self) -> int:
         return sum(self.timespans)

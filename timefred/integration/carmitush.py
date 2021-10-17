@@ -34,7 +34,7 @@ body2 = {
 			"id":           40429,
 			"project":      49,
 			"project_name": "Allot",
-			}]
+			}],
 	"start":            "07:10:00",
 	"request_approval": False,
 	"type":             "full_day",

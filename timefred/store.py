@@ -9,7 +9,7 @@ from pdbpp import break_on_exc
 
 # @dataclass
 # from timefred.util import timeit
-from timefred.dikt import DefaultDikt
+from pydantic import BaseModel
 
 Entry = TypedDict('Entry', {
     'name':  str,
@@ -25,13 +25,15 @@ class Data(dict):
     # doesn't write well to .timefred-sheet
     pass
 
+class StoreCache(BaseModel):
+    data: list[Entry]
 
 # work: List[Item]
 # interrupt_stack: List
 
 
-class Store(DefaultDikt):
-
+class Store(BaseModel):
+    __cache__: StoreCache
     def __init__(self, filename):
         self.filename = Path(filename)
 

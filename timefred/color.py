@@ -1,11 +1,11 @@
 import re
 
 
-def rgb(s, r, g=None, b=None):
-	if not g:
-		g = r
-		b = r
-	return f'\x1b[38;2;{r};{g};{b}m{s}\x1b[39m'
+def rgb(s, _r, _g=None, _b=None):
+	if not _g:
+		_g = _r
+		_b = _r
+	return f'\x1b[38;2;{_r};{_g};{_b}m{s}\x1b[39m'
 
 
 def task(s):

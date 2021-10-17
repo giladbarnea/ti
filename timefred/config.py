@@ -4,13 +4,11 @@ from pathlib import Path
 from typing import Optional
 
 import toml
+from pydantic import BaseModel
 
-from timefred.dikt import Dikt, DefaultDikt
-
-
-class Config(DefaultDikt):
-    class TimeCfg(DefaultDikt):
-        class TimeFormats(Dikt):
+class Config(BaseModel):
+    class TimeCfg(BaseModel):
+        class TimeFormats(BaseModel):
             date: str = 'DD/MM/YY'
             short_date: str = 'DD/MM'
             time: str = 'HH:mm:ss'
@@ -25,13 +23,16 @@ class Config(DefaultDikt):
         #     super().__init__(timecfg)
         # self.tz = timezone(self.tz)
 
-    class DevCfg(DefaultDikt):
+    class DevCfg(BaseModel):
         debugger: str
         traceback: Optional[str]
-        features: Dikt
+        features: BaseModel
 
+    class Sheet(BaseModel):
+        path = os.path.expanduser(os.environ.get('TF_SHEET', "~/.timefred-sheet.yml"))
+    
     time: TimeCfg
-    sheet: Dikt = Dikt({"path": os.path.expanduser(os.environ.get('TF_SHEET', "~/.timefred-sheet.yml"))})
+    sheet: Sheet
     dev: DevCfg
 
     def __init__(self):
@@ -40,7 +41,7 @@ class Config(DefaultDikt):
             cfg = toml.load(cfg_file.open())
         else:
             cfg = {}
-        super().__init__(cfg)
+        super().__init__(**cfg)
         if self.dev.debugger:
             os.environ['PYTHONBREAKPOINT'] = self.dev.debugger
         if self.dev.traceback:

@@ -1,27 +1,28 @@
 from typing import Optional
 
 from multimethod import multimethod
+from pydantic import BaseModel, Field
 
 from timefred import color as c
-from timefred.dikt import Field, DefaultDikt
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
 from timefred.util import normalize_str
 
 
-class Item(DefaultDikt):
+class Item(BaseModel):
     name: str
-    # name_colored: str = ''
-    # start = Field(XArrow.from_formatted)
-    start = Field(XArrow.from_formatted)
-    end = Field(XArrow.from_formatted, optional=True)
+    _name_colored: str = ''
+    start = Field(default_factory=XArrow.from_formatted)
+    end = Field(default_factory=XArrow.from_formatted,
+                #optional=True
+                )
     notes = Field(list[Note])
     tags: Optional[set[str]]
     jira: Optional[str]
     timespan: Timespan
 
-    def __init__(self,*args,**kwargs) -> None:
-        super().__init__(*args,**kwargs)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,

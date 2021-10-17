@@ -11,15 +11,22 @@ toml = "^0.10"
 arrow = "^1.1.0"
 pytz = "^2021.1"
 PyYAML = "^5.4.1"
-multimethod = { git = "https://github.com/giladbarnea/multimethod.git" }
+pydantic = "latest"
+multimethod = { git = "https://github.com/giladbarnea/multimethod.git", branch = "main"}
 
 [tool.poetry.dev-dependencies]
-# ipython = { git = "https://github.com/ipython/ipython.git", optional = true }
-pdbpp = { git = "https://github.com/giladbarnea/pdbpp.git", optional = true }
+IPython = { path = "../ipython/", develop = true }
+pdbpp = { path = "../pdbpp/", develop = true }
 pytest = { version = "latest", optional = true }
-# rich = { version = "^10", optional = true }
+rich = { path = "../rich/", develop = true }
 # loguru = { version = "^0.5.3", optional = true }
+
+[tool.poetry.build]
+generate-setup-file = true
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+tf = 'timefred.timefred:main'

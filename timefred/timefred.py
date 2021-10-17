@@ -28,11 +28,6 @@ Options:
   <note-text>...    Some arbitrary text to be added as `notes` to the currently
                     working project.
 """
-try:
-    import debug
-except ModuleNotFoundError:
-    pass
-
 import os
 import subprocess
 import sys
@@ -74,7 +69,7 @@ def on(name: str, time: XArrow, _tag=None, _note=None):
         breakpoint()
         return False
 
-    item = Item(name, start=time)
+    item = Item(name=name, start=time)
 
     if _tag:
         item.tags.add(_tag)
