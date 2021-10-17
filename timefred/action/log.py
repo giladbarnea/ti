@@ -1,49 +1,27 @@
 import re
-from collections import defaultdict, UserDict, namedtuple
-from dataclasses import dataclass, field
-from datetime import timedelta
-from typing import List, Tuple, Literal, TypeVar, MutableMapping, Set
+from collections import defaultdict, UserDict
+from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
 from timefred import color as c
+from timefred.dikt import Field, DefaultDikt
 from timefred.item import Item
 from timefred.note import Note
 from timefred.store import store
-from timefred.times import human2arrow, secs2human, now, arrows2rel_time
-from timefred.xarrow import XArrow
-from pdbpp import break_on_exc
-# from loguru import logger
-
-NOTE_TIME_RE = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
+from timefred.time.timespan import Timespan
+from timefred.time.timeutils import secs2human, arrows2rel_time
+from timefred.time.xarrow import XArrow
 
 
-class Timespan(namedtuple('Timespan', 'start end')):
-    start: XArrow
-    end: XArrow
-
-    def __radd__(self, other) -> int:
-        self_seconds = self.seconds()
-        try:
-            return self_seconds + int(other.timedelta().total_seconds())
-        except AttributeError: # other is int
-            return self_seconds + other
-
-    def timedelta(self) -> timedelta:
-        return self.end - self.start
-
-    def seconds(self) -> int:
-        return int(self.timedelta().total_seconds())
-
-    def human_duration(self) -> str:
-        return secs2human(self.seconds())
-
-
-@dataclass
-class LogEntry:
+# @dataclass
+class LogEntry(DefaultDikt):
     name: str = ''
     is_current: bool = False
-    timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
-    notes: List[Note] = field(default_factory=list)
-    tags: Set[str] = field(default_factory=set)
+    # timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
+    timespans = Field(list[Timespan])  # Multiple (start, end) pairs
+    # notes: List[Note] = field(default_factory=list)
+    notes = Field(list[Note])
+    # tags: Set[str] = field(default_factory=set)
+    tags = Field(set[str])
 
     def seconds(self) -> int:
         return sum(self.timespans)
@@ -57,6 +35,7 @@ class LogEntry:
     def pretty(self, detailed: bool = True, width: int = 24):
         if detailed:
             time = "\n  \x1b[2m"
+            notes = self.notes
             if self.notes:
                 time += '\n  ' + c.grey150('Times')
 
@@ -125,21 +104,27 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
     def human_duration(self):
         return secs2human(self.total_seconds())
 
-@break_on_exc
+
+# @break_on_exc
 def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
     if groupby and groupby not in ('t', 'tag'):
         raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
-    data = store.load()
-    work = data['work'] + data['interrupt_stack']
+    work = store.load()
     _log = Log()
     current = None
-    period_arrow = human2arrow(period)
-    _now = now()
+    # period_arrow = human2arrow(period)
+    period_arrow = XArrow.from_human(period)
+    now = period_arrow.now()
 
     by_tag = defaultdict(set)
 
-    for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
-        if item.start.DDMMYY != period_arrow.DDMMYY:
+    for i, entry in enumerate(reversed(work)):
+        item = Item(**entry)
+        # for i, item in enumerate(map(lambda w: Item(**w), reversed(work))):
+        item_start = item.start
+        item_start_DDMMYY = item_start.DDMMYY
+        period_arrow_DDMMYY = period_arrow.DDMMYY
+        if item_start_DDMMYY != period_arrow_DDMMYY:
             if period_arrow > item.start:
                 # We have iterated past period
                 break
@@ -156,25 +141,26 @@ def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
 
         log_entry = _log[item.name]
         log_entry.name = item.name
-        log_entry.notes.extend(item.notes)
+        item_notes = item.notes
+        log_entry_notes = log_entry.notes
+        log_entry_notes.extend(item_notes)
         log_entry.tags |= item.tags
 
-        timespan = Timespan(item.start, item.end or _now)
+        timespan = Timespan(item.start, item.end or now)
         log_entry.timespans.append(timespan)
 
         if not timespan.end:
             log_entry.is_current = True
 
-
     title = c.title(period_arrow.full)
-    ago = arrows2rel_time(_now, period_arrow)
+    ago = arrows2rel_time(now, period_arrow)
     if ago:
         title += f' {c.dim("| " + ago)}'
 
     print(title + '\n')
     if not _log:
         return
-    name_column_width = max(*map(len, map(lambda entry: entry.name, _log.values())), 24)
+    name_column_width = max(*map(len, map(lambda _: _.name, _log.values())), 24)
     if groupby:
         for _tag, names in by_tag.items():
             print(c.tag(_tag))

@@ -2,8 +2,7 @@ from timefred.store import store
 
 
 def generate_completion():
-    data = store.load()
-    work = data['work']
+    work = store.load()
     tags = set([x.get('tags')[0] for x in work if x.get('tags')])
     print(f"""function completion.tf(){{
     current=${{COMP_WORDS[COMP_CWORD]}}

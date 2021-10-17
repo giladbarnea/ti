@@ -1,95 +1,82 @@
-from typing import List, Optional, Callable, Any, Set
+from typing import Optional
 
-from arrow import Arrow
+from multimethod import multimethod
 
 from timefred import color as c
-from timefred.dikt import Dikt
+from timefred.dikt import Field, DefaultDikt
 from timefred.note import Note
-from timefred.times import formatted2arrow
-from timefred.xarrow import XArrow
+from timefred.time import XArrow, Timespan
+from timefred.util import normalize_str
 
 
-class myproperty(property):
+class Item(DefaultDikt):
+    name: str
+    # name_colored: str = ''
+    # start = Field(XArrow.from_formatted)
+    start = Field(XArrow.from_formatted)
+    end = Field(XArrow.from_formatted, optional=True)
+    notes = Field(list[Note])
+    tags: Optional[set[str]]
+    jira: Optional[str]
+    timespan: Timespan
 
-	def __init__(self, fget: Optional[Callable[[Any], Any]] = ..., fset: Optional[Callable[[Any, Any], None]] = ..., fdel: Optional[Callable[[Any], None]] = ..., doc: Optional[str] = ...) -> None:
-		super().__init__(fget, fset, fdel, doc)
+    def __init__(self,*args,**kwargs) -> None:
+        super().__init__(*args,**kwargs)
 
-	def fget(self) -> Any:
-		rv = super().fget()
-		# breakpoint()
-		return rv
+    # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
+    # 	super().__init__(dict(name=name,
+    # 						  start=start,
+    # 						  end=end,
+    # 						  notes=notes or [],
+    # 						  tags=tags or set(),
+    # 						  jira=jira))
 
-	def getter(self, fget: Callable[[Any], Any]) -> property:
-		rv = super().getter(fget)
-		# breakpoint()
-		return rv
+    # @property
+    # def notes(self) -> list[Note]:
+    # 	if self.__cache__.notes:
+    # 		return self._notes
+    # 	for i, note in enumerate(self._notes):
+    # 		if not isinstance(note, Note):
+    # 			self._notes[i] = Note(note)
+    # 	self.__cache__.notes = True
+    # 	return self._notes
 
-	def __get__(self, obj: Any, type: Optional[type] = ...) -> Any:
-		rv = super().__get__(obj, type)
-		return rv
+    @property
+    def name_colored(self):
+        if not self._name_colored:
+            self._name_colored = c.task(self.name)
+        return self._name_colored
 
-	def __getattr__(self, name: str) -> Any:
-		print(f'{name = }')
-		if name == 'pretty':
-			breakpoint()
-		return super().__getattr__(name)
+    # @property
+    # def start(self) -> XArrow:
+    # 	if self._start and not isinstance(self._start, Arrow):
+    # 		self._start = XArrow.from_formatted(self._start)
+    # 	return self._start
 
+    # @start.setter
+    # def start(self, val):
+    # 	self._start = val
 
-# def __get__(self, obj: Any, type: Optional[type] = ...) -> Any:
-# 	rv = super().__get__(obj, type)
-# 	return rv
+    # @property
+    # def end(self) -> XArrow:
+    # 	if self._end and not isinstance(self._end, Arrow):
+    # 		self._end = XArrow.from_formatted(self._end)
+    # 	return self._end
+    #
+    # @end.setter
+    # def end(self, val):
+    # 	self._end = val
 
+    # @property
+    # def timespan(self) -> Timespan:
+    # 	if not self._timespan:
+    # 		self._timespan = Timespan(self.start, self.end)
+    # 	return self._timespan
 
-class Item(Dikt):
-	name: str
-	name_colored: str
-	_start: XArrow
-	_end: Optional[XArrow]
-	notes: List[Note]
-	tags: Optional[Set[str]]
-	jira: Optional[str]
+    @multimethod
+    def has_similar_name(self, other: 'Item') -> bool:
+        return self.has_similar_name(other.name)
 
-	def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
-		super().__init__(dict(name=name,
-							  _start=start,
-							  _end=end,
-							  _name_colored='',
-							  _notes=notes if notes is not None else [],
-							  tags=tags if tags is not None else {},
-							  jira=jira))
-
-	@property
-	def notes(self):
-		if self.__cache__.notes:
-			return self._notes
-		for i, note in enumerate(self._notes):
-			if not isinstance(note, Note):
-				self._notes[i] = Note(note)
-		self.__cache__.notes = True
-		return self._notes
-
-	@property
-	def name_colored(self):
-		if not self._name_colored:
-			self._name_colored = c.task(self.name)
-		return self._name_colored
-
-	@property
-	def start(self) -> XArrow:
-		if self._start and not isinstance(self._start, Arrow):
-			self._start = formatted2arrow(self._start)
-		return self._start
-
-	@start.setter
-	def start(self, val):
-		self._start = val
-
-	@property
-	def end(self) -> XArrow:
-		if self._end and not isinstance(self._end, Arrow):
-			self._end = formatted2arrow(self._end)
-		return self._end
-
-	@end.setter
-	def end(self, val):
-		self._end = val
+    @multimethod
+    def has_similar_name(self, other: str) -> bool:
+        return normalize_str(self.name) == normalize_str(other)

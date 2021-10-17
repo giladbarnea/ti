@@ -2,10 +2,11 @@ import re
 from typing import Optional, Union
 
 from arrow import Arrow
+from multimethod import multimethod
 
 from timefred import color as c
-from timefred.times import formatted2arrow
-from timefred.xarrow import XArrow
+from timefred.time.xarrow import XArrow
+from timefred.util import normalize_str
 
 NOTE_TIME_RE = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 
@@ -14,6 +15,12 @@ class Note:
 	time: Optional[XArrow]
 	content: str
 
+	@multimethod
+	def __init__(self, note: str, time: Union[str, XArrow]):
+		self.content = note
+		self._time = time
+
+	@multimethod
 	def __init__(self, note: str):
 		match = NOTE_TIME_RE.fullmatch(note)
 		if match:
@@ -32,25 +39,29 @@ class Note:
 		return bool(self.content)
 
 	def __str__(self) -> str:
-		return f'{self.content} ({self.time.HHmmss})' if self.time else self.content
+		if self.time:
+			return f'{self.content} ({self.time.HHmmss})'
+		return self.content
 
 	def pretty(self):
-		return c.note(f'{c.b(self.content)} ({self.time.HHmmss})') if self.time else c.b(self.content)
+		content_bold = c.b(self.content)
+		if self.time:
+			return c.note(f'{content_bold} ({self.time.HHmmss})')
+		return c.note(content_bold)
 
 	@property
 	def time(self) -> XArrow:
 		if self._time and not isinstance(self._time, Arrow):
-			self._time = formatted2arrow(self._time)
+			self._time = XArrow.from_formatted(self._time)
 		return self._time
 
-	def looks_same(self, other: Union[str, 'Note']) -> bool:
-		def _normalize(_s: str) -> str:
-			return re.sub(r'\W', '', _s.lower())
+	@multimethod
+	def is_similar(self, other: 'Note') -> bool:
+		return self.is_similar(other.content)
 
-		try:
-			other_normalized = _normalize(other)
-		except AttributeError:
-			other_normalized = _normalize(other.content)
-		self_normalized = _normalize(self.content)
+	@multimethod
+	def is_similar(self, other: str) -> bool:
+		other_normalized = normalize_str(other)
+		self_normalized = normalize_str(self.content)
 
 		return self_normalized in other_normalized or other_normalized in self_normalized

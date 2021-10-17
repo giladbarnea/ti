@@ -79,7 +79,7 @@ pyparsing = ">=2.0.2"
 
 [[package]]
 name = "pdbpp"
-version = "0.10.3.dev215+gb722246"
+version = "0.10.3.dev216+g6ac7b04"
 description = "pdb++, a drop-in replacement for pdb"
 category = "dev"
 optional = true
@@ -100,7 +100,7 @@ testing = ["funcsigs", "pytest"]
 type = "git"
 url = "https://github.com/giladbarnea/pdbpp.git"
 reference = "master"
-resolved_reference = "b722246d3a4115da5d028fbfe320190788f02b9d"
+resolved_reference = "6ac7b04fa3021ff233e25b21c8d467fb2eb3934b"
 
 [[package]]
 name = "pluggy"
