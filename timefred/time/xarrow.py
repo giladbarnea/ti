@@ -42,20 +42,29 @@ Used in `XArrow._from_relative`"""
 
 
 class XArrow(Arrow):
-    def __init__(self, year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: int = 0, microsecond: int = 0, tzinfo: Optional[TZ_EXPR] = None, **kwargs: Any) -> None:
+    def __init__(self,
+                 year: int,
+                 month: int,
+                 day: int,
+                 hour: int = 0,
+                 minute: int = 0,
+                 second: int = 0,
+                 microsecond: int = 0,
+                 tzinfo: Optional[TZ_EXPR] = None,
+                 **kwargs: Any) -> None:
         super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
         self.colored = c.time(self)
         self._HHmmss = None
         self._DDMMYY = None
         self._DDMMYYHHmmss = None
         self._full = None
-
+    
     @classmethod
     # @break_on_return(condition=lambda rv:not isinstance(rv, XArrow))
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> ForwardRef("XArrow"):
         return super().now(tzinfo)
         # return xarrow_factory.now(TZINFO)
-
+    
     @classmethod
     def from_formatted(cls, date: Union[str, ForwardRef('XArrow')]) -> ForwardRef('XArrow'):
         if isinstance(date, Arrow):
@@ -63,7 +72,7 @@ class XArrow(Arrow):
                     and confirm(f'XArrow.from_formatted({date = }) is regular Arrow, debug?'):
                 breakpoint()
             return date
-
+        
         # noinspection PyTypeChecker
         return xarrow_factory.get(date, [f"{FORMATS.date} HH:mm:ss",
                                          f"{FORMATS.date} HH:mm",
@@ -73,7 +82,7 @@ class XArrow(Arrow):
                                          "HH:mm",
                                          ],
                                   tzinfo=TZINFO)
-
+        
         if ' ' in date:
             # "19/04/21 10:13:11" → arrow(...)
             # return xarrow_factory.get(date, FORMATS.date_time, tzinfo=TZINFO)
@@ -85,11 +94,11 @@ class XArrow(Arrow):
                 # "19/04"
                 date += '/' + str(datetime.today().year)[-2:]
             return xarrow_factory.get(date, FORMATS.date, tzinfo=TZINFO)
-
+        
         # "10:13:11" → datetime(...)
         today = datetime.today()
         return cls(today.year, today.month, today.day, *map(int, date.split(':')))
-
+    
     @classmethod
     def _from_day(cls, day: str) -> ForwardRef('XArrow'):  # perf: µs
         """
@@ -107,7 +116,7 @@ class XArrow(Arrow):
         else:
             shift = diff * -1
         return now.shift(days=shift)
-
+    
     @classmethod
     def _from_relative(cls, time: str) -> ForwardRef('XArrow'):
         """
@@ -130,7 +139,7 @@ class XArrow(Arrow):
                 delta.update({ABBREVS[grpdict['unit3']]: int(amount3)})
         parsed: XArrow = cls.now() - timedelta(**delta)
         return parsed
-
+    
     @classmethod
     def _from_absolute(cls, time: str) -> ForwardRef('XArrow'):
         """
@@ -139,7 +148,7 @@ class XArrow(Arrow):
         """
         # replace = _time2replace_dict(time)
         return cls.now().update(time)
-
+    
     @classmethod
     def from_human(cls, engtime: Union[str, ForwardRef('XArrow')] = "now") -> ForwardRef('XArrow'):
         """
@@ -162,36 +171,36 @@ class XArrow(Arrow):
                 breakpoint()
             return engtime
         engtime = engtime.lower()
-
+        
         # 'now', 'today', 'yesterday'
         if engtime in ('now', 'today'):
             return cls.now()
         if engtime == 'yesterday':
             return cls.now().shift(days=-1)
-
+        
         # 'thurs', ...
         with suppress(ValueError):
             return cls._from_day(engtime)
-
+        
         # '3m'
         with suppress(ValueError):
             return cls._from_relative(engtime)
-
+        
         # '09:45'
         with suppress(ValueError):
             return XArrow._from_absolute(engtime)
-
+        
         # 05/18/21
         if '/' in engtime:
             return XArrow.from_formatted(engtime)
-
+        
         # 'Wednesday 09:45'
         day, _, time = engtime.partition(' ')
         # TODO: '05/20/21' doesnt work! and enters here
         day = cls._from_day(day)
         # replace = _time2replace_dict(time)
         return day.update(time)
-
+        
         #
         # parsed = parsedate(engtime)
         #
@@ -213,7 +222,7 @@ class XArrow(Arrow):
         #     return now - timedelta(hours=hours)
         #
         # raise BadTime(f"Don't understand the time {engtime!r}")
-
+    
     def update(self, time) -> ForwardRef('XArrow'):
         """
         >>> self.replace('09:45')
@@ -224,7 +233,7 @@ class XArrow(Arrow):
         match = re.match(r'(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?', time)
         if not match:
             raise ValueError(f"Don't understand {time = }")
-
+        
         hours = int(match.group(1))
         minutes = match.group(2)
         replace = {'hour': hours}
@@ -238,25 +247,25 @@ class XArrow(Arrow):
         else:
             replace.update({'second': 0})
         return self.replace(**replace)
-
+    
     @property
     def HHmmss(self):
         if not self._HHmmss:
             self._HHmmss: str = self.format(FORMATS.time)
         return self._HHmmss
-
+    
     @property
     def DDMMYY(self):
         if not self._DDMMYY:
             self._DDMMYY: str = self.format(FORMATS.date)
         return self._DDMMYY
-
+    
     @property
     def DDMMYYHHmmss(self):
         if not self._DDMMYYHHmmss:
             self._DDMMYYHHmmss: str = self.format(f'{FORMATS.date} {FORMATS.time}')
         return self._DDMMYYHHmmss
-
+    
     @property
     def full(self):
         """'Thursday 20/05/21'"""
@@ -267,7 +276,7 @@ class XArrow(Arrow):
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]
-
+    
     def __init__(self, type: Type[XArrow] = XArrow) -> None:
         super().__init__(type)
 
