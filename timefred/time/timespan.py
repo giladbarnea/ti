@@ -10,6 +10,8 @@ from timefred.time.xarrow import XArrow
 
 @dataclass
 class Timespan:
+    # todo: XArrow - XArrow -> Timespan?
+    #  inherit from timedelta?
     # class Config:
     #     arbitrary_types_allowed = True
     # start = Field(caster=XArrow)

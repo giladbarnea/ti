@@ -1,47 +1,49 @@
 from timefred import color as c
 from timefred.note import Note
-from timefred.store import store, Entry
+from timefred.store import store, Activity, Entry
 from timefred.time import XArrow
 from timefred.action import fin
 
 
-def on(name: str, time: XArrow, _tag=None, _note=None):
+def on(name: str, time: XArrow, tag=None, note=None):
     work = store.load()
-    if work:
-        first_entry = Entry.from_entry(work[next(iter(work))])
-        if not first_entry.end:
-            current = first_entry
-            # Finish current, then start (recursively)
-            if current.has_similar_name(name):
+    if work and (day := work.get(time.DDMMYY)):
+        if activity := day.get(name):
+            if activity.ongoing and activity.has_similar_name(name):
                 # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
-                print(f'{c.orange("Already")} working on {current.name.colored} since {c.time(current.start.DDMMYYHHmmss)} ;)')
+                print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
                 return True
             ok = fin(time)
             if ok:
-                return on(name, time, _tag)
+                return on(name, time, tag)
             breakpoint()
             return False
-
-    item = Entry(name=name, start=time)
     
-    if _tag:
-        item.tags.add(_tag)
+    entry = Entry(start=time)
+    activity = Activity(name=name)
+    activity.append(entry)
     
-    if _note:
-        item.notes.append(Note(_note, time))
+    if tag:
+        entry.tags.add(tag)
     
-    work[item.start.DDMMYY].append({str(item.name): item.dict(exclude=('timespan', 'name'))})
-    # work[item.start.DDMMYY].append(item)
-    # work.append(item.dict())
+    if note:
+        note = Note(note, time)
+        entry.notes.append(note)
+    
+    # work[entry.start.DDMMYY].append({str(activity.name): activity.dict(exclude=('timespan', 'name'))})
+    day = work[entry.start.DDMMYY]
+    day[str(activity.name)] = activity
+    # work[activity.start.DDMMYY].append(activity)
+    # work.append(activity.dict())
     ok = store.dump(work)
     if not ok:
         breakpoint()
     
-    # message = f'{c.green("Started")} working on {item.name_colored} at {c.time(reformat(time, timeutils.FORMATS.date_time))}'
-    message = f'{c.green("Started")} working on {item.name.colored} at {c.time(item.start.DDMMYYHHmmss)}'
-    if _tag:
-        message += f". Tag: {c.tag(_tag)}"
+    # message = f'{c.green("Started")} working on {activity.name_colored} at {c.time(reformat(time, timeutils.FORMATS.date_time))}'
+    message = f'{c.green("Started")} working on {activity.name.colored} at {c.time(entry.start.DDMMYYHHmmss)}'
+    if tag:
+        message += f". Tag: {c.tag(tag)}"
     
-    if _note:
-        message += f". Note: {item.notes[-1].pretty()}"
+    if note:
+        message += f". Note: {note.pretty()}"
     print(message)

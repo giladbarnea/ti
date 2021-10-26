@@ -36,7 +36,7 @@ class AnnotationMismatchError(TypeError): ...
 
 class Field(Generic[_T]):
     """getattr(instance, self.private_name, UNSET), then
-    self.default_value > self.default_factory > classvar annotation > instance.__getitem__.
+    self.default > self.default_factory > classvar annotation > instance.__getitem__.
     Caches in self.cached_value (In Field instance's cached_value)
     """
 

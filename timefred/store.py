@@ -1,7 +1,8 @@
 import logging
 import shutil
 import sys
-from collections import defaultdict
+from collections import defaultdict, UserList, UserDict
+from functools import partial
 from os import path, getenv
 from pathlib import Path
 from typing import Optional, Any, ForwardRef
@@ -11,47 +12,24 @@ import toml
 from timefred import color as c
 from timefred.color.colored import Colored
 from timefred.field import Field
+from timefred.has_fields import HasFields, HasFieldsList
+from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
 from timefred.util import normalize_str
 
 
-# @dataclass
-# from timefred.util import timeit
 
-
-class Entry:
-    # class Config:
-    #     arbitrary_types_allowed = True
-    
-    # name_colored: str = Field(default_factory=lambda: c.task(Entry.name))
-    name: Colored = Colored(brush=c.task)
+class Entry(HasFields):
     start: XArrow = Field(caster=XArrow.from_formatted)
     end: Optional[XArrow] = Field(caster=XArrow.from_formatted, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
     tags: Optional[set[str]] = Field(optional=True)
-    jira: Optional[str] = Field(default_factory=str)
     
-    @Field
+    @Field(optional=True)
     def timespan(self):
         return Timespan(self.start, self.end)
     
-    def __new__(cls, *args: Any, **kwargs: Any):
-        inst = object.__new__(cls)
-        for name, val in kwargs.items():
-            setattr(inst, name, val)
-        # for item, annotation in cls.__annotations__.items():
-        #     if isinstance(annotation, ForwardRef):
-        #         raise NotImplementedError(f"{annotation = }")
-        #         evaluated = resolve_forwardref(annotation, cls)
-        #         cls.__annotations__[item] = evaluated
-        
-        return inst
-    
-    @classmethod
-    def from_entry(cls, entry: dict) -> ForwardRef('Entry'):
-        name = next(iter(entry))
-        return cls(name=name, **entry[name])
     
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,
@@ -91,6 +69,10 @@ class Entry:
     # def end(self, val):
     # 	self._end = val
     
+class Activity(HasFieldsList[Entry]):
+    name: Colored = Field(caster=partial(Colored, brush=c.task))
+    jira: Optional[Ticket] = Field(default_factory=Ticket)
+    # __slots__ = ('name',)
     # @multimethod
     # def has_similar_name(self, other: 'Entry') -> bool:
     #     return self.has_similar_name(other.name)
@@ -99,34 +81,15 @@ class Entry:
     def has_similar_name(self, other: str) -> bool:
         return normalize_str(self.name) == normalize_str(other)
     
-    def dict(self, *, exclude=()):
-        if not isinstance(exclude, tuple):
-            exclude = (exclude,)
-        attrs = {}
-        for k in self.__annotations__:
-            if k in exclude:
-                continue
-            v = getattr(self, k)
-            if v:
-                # with suppress(AttributeError):
-                #     attrs[k] = v.HHmmss
-                #     continue
-                #
-                # with suppress(AttributeError):
-                #     attrs[k] = v.dict()
-                #     continue
-                
-                attrs[k] = v
-        
-        return attrs
+    def ongoing(self) -> bool:
+        return not self[-1].end
 
-
-class Day:
-    entries: list[Entry]
-
+# Day = defaultdict[str, Activity]
+class Day(UserDict[str, Activity]):
+    """activity name : Activity"""
 
 class StoreCache:
-    data: dict[str, Day] = Field(default_factory=lambda **kwargs: defaultdict(Day, **kwargs))
+    data: defaultdict[str, Day] = Field(default_factory=lambda **kwargs: defaultdict(Day, **kwargs))
     # class Config:
     #     arbitrary_types_allowed = True
 
@@ -139,7 +102,18 @@ class TomlEncoder(toml.TomlPreserveInlineDictEncoder):
             XArrow:  lambda xarrow: xarrow.HHmmss,
             })
 
-
+# str:      Day {
+#   str:        Activity[Entry, Entry, ...]
+# 24/10/21: {
+#   Device exists redis validation: [
+#       { name: str
+#         start: 13:46:59
+#         end?: 13:46:59
+#         tags?: [...]
+#         jira?: str
+#         notes?: [...] },
+#       { ... },
+#   ]
 class Store:
     cache: StoreCache = Field(default_factory=StoreCache)
     filename: Path = Field(default_factory=Path)
@@ -152,7 +126,7 @@ class Store:
         # super().__init__(filename=Path(filename))
     
     # @rerun_and_break_on_exc
-    def load(self) -> defaultdict[str, list[Entry]]:
+    def load(self) -> defaultdict[str, Day]:
         # perf: 150ms?
         if self.cache.data:
             return self.cache.data
@@ -163,10 +137,10 @@ class Store:
                 # data = yaml.load(f, Loader=yaml.FullLoader)
             
             if not data:
-                data = defaultdict(list)
+                data = defaultdict(Day)
         
         else:
-            data = defaultdict(list)
+            data = defaultdict(Day)
             with self.filename.open('w') as f:
                 toml.dump(data, f)
                 # yaml.dump(data, f)

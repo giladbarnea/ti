@@ -1,6 +1,6 @@
 import inspect
-from typing import Any, Callable
-
+from typing import Any, Callable, Type
+from functools import partialmethod, partial
 from timefred.singleton import Singleton
 
 
@@ -23,7 +23,7 @@ class Field:
                  default_factory_args: tuple = (),
                  caster: Callable = UNSET,
                  optional=False):
-        self.default_value = default
+        self.default = default
         self.default_factory = default_factory
         self.default_factory_args = default_factory_args
         self.caster = caster
@@ -33,12 +33,24 @@ class Field:
     def __set_name__(self, owner, name):
         self.name = name
         self.private_name = f'_{name}'
+        try:
+            owner.__fields__[name] = self
+        except AttributeError:
+            setattr(owner, '__fields__', dict())
+            owner.__fields__[name] = self
+
+    def __call__(self, method):
+        """Allows for using Field as a decorator with args, e.g `Field(optional=True)`"""
+        if not callable(method):
+            raise TypeError(f"A Field instance was called. This can happen only as a method decorator")
+        self.default_factory = method
+        return self
     
     def _repred_attrs(self) -> dict:
         default_factory_repr = getattr(self.default_factory, '__qualname__', self.default_factory)
         default_factory_args_repr = getattr(self.default_factory_args, '__qualname__', self.default_factory_args)
         caster_repr = getattr(self.caster, '__qualname__', self.caster)
-        attrs = dict(default=self.default_value,
+        attrs = dict(default=self.default,
                      default_factory=default_factory_repr,
                      default_factory_args=default_factory_args_repr,
                      caster=caster_repr,
@@ -46,15 +58,15 @@ class Field:
                      optional=self.optional)
         return attrs
     
-    def __repr__(self):
-        return f"{self.__class__.__qualname__}({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
+    # def __repr__(self):
+    #     return f"{self.__class__.__qualname__}({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
     
     def __get__(self, instance, owner):
         if self.cached_value is not UNSET:
             return self.cached_value
         value = getattr(instance, self.private_name, UNSET)
         if value is UNSET:
-            if self.default_value is UNSET:
+            if self.default is UNSET:
                 if self.default_factory is UNSET:
                     if not self.optional:
                         raise AttributeError(f"{owner.__name__}.{self.name} is unset, has no default value nor default_factory")
@@ -70,7 +82,7 @@ class Field:
                     #         value = self.default_factory(*self.default_factory_args)
             
             else:
-                value = self.default_value
+                value = self.default
                 
         if self.caster and value is not UNSET:
             value = self.caster(value)
@@ -87,3 +99,23 @@ class Field:
     
     def _unset_cache(self):
         self.cached_value = UNSET
+
+
+def field(default_factory: Callable = UNSET,
+          *,
+          default: Any = UNSET,
+          default_factory_args: tuple = (),
+          caster: Callable = UNSET,
+          optional=False):
+    
+    def inner(method):
+        def method_wrap(self):
+            print(f'method_wrap({self = }) | {default_factory = } | {default = } | {default_factory_args = } | {caster = } | {optional = }')
+            return Field(default_factory=default_factory,
+                         default=partialmethod(method, self),
+                         default_factory_args=default_factory_args,
+                         caster=caster,
+                         optional=optional)
+        print(f'inner({method = })')
+        return method_wrap
+    return inner

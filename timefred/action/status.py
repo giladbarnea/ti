@@ -14,7 +14,7 @@ def status(show_notes=False):
     
     # notes = current.get('notes')
     if not show_notes or not current.notes:
-        print(f'You have been working on {current.name_colored} for {c.time(duration)}.')
+        print(f'You have been working on {current.name.colored} for {c.time(duration)}.')
         return
     
     print('\n    '.join([f'You have been working on {current.name_colored} for {c.time(duration)}.\nNotes:',  # [rgb(170,170,170)]

@@ -128,16 +128,14 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
                 _note_idx = tail.index('-n')
                 _note = tail[_note_idx + 1]
                 tail = tail[:_note_idx]
-            # time = human2formatted(' '.join(tail) if tail else 'now')
             time = XArrow.from_human(' '.join(tail) if tail else 'now')
         else:
-            # time = human2formatted()
             time = XArrow.now()
         args = {
             'name':  name,
             'time':  time,
-            '_tag':  _tag,
-            '_note': _note
+            'tag':  _tag,
+            'note': _note
             }
         return on, args
     
@@ -163,13 +161,13 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
         if len(tail) == 2:
             _tag, time = tail
             args = {
-                '_tag': _tag,
+                'tag': _tag,
                 'time': time
                 }
         elif len(tail) == 1:
-            args = {'_tag': tail[0]}
+            args = {'tag': tail[0]}
         else:
-            args = {'_tag': ' '.join(tail)}
+            args = {'tag': ' '.join(tail)}
         return tag, args
     
     # *** note
