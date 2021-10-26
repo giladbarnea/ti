@@ -19,17 +19,16 @@ from timefred.time import XArrow, Timespan
 from timefred.util import normalize_str
 
 
-
 class Entry(HasFields):
     start: XArrow = Field(caster=XArrow.from_formatted)
     end: Optional[XArrow] = Field(caster=XArrow.from_formatted, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
     tags: Optional[set[str]] = Field(optional=True)
     
-    @Field(optional=True)
+    # @Field(optional=True)
+    @property
     def timespan(self):
         return Timespan(self.start, self.end)
-    
     
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,
@@ -68,10 +67,12 @@ class Entry(HasFields):
     # @end.setter
     # def end(self, val):
     # 	self._end = val
-    
-class Activity(HasFieldsList[Entry]):
-    name: Colored = Field(caster=partial(Colored, brush=c.task))
+
+
+class Activity(HasFieldsList):
+    name: Colored = Field(caster=lambda s: Colored(s, brush=c.task))
     jira: Optional[Ticket] = Field(default_factory=Ticket)
+    
     # __slots__ = ('name',)
     # @multimethod
     # def has_similar_name(self, other: 'Entry') -> bool:
@@ -84,9 +85,12 @@ class Activity(HasFieldsList[Entry]):
     def ongoing(self) -> bool:
         return not self[-1].end
 
+
 # Day = defaultdict[str, Activity]
-class Day(UserDict[str, Activity]):
+# class Day(UserDict[str, Activity]):
+class Day(HasFields):
     """activity name : Activity"""
+
 
 class StoreCache:
     data: defaultdict[str, Day] = Field(default_factory=lambda **kwargs: defaultdict(Day, **kwargs))
@@ -94,16 +98,19 @@ class StoreCache:
     #     arbitrary_types_allowed = True
 
 
-class TomlEncoder(toml.TomlPreserveInlineDictEncoder):
-    def __init__(self, _dict=dict):
-        super().__init__(_dict)
+class TomlEncoder(toml.TomlEncoder):
+    def __init__(self, _dict=dict, preserve=False):
+        super().__init__(_dict, preserve)
         self.dump_funcs.update({
-            Colored: lambda colored: repr(str(colored)),
-            XArrow:  lambda xarrow: xarrow.HHmmss,
+            # HasFields: dict,
+            # Colored: lambda colored: repr(str(colored)),
+            XArrow: lambda xarrow: xarrow.HHmmss,
             })
+
 
 # str:      Day {
 #   str:        Activity[Entry, Entry, ...]
+# {'26/10/21': {'Got to office': [{'start': '08:20:00'}]}}
 # 24/10/21: {
 #   Device exists redis validation: [
 #       { name: str
@@ -128,13 +135,12 @@ class Store:
     # @rerun_and_break_on_exc
     def load(self) -> defaultdict[str, Day]:
         # perf: 150ms?
-        if self.cache.data:
-            return self.cache.data
+        # if self.cache.data:
+        #     return self.cache.data
         
         if self.filename.exists():
             with self.filename.open() as f:
                 data = toml.load(f)
-                # data = yaml.load(f, Loader=yaml.FullLoader)
             
             if not data:
                 data = defaultdict(Day)
@@ -143,9 +149,8 @@ class Store:
             data = defaultdict(Day)
             with self.filename.open('w') as f:
                 toml.dump(data, f)
-                # yaml.dump(data, f)
         
-        self.cache.data = data
+        # self.cache.data = data
         return data
     
     def _backup(self) -> bool:
@@ -165,16 +170,18 @@ class Store:
             return False
     
     # @break_on_exc
-    def dump(self, data: defaultdict[str, Entry]) -> bool:
+    def dump(self, data: defaultdict[str, Day]) -> bool:
         if getenv('TF_DRYRUN', "").lower() in ('1', 'true', 'yes'):
-            print('\n\tDRY RUN, NOT DUMPING\n', file=sys.stderr)
-            return False
+            print('\n\tDRY RUN, NOT DUMPING\n',
+                  data)
+            
+            return True
         
         if not self._backup():
             return False
         try:
+            # pp(data)
             with self.filename.open('w') as f:
-                # yaml.dump(data, f, indent=4)
                 toml.dump(data, f, self.encoder)
             return True
         except Exception as e:

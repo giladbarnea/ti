@@ -30,7 +30,7 @@ class Config(BaseModel):
         features: Optional[BaseModel]
 
     class Sheet(BaseModel):
-        path = os.path.expanduser(os.environ.get('TF_SHEET', "~/.timefred-sheet.yml"))
+        path = os.path.expanduser(os.environ.get('TF_SHEET', "~/timefred-sheet.toml"))
     
     time: TimeCfg = Field(default_factory=TimeCfg)
     sheet: Sheet = Field(default_factory=Sheet)
