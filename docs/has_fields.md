@@ -1,12 +1,12 @@
 ```python
-class Entry(HasFields):
+class Entry(HasFieldsDict):
 	start: XArrow = Field(caster=XArrow.from_formatted)
 	end: Optional[XArrow] = Field(caster=XArrow.from_formatted, optional=True)
 	notes: Optional[list[Note]] = Field(optional=True)
 	tags: Optional[set[str]] = Field(optional=True)
 
 entry = Entry(start=time)
-HasFields.__new__(cls, *args: **kwargs):
+HasFieldsDict.__new__(cls, *args: **kwargs):
 ```
 
 set(vars(object)) == set(dir(object)) == set(object.__dict__)

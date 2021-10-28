@@ -1,16 +1,21 @@
 from timefred import color as c
 from timefred.color import Colored
+from timefred.has_fields import HasFieldsDefaultDict
 from timefred.note import Note
-from timefred.store import store, Activity, Entry
+from timefred.store import store, Activity, Entry, Day
 from timefred.time import XArrow
 from timefred.action import fin
-import debug
 
 
 def on(name: str, time: XArrow, tag=None, note=None):
     work = store.load()
-    if work and (day := work.get(time.DDMMYY)):
-        if activity := day.get(name):
+    assert isinstance(work, HasFieldsDefaultDict)
+    if work:
+        ddmmyy = time.DDMMYY
+        day = work[ddmmyy]
+        assert isinstance(day, Day)
+        if day:
+            activity = day[name]
             if activity.ongoing and activity.has_similar_name(name):
                 # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
                 print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
@@ -22,19 +27,17 @@ def on(name: str, time: XArrow, tag=None, note=None):
             return False
     
     entry = Entry(start=time)
-    pp(entry)
     assert entry
     assert entry.start
     assert isinstance(entry.start, XArrow)
+    assert repr(entry) != '{}'
     activity = Activity(name=name)
-    pp(activity)
     assert not activity
     assert len(activity) == 0
     assert activity.name == 'Got to office', f"activity.name is not 'Got to office' but rather {activity.name!r}"
     assert isinstance(activity.name, Colored), f'Not Colored, but rather {type(activity.name)}'
     activity.append(entry)
     assert len(activity) == 1
-    pp(activity)
     if tag:
         entry.tags.add(tag)
     
@@ -44,9 +47,7 @@ def on(name: str, time: XArrow, tag=None, note=None):
     
     # work[entry.start.DDMMYY].append({str(activity.name): activity.dict(exclude=('timespan', 'name'))})
     day = work[entry.start.DDMMYY]
-    pp(day)
     day[str(activity.name)] = activity
-    pp(day)
     # work[activity.start.DDMMYY].append(activity)
     # work.append(activity.dict())
     ok = store.dump(work)

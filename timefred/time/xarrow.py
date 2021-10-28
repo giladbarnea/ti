@@ -9,7 +9,6 @@ from arrow.arrow import TZ_EXPR
 import timefred.color as c
 from timefred.config import config
 from timefred.time.timeutils import isoweekday
-from timefred.util import confirm
 
 FORMATS = config.time.formats
 TZINFO = config.time.tz
@@ -52,28 +51,33 @@ class XArrow(Arrow):
                  microsecond: int = 0,
                  tzinfo: Optional[TZ_EXPR] = None,
                  **kwargs: Any) -> None:
-        super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
-        self.colored = c.time(self)
         self._HHmmss = None
         self._DDMMYY = None
         self._DDMMYYHHmmss = None
         self._full = None
+        self._colored = None
+        super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
     
+    @property
+    def colored(self):
+        if not self._colored:
+            self._colored = c.time(str(self))
+        return self._colored
+        
     @classmethod
-    # @break_on_return(condition=lambda rv:not isinstance(rv, XArrow))
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> ForwardRef("XArrow"):
-        return super().now(tzinfo)
-        # return xarrow_factory.now(TZINFO)
+        rv = super().now(tzinfo)
+        if not isinstance(rv, XArrow):
+            raise TypeError(f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv = !r} (not XArrow)")
+        return rv
     
     @classmethod
     def from_formatted(cls, date: Union[str, ForwardRef('XArrow')]) -> ForwardRef('XArrow'):
         if isinstance(date, Arrow):
-            if not isinstance(date, XArrow) \
-                    and confirm(f'XArrow.from_formatted({date = }) is regular Arrow, debug?'):
-                breakpoint()
-            return date
+            if isinstance(date, XArrow):
+                return date
+            raise NotImplementedError(f"{cls.__qualname__}.from_formatted({date = !r}) is Arrow")
         
-        # noinspection PyTypeChecker
         return xarrow_factory.get(date, [f"{FORMATS.date} HH:mm:ss",
                                          f"{FORMATS.date} HH:mm",
                                          f"{FORMATS.date}",
@@ -125,7 +129,7 @@ class XArrow(Arrow):
         """
         match = HUMAN_RELATIVE.fullmatch(time)
         if not match:
-            raise ValueError(f"Don't understand {time = }")
+            raise ValueError(f"Don't understand {time = !r}")
         grpdict = match.groupdict()
         amount1 = int(grpdict['amount1'])
         unit1 = grpdict['unit1']
@@ -138,6 +142,8 @@ class XArrow(Arrow):
             if amount3 := grpdict.get('amount3'):
                 delta.update({ABBREVS[grpdict['unit3']]: int(amount3)})
         parsed: XArrow = cls.now() - timedelta(**delta)
+        if not isinstance(parsed, XArrow):
+            raise NotImplementedError(f"{cls.__qualname__}._from_relative({time = !r}) returning {parsed = !r} (not XArrow)")
         return parsed
     
     @classmethod
@@ -161,15 +167,11 @@ class XArrow(Arrow):
             s[ec[ond[s]]], m[in[ute[s]]], h[[ou]r[s]]
 
         For example: "1s ago", "2 minutes ago", "3hr"
-
-        Returns:
-            datetime: The difference between now and `engtime`.
         """
         if isinstance(engtime, Arrow):
-            if not isinstance(engtime, XArrow) \
-                    and confirm(f'XArrow.from_human({engtime = }) is regular Arrow, debug?'):
-                breakpoint()
-            return engtime
+            if isinstance(engtime, XArrow):
+                return engtime
+            raise NotImplementedError(f"{cls.__qualname__}.from_human({engtime = !r}) is Arrow")
         engtime = engtime.lower()
         
         # 'now', 'today', 'yesterday'
@@ -262,6 +264,7 @@ class XArrow(Arrow):
     
     @property
     def DDMMYYHHmmss(self):
+        """'28/10/21 08:20:00'"""
         if not self._DDMMYYHHmmss:
             self._DDMMYYHHmmss: str = self.format(f'{FORMATS.date} {FORMATS.time}')
         return self._DDMMYYHHmmss
@@ -273,6 +276,8 @@ class XArrow(Arrow):
             self._full: str = f"{self.strftime('%A')} {self.DDMMYY}"
         return self._full
 
+    def __repr__(self):
+        return self.DDMMYYHHmmss
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]
