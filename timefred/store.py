@@ -1,18 +1,16 @@
 import logging
 import shutil
 import sys
-from collections import defaultdict, UserList, UserDict
-from birdseye import eye
 from os import path, getenv
 from pathlib import Path
-from typing import Optional, Any, ForwardRef
+from typing import Optional
 
 import toml
 
 from timefred import color as c
 from timefred.color.colored import Colored
 from timefred.field import Field
-from timefred.has_fields import HasFieldsDict, HasFieldsList, HasFieldsDefaultDict
+from timefred.has_fields import HasFieldsDict, HasFieldsList, HasFieldsDefaultDict, K, V
 from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
@@ -84,13 +82,34 @@ class Activity(HasFieldsList):
         return normalize_str(self.name) == normalize_str(other)
     
     def ongoing(self) -> bool:
-        return not self[-1].end
+        try:
+            return not self[-1].end
+        except IndexError:
+            return False
 
+    def __repr__(self):
+        representation = f'{self.__class__.__qualname__}(name={self.name!r}) {list.__repr__(self)}'
+        return representation
 
+    
 # Day = defaultdict[str, Activity]
 # class Day(UserDict[str, Activity]):
 class Day(HasFieldsDefaultDict, default_factory=Activity):
     """activity name : Activity"""
+
+    def __getitem__(self, k: K) -> V:
+        try:
+            # Don't want the whole HasFieldsDefaultDict.__getitem__(k) flow
+            constructed = dict.__getitem__(self, k)
+        except KeyError as e:
+            constructed = self.__v_type__(name=k)
+            setattr(self, k, constructed)
+        else:
+            if not isinstance(constructed, self.__v_type__):
+                constructed = self.__v_type__(**constructed)
+                setattr(self, k, constructed)
+        return constructed
+
 
 assert Day.__v_type__ == Activity
 # class Work(HasFieldsDefaultDict, default_factory=Day): ...
@@ -148,7 +167,7 @@ class Store:
         else:
             data = {}
             with self.filename.open('w') as f:
-                toml.dump(data, f)
+                toml.load(data, f)
         # self.cache.data = data
         return HasFieldsDefaultDict(Day, **data)
     

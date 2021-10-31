@@ -127,7 +127,7 @@ class BuildsDiktFieldFromAnnotation(DictSubclass):
             annotation = super().__getattribute__('__annotations__')[item]
             field = DiktField(default_factory=annotation, name=item)
             # cls = super().__getattribute__('__class__')
-            # setattr(cls, item, field)
+            # setattr(cls, name, field)
             setattr(type(self), item, field)
             return setattr(self, field.private_name, UNSET)
             return getattr(self, item)

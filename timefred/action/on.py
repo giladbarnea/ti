@@ -14,17 +14,19 @@ def on(name: str, time: XArrow, tag=None, note=None):
         ddmmyy = time.DDMMYY
         day = work[ddmmyy]
         assert isinstance(day, Day)
-        if day:
-            activity = day[name]
-            if activity.ongoing and activity.has_similar_name(name):
-                # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
-                print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
-                return True
-            ok = fin(time)
-            if ok:
-                return on(name, time, tag)
-            breakpoint()
-            return False
+        assert day
+        assert len(day) == 1
+        activity = day[name]
+        assert repr(activity) == f"Activity(name='{name}') []", f'{activity!r}'
+        if activity.ongoing() and activity.has_similar_name(name):
+            # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
+            print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
+            return True
+        ok = fin(time)
+        if ok:
+            return on(name, time, tag)
+        breakpoint()
+        return False
     
     entry = Entry(start=time)
     assert entry
@@ -34,7 +36,7 @@ def on(name: str, time: XArrow, tag=None, note=None):
     activity = Activity(name=name)
     assert not activity
     assert len(activity) == 0
-    assert activity.name == 'Got to office', f"activity.name is not 'Got to office' but rather {activity.name!r}"
+    # assert activity.name == 'Got to office', f"activity.name is not 'Got to office' but rather {activity.name!r}"
     assert isinstance(activity.name, Colored), f'Not Colored, but rather {type(activity.name)}'
     activity.append(entry)
     assert len(activity) == 1
