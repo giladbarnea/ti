@@ -5,7 +5,7 @@ from timefred.util import confirm
 from timefred.action.util import ensure_working
 
 
-def fin(end: XArrow) -> bool:
+def stop(end: XArrow) -> bool:
     ensure_working()
     
     data = store.load()

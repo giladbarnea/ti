@@ -6,7 +6,7 @@ Timefred -- Not a silly simple time tracker
 Simple basic usage looks like this::
 
     $ tf on my-project
-    $ tf fin
+    $ tf stop
 
 You can also give it human-readable times::
 
@@ -60,10 +60,10 @@ Here's the minimal usage style::
     $ tf status
     You have been working on my-project for less than a minute.
 
-    $ tf fin
+    $ tf stop
     So you stopped working on my-project.
 
-``on`` and ``fin`` can take a time (format described further down) at which to
+``on`` and ``stop`` can take a time (format described further down) at which to
 apply the action::
 
     $ tf on another-project 2 hours ago
@@ -72,12 +72,12 @@ apply the action::
     $ tf s
     You have been working on another-project for about 2 hours.
 
-    $ tf fin 30 minutes ago
+    $ tf stop 30 minutes ago
     So you stopped working on another-project.
 
 Also illustrating in the previous example is short aliases of all commands,
 their first letter. Like, ``s`` for ``status``, ``o`` for ``on``,
-``f`` for ``fin``, etc.
+``f`` for ``stop``, etc.
 
 Put brief notes on what you've been doing::
 
@@ -115,16 +115,16 @@ You can optionally specify a relative time in the past like so::
 
 The format of the time is detailed further below.
 
-``fin``
+``stop``
 -------
 
 - Short: ``f``
-- Syntax: ``tf (f|fin) [<time>...]``
+- Syntax: ``tf (f|stop) [<time>...]``
 
 End tracking for the current activity *now*. Just like with ``on`` command
 above, you can give an optional time to the past. Example::
 
-    tf fin 10mins ago
+    tf stop 10mins ago
 
 tells ``Timefred`` that you finished working on the current activity at, well, 10
 minutes ago.

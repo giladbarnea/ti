@@ -4,7 +4,7 @@ from timefred.has_fields import HasFieldsDefaultDict
 from timefred.note import Note
 from timefred.store import store, Activity, Entry, Day
 from timefred.time import XArrow
-from timefred.action import fin
+from timefred.action import stop
 
 
 def on(name: str, time: XArrow, tag=None, note=None):
@@ -22,7 +22,7 @@ def on(name: str, time: XArrow, tag=None, note=None):
             # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
             print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
             return True
-        ok = fin(time)
+        ok = stop(time)
         if ok:
             return on(name, time, tag)
         breakpoint()

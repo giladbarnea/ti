@@ -5,7 +5,7 @@ project page (https://github.com/giladbarnea/timefred) for more details.
 
 Usage:
   tf (o|on) <name> [start time = "now"]
-  tf (f|fin) [end time = "now"]
+  tf (f|stop) [end time = "now"]
   tf (s|status)[+]
   tf (t|tag) <tag> [time = "now"]
     Add tag to current activity, e.g `tf tag research`.
@@ -33,7 +33,7 @@ from contextlib import suppress
 from typing import Callable, Tuple, List
 
 from timefred._dev import generate_completion
-from timefred.action import log, note, edit, fin, on, status, tag
+from timefred.action import log, note, edit, stop, on, status, tag
 from timefred.config import config
 from timefred.error import TIError, BadArguments
 # from timefred.time.timespan import Timespan
@@ -45,7 +45,7 @@ FORMATS = config.time.formats
 # def interrupt(name, time):
 # 	ensure_working()
 #
-# 	fin(time)
+# 	stop(time)
 #
 # 	data = store.load()
 # 	if 'interrupt_stack' not in data:
@@ -139,12 +139,12 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             }
         return on, args
     
-    # *** fin
-    elif head in ('f', 'fin'):
+    # *** stop
+    elif head in ('f', 'stop'):
         args = {
             'time': XArrow.from_human(' '.join(tail) if tail else 'now')
             }
-        return fin, args
+        return stop, args
     
     # *** status
     elif head in ('s', 's+', 'status', 'status+'):
