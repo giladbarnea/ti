@@ -3,14 +3,14 @@ import shutil
 import sys
 from os import path, getenv
 from pathlib import Path
-from typing import Optional
+from typing import Optional, ItemsView, Type
 
 import toml
 
 from timefred import color as c
 from timefred.color.colored import Colored
 from timefred.field import Field
-from timefred.has_fields import HasFieldsDict, HasFieldsList, HasFieldsDefaultDict, K, V
+from timefred.has_fields import HasFieldsDict, HasFieldsList, HasFieldsDefaultDict, HasFieldsDefaultList, K, V
 from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
@@ -67,12 +67,14 @@ class Entry(HasFieldsDict):
     # 	self._end = val
 
 
-class Activity(HasFieldsList):
+class Activity(HasFieldsDefaultList[Entry], default_factory=Entry):
     name: Colored = Field(caster=lambda s: Colored(s, brush=c.task))
     jira: Optional[Ticket] = Field(default_factory=Ticket)
     
-    # __slots__ = ('name',)
-    
+    def __repr__(self):
+        representation = f'{self.__class__.__qualname__}(name={self.name!r}) {list.__repr__(self)}'
+        return representation
+
     # @multimethod
     # def has_similar_name(self, other: 'Entry') -> bool:
     #     return self.has_similar_name(other.name)
@@ -86,18 +88,17 @@ class Activity(HasFieldsList):
             return not self[-1].end
         except IndexError:
             return False
-
-    def __repr__(self):
-        representation = f'{self.__class__.__qualname__}(name={self.name!r}) {list.__repr__(self)}'
-        return representation
-
+    
+    def stop(self):
+        raise NotImplementedError
+    
     
 # Day = defaultdict[str, Activity]
 # class Day(UserDict[str, Activity]):
-class Day(HasFieldsDefaultDict, default_factory=Activity):
+class Day(HasFieldsDefaultDict[K, Activity], default_factory=Activity):
     """activity name : Activity"""
-
-    def __getitem__(self, k: K) -> V:
+    __v_type__: Type[Activity]
+    def __getitem__(self, k: K) -> Activity:
         try:
             # Don't want the whole HasFieldsDefaultDict.__getitem__(k) flow
             constructed = dict.__getitem__(self, k)
@@ -106,11 +107,17 @@ class Day(HasFieldsDefaultDict, default_factory=Activity):
             setattr(self, k, constructed)
         else:
             if not isinstance(constructed, self.__v_type__):
-                constructed = self.__v_type__(**constructed)
+                assert not isinstance(constructed, dict)
+                constructed = self.__v_type__(constructed, name=k)
                 setattr(self, k, constructed)
         return constructed
 
-
+    def ongoing_activity(self) -> Optional[Activity]:
+        for name in reversed(self.keys()):
+            activity = self[name]   # invoke __getitem__ to get constructed
+            if activity.ongoing():
+                return activity
+        return None
 assert Day.__v_type__ == Activity
 # class Work(HasFieldsDefaultDict, default_factory=Day): ...
 Work = HasFieldsDefaultDict[str, Day]

@@ -22,6 +22,7 @@ def on(name: str, time: XArrow, tag=None, note=None):
             # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
             print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
             return True
+        ongoing_activity = day.ongoing_activity()
         ok = stop(time)
         if ok:
             return on(name, time, tag)

@@ -1,7 +1,7 @@
 # import debug
-
-
-from typing import TypeVar, Type
+from collections.abc import Iterable
+from typing import TypeVar, Type, overload, List, Any, Generic
+from typing_extensions import SupportsIndex
 
 K = TypeVar('K')
 V = TypeVar('V')
@@ -15,11 +15,11 @@ IGNORED_ATTRS = OBJECT_DICT_KEYS | {
     '__orig_bases__',
     '_abc_impl',
     }
-from cheap_repr import register_repr, ReprHelper
 
 
 class BaseHasFields:
     def __init__(self, **kwargs) -> None:
+        """Keys that match class-level definitions (Fields) are setattr'ed"""
         defined_attributes = set(self.__class__.__dict__) - IGNORED_ATTRS # todo: return if not kwargs
         for name, val in kwargs.items():
             if name in defined_attributes:
@@ -32,17 +32,68 @@ class BaseHasFields:
         return f'{self.__class__.__qualname__} {super().__repr__()}'
 
 
+class HasFieldsDefaultBase(BaseHasFields, Generic[V]):
+    DONT_SET_KEYS = {'__v_type__'}
+    
+    # Not good because overwrites HasFieldsDefaultDict.__v_type__
+    # def __class_getitem__(cls, item: tuple[K, V]) -> GenericAlias:
+    #     k_type, v_type = item
+    #     cls.__v_type__ = v_type
+    #     rv = super().__class_getitem__(item)
+    #     return rv
+    
+    def __new__(cls, default_factory: Type[V] = None, **kwargs):
+        """Ensures instance has defined __v_type__"""
+        inst = super().__new__(cls, **kwargs)
+        if default_factory is None:
+            # defined in __init_subclass__()
+            assert getattr(cls, '__v_type__', None) is not None
+        else:
+            # cls.__v_type__ possibly not defined if not __init_subclass__()
+            if not hasattr(cls, '__v_type__'):
+                assert callable(default_factory)
+                inst.__v_type__ = default_factory
+        return inst
+    
+    def __getitem__(self, k: K) -> V:
+        """Ensures returned item is of __v_type__, or builds a new __v_type__() if KeyError"""
+        try:
+            # Should setattr this as well?
+            #  Counter argument is that we are called by setattr,
+            #  so it's already set, unless KeyError (which means it wasn't set?)
+            constructed = super().__getitem__(k)
+        except KeyError as e:
+            constructed = self.__v_type__()
+            setattr(self, k, constructed)
+        else:
+            if not isinstance(constructed, self.__v_type__):
+                constructed = self.__v_type__(**constructed)
+                setattr(self, k, constructed)
+        return constructed
+    
+    def __init_subclass__(cls, *, default_factory: Type[V]=None) -> None:
+        """class Day(HasFieldsDefaultDict, default_factory=Activity)
+        class HasFieldsDefaultDict(HasFieldsDefaultBase[V], HasFieldsDict[K, V])
+        """
+        super().__init_subclass__()
+        
+        # Possibly None if defining a generic class like HasFieldsDefaultDict
+        if default_factory is not None:
+            assert callable(default_factory)
+            cls.__v_type__ = default_factory
+
+
 class HasFieldsDict(BaseHasFields, dict[K, V]):
     DONT_SET_KEYS = set()
     
     def __setattr__(self, name: str, value) -> None:
-        """Makes d.foo = 'bar' also set d['foo']"""
+        """Setting d.foo also sets d['foo']"""
         super().__setattr__(name, value)
         if name not in self.DONT_SET_KEYS:
             self[name] = value
     
     def __getattr__(self, name):
-        """Makes d.foo return d['foo'] AND set d.foo = d['foo']"""
+        """d.foo returns d['foo'] AND sets d.foo = d['foo']"""
         # What if no key but yes attr?
         value = super().__getitem__(name)
         setattr(self, name, value)
@@ -98,76 +149,38 @@ class HasFieldsDict(BaseHasFields, dict[K, V]):
         return attrs"""
 
 
-class HasFieldsDefaultDict(HasFieldsDict[K, V]):
-    DONT_SET_KEYS = {'__v_type__'}
-    
-    # Not good because overwrites HasFieldsDefaultDict.__v_type__
-    # def __class_getitem__(cls, item: tuple[K, V]) -> GenericAlias:
-    #     k_type, v_type = item
-    #     cls.__v_type__ = v_type
-    #     rv = super().__class_getitem__(item)
-    #     return rv
-    
-    def __new__(cls, default_factory: Type[V] = None, **kwargs):
-        inst = super().__new__(cls, **kwargs)
-        if default_factory is None:
-            # defined in __init_subclass__()
-            assert getattr(cls, '__v_type__', None) is not None
-        else:
-            # cls.__v_type__ maybe not defined if not __init_subclass__()
-            if not hasattr(cls, '__v_type__'):
-                assert callable(default_factory)
-                inst.__v_type__ = default_factory
-        return inst
-    
+class HasFieldsDefaultDict(HasFieldsDefaultBase[V], HasFieldsDict[K, V]):
     def __init__(self, default_factory: Type[V] = None, **kwargs) -> None:
         assert self.__v_type__ is not None
-        # if self.__v_type__ and self.__v_type__ != default_factory:
-        #     from timefred.log import log
-        #     log(f'[WARN] self.__v_type__ != default_factory. {self.__v_type__} != {default_factory}')
-        # self.__v_type__ = default_factory
-        
-        # super().__init__(**kwargs) is no good because free keys aren't in defined_attributes
+        # BaseHasFields.__init__(**kwargs) is no good because
+        # free keys aren't in defined_attributes, and we still
+        # need to setattr class-level fields
         for name, val in kwargs.items():
             setattr(self, name, val) # also sets keys
-        super().__init__()
-    
-    def __getitem__(self, k: K) -> V:
+        dict.__init__(self)
+
+
+class HasFieldsList(BaseHasFields, list[V]):
+    def __init__(self, iterable: Iterable[V] = (), **kwargs) -> None:
+        """Necessary for passed **kwargs to get setattred"""
+        list.__init__(self, iterable)
+        BaseHasFields.__init__(self, **kwargs)
+
+class HasFieldsDefaultList(HasFieldsDefaultBase[V], HasFieldsList[V]):
+    def __getitem__(self, i: SupportsIndex) -> V:
         try:
-            # Should setattr this as well?
-            #  Counter argument is that we are called by setattr,
-            #  so it's already set, unless KeyError (which means it wasn't set?)
-            constructed = super().__getitem__(k)
-        except KeyError as e:
+            constructed = super().__getitem__(i)
+        except IndexError as e:
             constructed = self.__v_type__()
-            setattr(self, k, constructed)
+            self[i] = constructed
         else:
             if not isinstance(constructed, self.__v_type__):
                 constructed = self.__v_type__(**constructed)
-                setattr(self, k, constructed)
+                self[i] = constructed
         return constructed
-    
-    def __init_subclass__(cls, *, default_factory: Type[V]) -> None:
-        """class Day(HasFieldsDefaultDict, default_factory=Activity):"""
-        super().__init_subclass__()
-        assert callable(default_factory)
-        cls.__v_type__ = default_factory
 
 
-@register_repr(HasFieldsDefaultDict)
-def repr_my_class(has_fields, helper: ReprHelper):
-    # helper.level = 1
-    return repr(has_fields)
-    # return helper.repr_iterable(has_fields.items, f'{has_fields.__class__.__qualname__}{{', '}')
-
-
-class HasFieldsList(BaseHasFields, list):
-    def __init__(self, **kwargs) -> None:
-        """Necessary for passed **kwargs to get setattred"""
-        BaseHasFields.__init__(self, **kwargs)
-
-
-class HasFieldsString(str, BaseHasFields):
+class HasFieldsString(BaseHasFields, str):
     def __new__(cls, o, **kwargs):
         """Necessary to prevent **kwargs from passing to str.__new__()"""
         inst = str.__new__(cls, o)
