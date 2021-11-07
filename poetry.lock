@@ -35,16 +35,16 @@ test = ["astroid", "pytest"]
 name = "atomicwrites"
 version = "1.4.0"
 description = "Atomic file writes."
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
 version = "21.2.0"
 description = "Classes Without Boilerplate"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [package.extras]
@@ -65,7 +65,7 @@ python-versions = "*"
 name = "colorama"
 version = "0.4.4"
 description = "Cross-platform colored terminal text."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
@@ -119,8 +119,8 @@ resolved_reference = "8ae963eff76b327b7533f39f40d04eb2b99fa3fd"
 name = "iniconfig"
 version = "1.1.1"
 description = "iniconfig: brain-dead simple config-ini parsing"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = "*"
 
 [[package]]
@@ -207,8 +207,8 @@ resolved_reference = "38744d1fc805d3354883bf549f4ff5d2e28e80b8"
 name = "packaging"
 version = "21.0"
 description = "Core utilities for Python packages"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -272,8 +272,8 @@ python-versions = "*"
 name = "pluggy"
 version = "1.0.0"
 description = "plugin and hook calling mechanisms for python"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=3.6"
 
 [package.extras]
@@ -314,8 +314,8 @@ tests = ["pytest"]
 name = "py"
 version = "1.10.0"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
@@ -349,8 +349,8 @@ python-versions = ">=3.5"
 name = "pyparsing"
 version = "2.4.7"
 description = "Python parsing module"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 
 [[package]]
@@ -380,8 +380,8 @@ resolved_reference = "f1e5513e069c8b2fac5380fa7869277a6360b65a"
 name = "pytest"
 version = "6.2.5"
 description = "pytest: simple powerful testing with Python"
-category = "dev"
-optional = true
+category = "main"
+optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
@@ -527,7 +527,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "500b9a08d8451e371015453346b4920344dc428632dea7ef2e2f1dcd1eefc7cc"
+content-hash = "7d6eb34d05f0eeea74ac88eae988a401692a74d123189aa5365d24f5a1ff9c37"
 
 [metadata.files]
 appnope = [

@@ -82,7 +82,7 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             return log, {'period': argv[1], 'detailed': True}
     
     head = argv[1]
-    tail: List[str] = argv[2:]
+    tail: list[str] = argv[2:]
     
     # ** log
     if head in ('l', 'l-', 'log', 'log-'):

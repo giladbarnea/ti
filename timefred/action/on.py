@@ -1,6 +1,6 @@
 from timefred import color as c
 from timefred.color import Colored
-from timefred.has_fields import HasFieldsDefaultDict
+from timefred.space import DefaultDictSpace
 from timefred.note import Note
 from timefred.store import store, Activity, Entry, Day
 from timefred.time import XArrow
@@ -9,13 +9,13 @@ from timefred.action import stop
 
 def on(name: str, time: XArrow, tag=None, note=None):
     work = store.load()
-    assert isinstance(work, HasFieldsDefaultDict)
+    assert isinstance(work, DefaultDictSpace)
     if work:
         ddmmyy = time.DDMMYY
         day = work[ddmmyy]
         assert isinstance(day, Day)
-        assert day
         assert len(day) == 1
+        assert day
         activity = day[name]
         assert repr(activity) == f"Activity(name='{name}') []", f'{activity!r}'
         if activity.ongoing() and activity.has_similar_name(name):

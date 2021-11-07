@@ -3,21 +3,21 @@ import shutil
 import sys
 from os import path, getenv
 from pathlib import Path
-from typing import Optional, ItemsView, Type
+from typing import Optional, ItemsView, Type, Iterable
 
 import toml
 
 from timefred import color as c
 from timefred.color.colored import Colored
 from timefred.field import Field
-from timefred.has_fields import HasFieldsDict, HasFieldsList, HasFieldsDefaultDict, HasFieldsDefaultList, K, V
+from timefred.space import DictSpace, DefaultDictSpace, TypedListSpace, K, V
 from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
 from timefred.util import normalize_str
 
 
-class Entry(HasFieldsDict):
+class Entry(DictSpace):
     start: XArrow = Field(caster=XArrow.from_formatted)
     end: Optional[XArrow] = Field(caster=XArrow.from_formatted, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
@@ -67,10 +67,14 @@ class Entry(HasFieldsDict):
     # 	self._end = val
 
 
-class Activity(HasFieldsDefaultList[Entry], default_factory=Entry):
+class Activity(TypedListSpace[Entry], default_factory=Entry):
+    """Activity [Entry, Entry...]"""
     name: Colored = Field(caster=lambda s: Colored(s, brush=c.task))
     jira: Optional[Ticket] = Field(default_factory=Ticket)
-    
+
+    def __init__(self, iterable: Iterable[V] = (), **kwargs) -> None:
+        super().__init__(iterable, **kwargs) # necessary
+
     def __repr__(self):
         representation = f'{self.__class__.__qualname__}(name={self.name!r}) {list.__repr__(self)}'
         return representation
@@ -93,21 +97,21 @@ class Activity(HasFieldsDefaultList[Entry], default_factory=Entry):
         raise NotImplementedError
     
     
-# Day = defaultdict[str, Activity]
-# class Day(UserDict[str, Activity]):
-class Day(HasFieldsDefaultDict[K, Activity], default_factory=Activity):
-    """activity name : Activity"""
+class Day(DefaultDictSpace[K, Activity], default_factory=Activity):
+    """Day { activity_name: Activity }"""
     __v_type__: Type[Activity]
+    
     def __getitem__(self, k: K) -> Activity:
         try:
-            # Don't want the whole HasFieldsDefaultDict.__getitem__(k) flow
+            # Don't want the whole DefaultSpace.__getitem__(k) flow,
+            # because Activity requires name=key.
             constructed = dict.__getitem__(self, k)
         except KeyError as e:
             constructed = self.__v_type__(name=k)
             setattr(self, k, constructed)
         else:
             if not isinstance(constructed, self.__v_type__):
-                assert not isinstance(constructed, dict)
+                assert not isinstance(constructed, dict) # because __v_type__ expects pos arg, not **mapping
                 constructed = self.__v_type__(constructed, name=k)
                 setattr(self, k, constructed)
         return constructed
@@ -118,9 +122,12 @@ class Day(HasFieldsDefaultDict[K, Activity], default_factory=Activity):
             if activity.ongoing():
                 return activity
         return None
+
 assert Day.__v_type__ == Activity
-# class Work(HasFieldsDefaultDict, default_factory=Day): ...
-Work = HasFieldsDefaultDict[str, Day]
+# class Work(DefaultDictSpace, default_factory=Day): ...
+Work = DefaultDictSpace[str, Day]
+'''{ "02/11/21" : Day }'''
+
 assert Day.__v_type__ == Activity
 # class StoreCache:
 #     data: defaultdict[str, Day] = Field(default_factory=lambda **kwargs: defaultdict(Day, **kwargs))
@@ -129,7 +136,7 @@ class TomlEncoder(toml.TomlEncoder):
     def __init__(self, _dict=dict, preserve=False):
         super().__init__(_dict, preserve)
         self.dump_funcs.update({
-            # HasFieldsDict: dict,
+            # DictSpace: dict,
             # Colored: lambda colored: repr(str(colored)),
             XArrow: lambda xarrow: xarrow.HHmmss,
             })
@@ -176,7 +183,7 @@ class Store:
             with self.filename.open('w') as f:
                 toml.load(data, f)
         # self.cache.data = data
-        return HasFieldsDefaultDict(Day, **data)
+        return DefaultDictSpace(Day, **data)
     
     def _backup(self) -> bool:
         try:

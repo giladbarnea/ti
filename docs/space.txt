@@ -1,0 +1,19 @@
+                                        Space
+                                            (**kwargs):
+                                                # setattr keys (Fields) that are defined on class-level
+
+
+TypedSpace(Space)                       DictSpace(Space, dict)              ListSpace(Space, list)
+    (default_factory, **kwargs):            # setattr / getattr                 (iterable, **kwargs):
+        # Sets __v_type__                                                           list(iterable)
+        # and casts __getitem__                                                     Space(**kwargs)
+
+    __getitem__(name)
+
+
+DefaultSpace(TypedSpace)                                                    TypedListSpace(ListSpace, TypedSpace)
+    # KeyError returns a __v_type__()
+
+                                        DefaultDictSpace(DictSpace, DefaultSpace)
+                                            (default_factory, **kwargs):
+                                                # setattr each kwarg

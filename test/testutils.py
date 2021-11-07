@@ -4,20 +4,32 @@ from typing import Union, Type
 
 
 @contextmanager
-def assert_raises(exc: Type[BaseException] = BaseException, match_exc_arg: Union[str, re.Pattern] = None):
+def assert_raises(exc: Type[Exception], match: Union[str, re.Pattern] = None):
+    __tracebackhide__ = True
+    exc_name = exc.__qualname__
     try:
         yield
     except exc as e:
-        if match_exc_arg:
-            if isinstance(match_exc_arg, re.Pattern):
-                escaped = match_exc_arg
-            else:
-                escaped = re.escape(match_exc_arg)
-            if not any(re.search(escaped, arg) for arg in map(str, e.args)):
-                raise
-        assert True
-    except BaseException as e:
-        raise
+        if not match:
+            return True
+        if isinstance(match, re.Pattern):
+            escaped = match
+        else:
+            escaped = re.escape(match)
+        for arg in map(str, e.args):
+            if re.search(escaped, arg):
+                return True
+        error = '\n'.join([
+            f'{exc_name} was raised but did not match expected exception args.',
+            f'Expected: {match!r}',
+            f'Actual: {"; ".join(map(str, e.args))}',
+            ])
+        raise AssertionError(error) from e
+    except Exception as e:
+        raise AssertionError(f"{e.__class__.__qualname__} was raised, NOT {exc_name}") from e
+    else:
+        raise AssertionError(f"{exc_name} was not raised")
+
 
 @contextmanager
 def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg: Union[str, re.Pattern] = None):
