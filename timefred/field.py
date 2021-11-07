@@ -1,4 +1,7 @@
 from typing import Any, Callable, Type
+
+from pdbpp import break_on_exc
+
 from timefred.singleton import Singleton
 
 
@@ -19,12 +22,12 @@ class Field:
                  *,
                  default: Any = UNSET,
                  default_factory_args: tuple = (),
-                 caster: Callable = UNSET,
+                 cast: Callable = UNSET,
                  optional=False):
         self.default = default
         self.default_factory = default_factory
         self.default_factory_args = default_factory_args
-        self.caster = caster
+        self.caster = cast
         self.cached_value = UNSET
         self.optional = optional
     
@@ -58,7 +61,6 @@ class Field:
     
     # def __repr__(self):
     #     return f"{self.__class__.__qualname__}({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
-    
     def __get__(self, instance, owner):
         if self.cached_value is not UNSET:
             return self.cached_value

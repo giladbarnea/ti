@@ -2,8 +2,6 @@
 from collections.abc import Iterable
 from typing import TypeVar, Type, Generic, Any, Union
 
-K = TypeVar('K')
-V = TypeVar('V')
 OBJECT_DICT_KEYS = set(object.__dict__)
 IGNORED_ATTRS = OBJECT_DICT_KEYS | {
     '__abstractmethods__',
@@ -32,9 +30,12 @@ class Space:
         return f'{self.__class__.__qualname__} {super().__repr__()}'
 
 
-class TypedSpace(Space, Generic[K, V]):
+TYPED_SPACE_K = TypeVar('TYPED_SPACE_K')
+TYPED_SPACE_V = TypeVar('TYPED_SPACE_V')
+class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
     """Sets __v_type__ and casts __getitem__"""
     DONT_SET_KEYS = {'__v_type__'}
+    __v_type__: Type[TYPED_SPACE_V]
     
     # Not good because overwrites DefaultDictSpace.__v_type__
     # def __class_getitem__(cls, item: tuple[K, V]) -> GenericAlias:
@@ -44,7 +45,7 @@ class TypedSpace(Space, Generic[K, V]):
     #     return rv
     
     # same logic in __init__ doesn't work
-    def __new__(cls, default_factory: Type[V] = None, **kwargs):
+    def __new__(cls, default_factory: Type[TYPED_SPACE_V] = None, **kwargs):
         """Ensures instance has defined __v_type__"""
         inst = super().__new__(cls, **kwargs)
         if default_factory is None:
@@ -58,7 +59,7 @@ class TypedSpace(Space, Generic[K, V]):
         return inst
 
 
-    def __init_subclass__(cls, *, default_factory: Type[V] = None) -> None:
+    def __init_subclass__(cls, *, default_factory: Type[TYPED_SPACE_V] = None) -> None:
         """class Day(DefaultDictSpace, default_factory=Activity)
         class DefaultDictSpace(DefaultSpace[V], DictSpace[K, V])
         """
@@ -69,7 +70,7 @@ class TypedSpace(Space, Generic[K, V]):
             assert callable(default_factory)
             cls.__v_type__ = default_factory
             
-    def __getitem__(self, name: K) -> V:
+    def __getitem__(self, name: TYPED_SPACE_K) -> TYPED_SPACE_V:
         """Ensures self[name] is of __v_type__"""
         # TODO: Space doesn't support __getitem__ or self[name],
         #  so the logic here works only if Foo(TypedSpace, SupportsGetItem)
@@ -87,8 +88,10 @@ class TypedSpace(Space, Generic[K, V]):
             return value
 
 
-class DefaultSpace(TypedSpace[K, V]):
-    def __getitem__(self, key: K) -> V:
+DEFAULT_SPACE_K = TypeVar('DEFAULT_SPACE_K')
+DEFAULT_SPACE_V = TypeVar('DEFAULT_SPACE_V')
+class DefaultSpace(TypedSpace[DEFAULT_SPACE_K, DEFAULT_SPACE_V]):
+    def __getitem__(self, key: DEFAULT_SPACE_K) -> DEFAULT_SPACE_V:
         """KeyError returns a __v_type__()"""
         try:
             return super().__getitem__(key)
@@ -97,10 +100,21 @@ class DefaultSpace(TypedSpace[K, V]):
             self[key] = constructed
             # setattr(self, key, constructed)
             return constructed
-        
 
-class DictSpace(Space, dict[K, V]):
+
+DICT_SPACE_K = TypeVar('DICT_SPACE_K')
+DICT_SPACE_V = TypeVar('DICT_SPACE_V')
+
+class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     DONT_SET_KEYS = set()
+
+    def __init__(self, mappable=(), **kwargs) -> None:
+        if mappable:
+            assert not kwargs
+            super().__init__(**dict(mappable))
+            return
+        assert not mappable, f"{self}({mappable = }, {kwargs = })"
+        super().__init__(**kwargs)
     
     def __setattr__(self, name: str, value) -> None:
         """Setting d.foo also sets d['foo']"""
@@ -108,7 +122,7 @@ class DictSpace(Space, dict[K, V]):
         if name not in self.DONT_SET_KEYS:
             self[name] = value
     
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """d.foo returns d['foo'] AND sets d.foo = d['foo']"""
         # What if no key but yes attr?
         value = super().__getitem__(name)
@@ -165,10 +179,15 @@ class DictSpace(Space, dict[K, V]):
         return attrs"""
 
 
-class DefaultDictSpace(DefaultSpace[K, V], DictSpace[K, V]):
+
+DEFAULT_DICT_SPACE_K = TypeVar('DEFAULT_DICT_SPACE_K')
+DEFAULT_DICT_SPACE_V = TypeVar('DEFAULT_DICT_SPACE_V')
+
+class DefaultDictSpace(DefaultSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V],
+                       DictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V]):
     # same logic with __init__ doesn't work because
     # TypedSpace.__new__ is called beforehand
-    def __new__(cls, default_factory: Type[V] = None, **kwargs) -> V:
+    def __new__(cls, default_factory: Type[DEFAULT_DICT_SPACE_V] = None, **kwargs) -> DEFAULT_DICT_SPACE_V:
         # TypeError: __init__() takes 1 positional argument but 2 were given error
         # inst = super().__new__(cls, default_factory=default_factory, **kwargs)
         
@@ -209,20 +228,25 @@ class DefaultDictSpace(DefaultSpace[K, V], DictSpace[K, V]):
         return inst
 
     # noinspection PyMissingConstructor
-    def __init__(self, default_factory: Type[V] = None, **kwargs):
+    def __init__(self, default_factory: Type[DEFAULT_DICT_SPACE_V] = None, **kwargs):
         # Space.__init__ warns about ignored keyword arguments,
         # which are already setattr'de in __new__, so super().__init__
         # isn't called. Without this overload `default_factory` isn't expected.
         pass
 
 
-class ListSpace(Space, list[V]):
-    def __init__(self, iterable: Iterable[V] = (), **kwargs) -> None:
+
+
+LIST_SPACE_V = TypeVar('LIST_SPACE_V')
+class ListSpace(Space, list[LIST_SPACE_V]):
+    def __init__(self, iterable: Iterable[LIST_SPACE_V] = (), **kwargs) -> None:
         """Necessary for passed **kwargs to get setattred"""
         list.__init__(self, iterable)
         Space.__init__(self, **kwargs)
 
-class TypedListSpace(ListSpace[V], TypedSpace[Union[int, slice], V]):
+
+TYPED_LIST_SPACE_V = TypeVar('TYPED_LIST_SPACE_V')
+class TypedListSpace(ListSpace[TYPED_LIST_SPACE_V], TypedSpace[Union[int, slice], TYPED_LIST_SPACE_V]):
     ...
 
 class StringSpace(str, Space): # keep order because repr

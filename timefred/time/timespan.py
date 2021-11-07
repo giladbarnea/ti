@@ -14,10 +14,10 @@ class Timespan:
     #  inherit from timedelta?
     # class Config:
     #     arbitrary_types_allowed = True
-    # start = Field(caster=XArrow)
+    # start = Field(cast=XArrow)
     start: XArrow = field()
     # end:   Optional[XArrow] = None
-    # end = Field(optional=True, caster=XArrow)
+    # end = Field(optional=True, cast=XArrow)
     end: XArrow = field()
     
     @multimethod

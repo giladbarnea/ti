@@ -78,12 +78,13 @@ class XArrow(Arrow):
                 return date
             raise NotImplementedError(f"{cls.__qualname__}.from_formatted({date = !r}) is Arrow")
         
-        return xarrow_factory.get(date, [f"{FORMATS.date} HH:mm:ss",
-                                         f"{FORMATS.date} HH:mm",
-                                         f"{FORMATS.date}",
-                                         f"{FORMATS.short_date}",
-                                         "HH:mm:ss",
-                                         "HH:mm",
+        return xarrow_factory.get(date, [FORMATS.datetime, # DD/MM/YY HH:mm:ss
+                                         f"{FORMATS.date} {FORMATS.short_time}", # DD/MM/YY HH:mm
+                                         FORMATS.short_datetime, # DD/MM HH:mm
+                                         FORMATS.date, # DD/MM/YY
+                                         FORMATS.short_date, # DD/MM
+                                         FORMATS.time, # HH:mm:ss
+                                         FORMATS.short_time, # HH:mm
                                          ],
                                   tzinfo=TZINFO)
         
@@ -193,7 +194,7 @@ class XArrow(Arrow):
             return XArrow._from_absolute(engtime)
         
         # 05/18/21
-        if '/' in engtime:
+        if FORMATS.date_separator in engtime:
             return XArrow.from_formatted(engtime)
         
         # 'Wednesday 09:45'

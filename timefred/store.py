@@ -3,14 +3,14 @@ import shutil
 import sys
 from os import path, getenv
 from pathlib import Path
-from typing import Optional, ItemsView, Type, Iterable
+from typing import Optional, Type, Any, Union
 
 import toml
 
 from timefred import color as c
 from timefred.color.colored import Colored
 from timefred.field import Field
-from timefred.space import DictSpace, DefaultDictSpace, TypedListSpace, K, V
+from timefred.space import DictSpace, DefaultDictSpace, TypedListSpace
 from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
@@ -18,8 +18,8 @@ from timefred.util import normalize_str
 
 
 class Entry(DictSpace):
-    start: XArrow = Field(caster=XArrow.from_formatted)
-    end: Optional[XArrow] = Field(caster=XArrow.from_formatted, optional=True)
+    start: XArrow = Field(cast=XArrow.from_formatted)
+    end: Optional[XArrow] = Field(cast=XArrow.from_formatted, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
     tags: Optional[set[str]] = Field(optional=True)
     
@@ -69,11 +69,11 @@ class Entry(DictSpace):
 
 class Activity(TypedListSpace[Entry], default_factory=Entry):
     """Activity [Entry, Entry...]"""
-    name: Colored = Field(caster=lambda s: Colored(s, brush=c.task))
+    name: Colored = Field(cast=lambda s: Colored(s, brush=c.task))
     jira: Optional[Ticket] = Field(default_factory=Ticket)
 
-    def __init__(self, iterable: Iterable[V] = (), **kwargs) -> None:
-        super().__init__(iterable, **kwargs) # necessary
+    # def __init__(self, iterable: Iterable = (), **kwargs) -> None:
+    #     super().__init__(iterable, **kwargs) # necessary
 
     def __repr__(self):
         representation = f'{self.__class__.__qualname__}(name={self.name!r}) {list.__repr__(self)}'
@@ -89,31 +89,38 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     
     def ongoing(self) -> bool:
         try:
-            return not self[-1].end
+            last_entry = self[-1]
+            return not last_entry.end
         except IndexError:
             return False
     
-    def stop(self):
-        raise NotImplementedError
+    def stop(self, end: Union[XArrow, str] = None) -> XArrow:
+        last_entry = self[-1]
+        if last_entry.end:
+            raise ValueError(f'{self!r} is not ongoing')
+        if not end:
+            end = XArrow.now()
+        last_entry.end = end
+        return last_entry.end
     
     
-class Day(DefaultDictSpace[K, Activity], default_factory=Activity):
+class Day(DefaultDictSpace[Any, Activity], default_factory=Activity):
     """Day { activity_name: Activity }"""
     __v_type__: Type[Activity]
     
-    def __getitem__(self, k: K) -> Activity:
+    def __getitem__(self, name: Any) -> Activity:
         try:
-            # Don't want the whole DefaultSpace.__getitem__(k) flow,
+            # Don't want the whole DefaultSpace.__getitem__(name) flow,
             # because Activity requires name=key.
-            constructed = dict.__getitem__(self, k)
+            constructed = dict.__getitem__(self, name)
         except KeyError as e:
-            constructed = self.__v_type__(name=k)
-            setattr(self, k, constructed)
+            constructed = self.__v_type__(name=name)
+            setattr(self, name, constructed)
         else:
             if not isinstance(constructed, self.__v_type__):
                 assert not isinstance(constructed, dict) # because __v_type__ expects pos arg, not **mapping
-                constructed = self.__v_type__(constructed, name=k)
-                setattr(self, k, constructed)
+                constructed = self.__v_type__(constructed, name=name)
+                setattr(self, name, constructed)
         return constructed
 
     def ongoing_activity(self) -> Optional[Activity]:

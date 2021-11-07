@@ -36,26 +36,37 @@ class TestEmptySheet:
 
 class TestSheetWithContent:
     def test_on_device_validation_08_30(self):
+        now = XArrow.now()
         sheet = {
-            "02/11/21" : {
-                "Got to office" : [ { "start": "08:20" } ]
+            now.DDMMYY : {
+                "Got to office" : [ { "start": "02:20" } ]
                 }
             }
         work = DefaultDictSpace(Day, **sheet)
         assert isinstance(work, DefaultDictSpace)
         assert work
         assert len(work) == 1
-        time = XArrow.from_formatted("02/11/21 08:30")
-        day = work[time.DDMMYY]
+        # time = XArrow.from_formatted("02/11/21 08:30")
+        day = work[now.DDMMYY]
         assert isinstance(day, Day)
         assert len(day) == 1
         assert day
         name = "On Device Validation"
-        activity = day[name]
-        assert isinstance(activity, Activity)
-        assert not activity
-        assert len(activity) == 0
-        assert repr(activity) == f"Activity(name='{name}') []"
-        assert not activity.ongoing()
+        device_validation_activity = day[name]
+        assert isinstance(device_validation_activity, Activity)
+        assert not device_validation_activity
+        assert len(device_validation_activity) == 0
+        assert repr(device_validation_activity) == f"Activity(name='{name}') []"
+        assert isinstance(device_validation_activity.name, Colored)
+        assert not device_validation_activity.ongoing()
         ongoing_activity = day.ongoing_activity()
+        assert isinstance(ongoing_activity, Activity)
+        assert ongoing_activity
+        assert ongoing_activity.name == 'Got to office'
+        assert isinstance(ongoing_activity.name, Colored)
+        assert len(ongoing_activity) == 1
+        assert ongoing_activity != device_validation_activity
+        got_to_office_end_time = ongoing_activity.stop()
+        assert isinstance(got_to_office_end_time, XArrow)
+        
         
