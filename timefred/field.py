@@ -1,6 +1,6 @@
 from typing import Any, Callable, Type
 
-from pdbpp import break_on_exc
+# from pdbpp import break_on_exc
 
 from timefred.singleton import Singleton
 
@@ -21,14 +21,17 @@ class Field:
                  default_factory: Callable = UNSET,
                  *,
                  default: Any = UNSET,
-                 default_factory_args: tuple = (),
                  cast: Callable = UNSET,
-                 optional=False):
+                 optional=False,
+                 cache=False
+                 ):
         self.default = default
         self.default_factory = default_factory
-        self.default_factory_args = default_factory_args
+        # self.default_factory_args = default_factory_args
         self.caster = cast
+        self.should_cache = cache
         self.cached_value = UNSET
+        
         self.optional = optional
     
     def __set_name__(self, owner, name):
@@ -49,20 +52,20 @@ class Field:
     
     def _repred_attrs(self) -> dict:
         default_factory_repr = getattr(self.default_factory, '__qualname__', self.default_factory)
-        default_factory_args_repr = getattr(self.default_factory_args, '__qualname__', self.default_factory_args)
         caster_repr = getattr(self.caster, '__qualname__', self.caster)
         attrs = dict(default=self.default,
                      default_factory=default_factory_repr,
-                     default_factory_args=default_factory_args_repr,
-                     caster=caster_repr,
+                     cast=caster_repr,
                      cached_value=repr(self.cached_value),
-                     optional=self.optional)
+                     optional=self.optional,
+                     cache=self.should_cache)
         return attrs
     
-    # def __repr__(self):
-    #     return f"{self.__class__.__qualname__}({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
+    def __repr__(self):
+        return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
+    
     def __get__(self, instance, owner):
-        if self.cached_value is not UNSET:
+        if self.should_cache and self.cached_value is not UNSET:
             return self.cached_value
         value = getattr(self, '__value__', UNSET)
         if value is UNSET:
@@ -71,22 +74,14 @@ class Field:
                     if not self.optional:
                         raise AttributeError(f"{owner.__name__}.{self.name} is unset, has no default value nor default_factory")
                 else:
-                    value = self.default_factory(*self.default_factory_args)
-                    # try:
-                    #     value = self.default_factory(*self.default_factory_args)
-                    # except TypeError as e:
-                    #     default_factory_params = inspect.signature(self.default_factory).parameters
-                    #     pname = next(iter(default_factory_params))
-                    #     if pname == 'self':
-                    #         self.default_factory_args = (owner, *self.default_factory_args)
-                    #         value = self.default_factory(*self.default_factory_args)
-            
+                    value = self.default_factory()
             else:
                 value = self.default
                 
         if self.caster and value is not UNSET:
             value = self.caster(value)
-        self.cached_value = value
+        if self.should_cache:
+            self.cached_value = value
         return value
     
     def __set__(self, instance, value):
@@ -95,7 +90,8 @@ class Field:
     
     def __delete__(self, instance):
         self._unset_cache()
-        delattr(instance, '__value__')
+        delattr(self, '__value__')
     
     def _unset_cache(self):
-        self.cached_value = UNSET
+        if self.should_cache:
+            self.cached_value = UNSET

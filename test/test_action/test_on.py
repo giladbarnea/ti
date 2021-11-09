@@ -1,72 +1,122 @@
+import os
+
+from test.test_times import _arrow_assert_soft_eq
+from test.testutils import assert_raises
 from timefred.color import Colored
 from timefred.space import DefaultDictSpace
 from timefred.store import Day, Entry, Activity
 from timefred.time import XArrow
+from timefred.store import store
+from birdseye import eye
 
+class TestMockSheet:
+    class TestEmptySheet:
+        # @eye
+        def test_on_got_to_office_08_20(self):
+            work = DefaultDictSpace(Day)
+            '''{ "02/11/21" : Day }'''
+            assert isinstance(work, DefaultDictSpace)
+            assert isinstance(work, dict)
+            assert not work
+            assert len(work) == 0
+            
+            entry = Entry(start="02:20")
+            assert entry
+            assert entry.start
+            assert isinstance(entry.start, XArrow)
+            assert entry.start == XArrow.from_formatted("02:20")
+            
+            name = "Got to office"
+            activity = Activity(name=name)
+            assert not activity # because list
+            assert len(activity) == 0
+            assert isinstance(activity.name, Colored)
+            assert activity.name == name
+            
+            activity.append(entry)
+            assert activity
+            assert len(activity) == 1
+            assert activity[0] == entry
+            
+            day = work[entry.start.DDMMYY]
+            assert isinstance(day, Day)
+            day[name] = activity
+            assert day[name] == activity, f"{day[str(activity.name)] = }, {activity = }"
+            assert work
+            assert len(work) == 1
+    
+    class TestSheetWithContent:
+        def test_on_device_validation_08_30(self, work=None):
+            now = XArrow.now()
+            if not work:
+                sheet = {
+                    now.DDMMYY : {
+                        "Got to office" : [ { "start": "02:20" } ]
+                        }
+                    }
+                work = DefaultDictSpace(Day, **sheet)
+            assert isinstance(work, DefaultDictSpace)
+            assert work
+            assert len(work) == 1
+            assert now.DDMMYY in work
+            
+            day: Day = work[now.DDMMYY]
+            assert isinstance(day, Day)
+            assert day
+            assert len(day) == 1
+            assert "Got to office" in day
+            
+            got_to_office_activity: Activity = day["Got to office"]
+            assert isinstance(got_to_office_activity, Activity)
+            assert got_to_office_activity
+            assert len(got_to_office_activity) == 1
+            #assert repr(got_to_office_activity) == "Activity(name='Got to office') [{'start': '02:20'}]"
+            assert isinstance(got_to_office_activity.name, Colored)
+            assert got_to_office_activity.ongoing() is True
+            
+            name = "On Device Validation"
+            # TODO: Day.__getitem__ -> self.__v_type__(name=name) -> Space.__new__ inst has 'Got to office' name!
+            device_validation_activity: Activity = day[name]
+            assert isinstance(device_validation_activity, Activity)
+            assert not device_validation_activity
+            assert len(device_validation_activity) == 0
+            #assert repr(device_validation_activity) == f"Activity(name='{name}') []"
+            assert isinstance(device_validation_activity.name, Colored)
+            device_validation_activity_is_ongoing = device_validation_activity.ongoing()
+            assert device_validation_activity_is_ongoing is False
+            
+            ongoing_activity: Activity = day.ongoing_activity()
+            assert ongoing_activity
+            assert isinstance(ongoing_activity, Activity)
+            assert ongoing_activity.name == 'Got to office'
+            assert isinstance(ongoing_activity.name, Colored)
+            assert len(ongoing_activity) == 1
+            assert ongoing_activity != device_validation_activity
+            
+            got_to_office_end_time: XArrow = ongoing_activity.stop()
+            assert isinstance(got_to_office_end_time, XArrow)
+            # _arrow_assert_soft_eq(got_to_office_end_time, now)
+            assert not ongoing_activity.ongoing()
+            with assert_raises(Exception):
+                ongoing_activity.stop()
+                
+            assert day.ongoing_activity() is None
+            assert work[now.DDMMYY].ongoing_activity() is None
 
-class TestEmptySheet:
-    def test_on_got_to_office_08_20(self):
-        work = DefaultDictSpace(Day)
-        '''{ "02/11/21" : Day }'''
-        assert isinstance(work, DefaultDictSpace)
-        assert isinstance(work, dict)
-        assert not work
-        assert len(work) == 0
-        entry = Entry(start="08:20")
-        assert entry
-        assert entry.start
-        assert isinstance(entry.start, XArrow)
-        assert repr(entry) != '{}'
-        name = "Got to office"
-        activity = Activity(name=name)
-        assert not activity # because list
-        assert len(activity) == 0
-        assert isinstance(activity.name, Colored)
-        assert activity.name == name
-        activity.append(entry)
-        assert activity
-        assert len(activity) == 1
-        assert activity[0] == entry
-        day = work[entry.start.DDMMYY]
-        assert isinstance(day, Day)
-        day[activity.name] = activity
-        assert day[str(activity.name)] == activity
-        assert work
-        assert len(work) == 1
-
-class TestSheetWithContent:
-    def test_on_device_validation_08_30(self):
-        now = XArrow.now()
-        sheet = {
-            now.DDMMYY : {
-                "Got to office" : [ { "start": "02:20" } ]
+class TestRealSheet:
+    class TestSheetWithContent:
+        def test_on_device_validation_08_30(self):
+            os.environ['TF_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
+            from timefred.config import config
+            config.sheet.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
+            store.filename = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
+            now = XArrow.now()
+            sheet = {
+                now.DDMMYY: {
+                    "Got to office": [{"start": "02:20"}]
+                    }
                 }
-            }
-        work = DefaultDictSpace(Day, **sheet)
-        assert isinstance(work, DefaultDictSpace)
-        assert work
-        assert len(work) == 1
-        # time = XArrow.from_formatted("02/11/21 08:30")
-        day = work[now.DDMMYY]
-        assert isinstance(day, Day)
-        assert len(day) == 1
-        assert day
-        name = "On Device Validation"
-        device_validation_activity = day[name]
-        assert isinstance(device_validation_activity, Activity)
-        assert not device_validation_activity
-        assert len(device_validation_activity) == 0
-        assert repr(device_validation_activity) == f"Activity(name='{name}') []"
-        assert isinstance(device_validation_activity.name, Colored)
-        assert not device_validation_activity.ongoing()
-        ongoing_activity = day.ongoing_activity()
-        assert isinstance(ongoing_activity, Activity)
-        assert ongoing_activity
-        assert ongoing_activity.name == 'Got to office'
-        assert isinstance(ongoing_activity.name, Colored)
-        assert len(ongoing_activity) == 1
-        assert ongoing_activity != device_validation_activity
-        got_to_office_end_time = ongoing_activity.stop()
-        assert isinstance(got_to_office_end_time, XArrow)
-        
-        
+            _work = DefaultDictSpace(Day, **sheet)
+            store.dump(_work)
+            work = store.load()
+            TestMockSheet.TestSheetWithContent.test_on_device_validation_08_30(self=None, work=work)

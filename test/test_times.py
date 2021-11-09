@@ -3,19 +3,19 @@ from typing import NoReturn
 from timefred.time.xarrow import isoweekday, XArrow
 
 
-def _arrow_assert_soft_eq(arrw1, arrw2) -> NoReturn:
+def _arrow_assert_soft_eq(arrw1: XArrow, arrw2: XArrow) -> NoReturn:
     """Regular Arrow __eq__ compares microseconds as well"""
     _arrow_assert_same_day(arrw1, arrw2)
     _arrow_assert_same_time(arrw1, arrw2)
 
 
-def _arrow_assert_same_day(arrw1, arrw2) -> NoReturn:
+def _arrow_assert_same_day(arrw1: XArrow, arrw2: XArrow) -> NoReturn:
     assert arrw1.year == arrw2.year
     assert arrw1.month == arrw2.month
     assert arrw1.day == arrw2.day
 
 
-def _arrow_assert_same_time(arrw1, arrw2) -> NoReturn:
+def _arrow_assert_same_time(arrw1: XArrow, arrw2: XArrow) -> NoReturn:
     assert arrw1.hour == arrw2.hour
     assert arrw1.minute == arrw2.minute
     assert arrw1.second == arrw2.second

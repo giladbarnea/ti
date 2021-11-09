@@ -1,6 +1,7 @@
 # import debug
 from collections.abc import Iterable
 from typing import TypeVar, Type, Generic, Any, Union
+from timefred.log import log
 
 OBJECT_DICT_KEYS = set(object.__dict__)
 IGNORED_ATTRS = OBJECT_DICT_KEYS | {
@@ -16,6 +17,10 @@ IGNORED_ATTRS = OBJECT_DICT_KEYS | {
 
 
 class Space:
+    def __new__(cls, *args, **kwargs):
+        inst = super().__new__(cls, *args, **kwargs)
+        return inst
+    
     def __init__(self, **kwargs) -> None:
         """setattr keys (Fields) that are defined on class-level"""
         defined_attributes = set(self.__class__.__dict__) - IGNORED_ATTRS  # todo: return if not kwargs
@@ -23,7 +28,6 @@ class Space:
             if name in defined_attributes:
                 setattr(self, name, val)
                 continue
-            from timefred.log import log
             log(f"[WARN] {self.__class__.__qualname__}.__init__(...) ignoring keyword argument {name!r}")
     
     def __repr__(self):
@@ -34,7 +38,7 @@ TYPED_SPACE_K = TypeVar('TYPED_SPACE_K')
 TYPED_SPACE_V = TypeVar('TYPED_SPACE_V')
 class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
     """Sets __v_type__ and casts __getitem__"""
-    DONT_SET_KEYS = {'__v_type__'}
+    DONT_SET_KEYS = {'__v_type__', 'DONT_SET_KEYS'}
     __v_type__: Type[TYPED_SPACE_V]
     
     # Not good because overwrites DefaultDictSpace.__v_type__
@@ -48,6 +52,7 @@ class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
     def __new__(cls, default_factory: Type[TYPED_SPACE_V] = None, **kwargs):
         """Ensures instance has defined __v_type__"""
         inst = super().__new__(cls, **kwargs)
+        # inst = Space.__init__(**kwargs)
         if default_factory is None:
             # defined in __init_subclass__()
             assert getattr(cls, '__v_type__', None) is not None
@@ -68,6 +73,8 @@ class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
         # Possibly None if defining a generic class like DefaultDictSpace
         if default_factory is not None:
             assert callable(default_factory)
+            if hasattr(cls, '__v_type__') and cls.__v_type__ != default_factory:
+                raise TypeError(f"Tried to set {cls.__qualname__}.__v_type__ = {default_factory} but it's already defined: {cls.__v_type__}")
             cls.__v_type__ = default_factory
             
     def __getitem__(self, name: TYPED_SPACE_K) -> TYPED_SPACE_V:
@@ -81,9 +88,10 @@ class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
             raise
         else:
             if not isinstance(value, self.__v_type__):
+                assert name not in self.__class__.DONT_SET_KEYS | IGNORED_ATTRS, name
                 constructed = self.__v_type__(**value)
-                self[name] = constructed
-                # setattr(self, name, constructed)
+                # self[name] = constructed # <- bad idea because sets item not attr
+                setattr(self, name, constructed)
                 return constructed
             return value
 
@@ -96,9 +104,10 @@ class DefaultSpace(TypedSpace[DEFAULT_SPACE_K, DEFAULT_SPACE_V]):
         try:
             return super().__getitem__(key)
         except KeyError as e:
+            # log(f'[debug] {self.__class__.__qualname__}.__getitem__({key!r}) KeyError: {e}')
             constructed = self.__v_type__()
-            self[key] = constructed
-            # setattr(self, key, constructed)
+            # self[key] = constructed # <- bad idea because sets item not attr
+            setattr(self, key, constructed)
             return constructed
 
 
@@ -119,7 +128,7 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     def __setattr__(self, name: str, value) -> None:
         """Setting d.foo also sets d['foo']"""
         super().__setattr__(name, value)
-        if name not in self.DONT_SET_KEYS:
+        if name not in self.__class__.DONT_SET_KEYS:
             self[name] = value
     
     def __getattr__(self, name: str):
@@ -129,23 +138,6 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
         setattr(self, name, value)
         return value
     
-    """def __new__(cls, *args: Any, **kwargs: Any):
-        # TODO:
-        #  100% Fields | 100% Annotated | Done
-        #  100% Fields | Partly Annotated | Done
-        #  Partly Fields | 100% Annotated | Done
-        #  Partly Fields | Partly Annotated | Done
-        #  Non-classvars (i.e init??)
-        inst = object.__new__(cls)
-        defined_attributes = set(cls.__dict__) - set(cls.__class__.__dict__) - IGNORED_ATTRS
-        for name, val in kwargs.items():
-            if name in defined_attributes:
-                setattr(inst, name, val)
-                continue
-            inst.__instance_attrs__[name] = val
-            print(f"{cls.__qualname__}.__new__(...) ignoring keyword argument {name!r}")
-        
-        return inst"""
     
     # def __iter__(self):
     #     return iter(set(self.__class__.__dict__) - IGNORED_ATTRS)
@@ -188,6 +180,7 @@ class DefaultDictSpace(DefaultSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V],
     # same logic with __init__ doesn't work because
     # TypedSpace.__new__ is called beforehand
     def __new__(cls, default_factory: Type[DEFAULT_DICT_SPACE_V] = None, **kwargs) -> DEFAULT_DICT_SPACE_V:
+        log(f'[title]{cls.__qualname__}.__new__({default_factory=!r}, {kwargs=!r})...')
         # TypeError: __init__() takes 1 positional argument but 2 were given error
         # inst = super().__new__(cls, default_factory=default_factory, **kwargs)
         
@@ -215,15 +208,33 @@ class DefaultDictSpace(DefaultSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V],
         # TypeError: __new__() missing 1 required positional argument: 'cls' error
         # inst = DefaultSpace.__new__(default_factory=default_factory, **kwargs)
 
-        inst = TypedSpace.__new__(cls, default_factory=default_factory, **kwargs)  # good
-        
         # TypeError: __new__() missing 1 required positional argument: 'cls' error
         # inst = TypedSpace.__new__(default_factory=default_factory, **kwargs)
+        
+        # inst = TypedSpace.__new__(cls, default_factory=default_factory, **kwargs)  # good
+
+        # TypeError: __new__() missing 1 required positional argument: 'cls' error
+        # inst = super(TypedSpace, cls).__new__(default_factory=default_factory, **kwargs)
+        
+        # calls Space.__new__() directly, not TypedSpace.__new__(). bad
+        # inst = super(TypedSpace, cls).__new__(cls, default_factory=default_factory, **kwargs)
+
+        # calls Space.__new__() directly, not TypedSpace.__new__(). bad
+        # inst = super(DictSpace, cls).__new__(cls, default_factory=default_factory, **kwargs)
+        
+        # TypeError: object.__new__(DefaultDictSpace) is not safe, use dict.__new__() error
+        # inst = super(dict, cls).__new__(cls, default_factory=default_factory, **kwargs)
+
+        # calls Space.__new__() directly, not TypedSpace.__new__(). bad
+        # inst = DictSpace.__new__(cls, default_factory=default_factory, **kwargs)
+
+        inst = DefaultSpace.__new__(cls, default_factory=default_factory, **kwargs) # good
         
         # Space.__init__(**kwargs) is no good because
         # free keys aren't in defined_attributes, and we still
         # need to setattr class-level fields
         for name, val in kwargs.items():
+            assert name not in cls.DONT_SET_KEYS | IGNORED_ATTRS, name
             setattr(inst, name, val)  # also sets keys
         return inst
 
@@ -243,11 +254,27 @@ class ListSpace(Space, list[LIST_SPACE_V]):
         """Necessary for passed **kwargs to get setattred"""
         list.__init__(self, iterable)
         Space.__init__(self, **kwargs)
-
+        
+    
 
 TYPED_LIST_SPACE_V = TypeVar('TYPED_LIST_SPACE_V')
-class TypedListSpace(ListSpace[TYPED_LIST_SPACE_V], TypedSpace[Union[int, slice], TYPED_LIST_SPACE_V]):
-    ...
+class TypedListSpace(ListSpace[TYPED_LIST_SPACE_V],
+                     TypedSpace[Union[int, slice], TYPED_LIST_SPACE_V]):
+    def __getitem__(self, name: Union[int, slice]) -> LIST_SPACE_V:
+        """Ensures self[name] is of __v_type__"""
+        # TODO: Space doesn't support __getitem__ or self[name],
+        #  so the logic here works only if Foo(TypedSpace, SupportsGetItem)
+        try:
+            # Should setattr this as well?
+            value = list.__getitem__(self, name)
+        except (KeyError, IndexError):
+            raise
+        else:
+            if not isinstance(value, self.__v_type__):
+                constructed = self.__v_type__(**value)
+                list.__setitem__(self, name, constructed)
+                return constructed
+            return value
 
 class StringSpace(str, Space): # keep order because repr
     def __new__(cls, o, **kwargs):

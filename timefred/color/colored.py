@@ -1,4 +1,5 @@
 from typing import Callable
+from timefred import color as c
 
 from timefred.field import Field
 from timefred.space import StringSpace
@@ -13,3 +14,6 @@ class Colored(StringSpace):
     @property
     def colored(self):
         return self.brush(self)
+
+class TaskString(Colored):
+    brush = c.task

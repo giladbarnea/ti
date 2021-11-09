@@ -67,12 +67,12 @@ class XArrow(Arrow):
     @classmethod
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> ForwardRef("XArrow"):
         rv = super().now(tzinfo)
-        if not isinstance(rv, XArrow):
-            raise TypeError(f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv = !r} (not XArrow)")
+        assert isinstance(rv, XArrow), f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv = !r} (not XArrow)"
         return rv
     
     @classmethod
     def from_formatted(cls, date: Union[str, ForwardRef('XArrow')]) -> ForwardRef('XArrow'):
+        """`date` can be any `config.time.formats`, e.g `DD/MM/YY HH:mm:ss` ... `HH:MM`"""
         if isinstance(date, Arrow):
             if isinstance(date, XArrow):
                 return date
