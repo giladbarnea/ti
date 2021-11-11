@@ -26,6 +26,7 @@ class Space:
         defined_attributes = set(self.__class__.__dict__) - IGNORED_ATTRS  # todo: return if not kwargs
         for name, val in kwargs.items():
             if name in defined_attributes:
+                # this cannot be commented because then tests fail
                 setattr(self, name, val)
                 continue
             log(f"[WARN] {self.__class__.__qualname__}.__init__(...) ignoring keyword argument {name!r}")
@@ -91,6 +92,8 @@ class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
                 assert name not in self.__class__.DONT_SET_KEYS | IGNORED_ATTRS, name
                 constructed = self.__v_type__(**value)
                 # self[name] = constructed # <- bad idea because sets item not attr
+                
+                # this can be commented out and tests still pass
                 setattr(self, name, constructed)
                 return constructed
             return value
@@ -107,6 +110,8 @@ class DefaultSpace(TypedSpace[DEFAULT_SPACE_K, DEFAULT_SPACE_V]):
             # log(f'[debug] {self.__class__.__qualname__}.__getitem__({key!r}) KeyError: {e}')
             constructed = self.__v_type__()
             # self[key] = constructed # <- bad idea because sets item not attr
+            
+            # this can be commented out and tests still pass
             setattr(self, key, constructed)
             return constructed
 
@@ -135,6 +140,8 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
         """d.foo returns d['foo'] AND sets d.foo = d['foo']"""
         # What if no key but yes attr?
         value = super().__getitem__(name)
+
+        # this can be commented out and tests still pass
         setattr(self, name, value)
         return value
     
