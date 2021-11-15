@@ -16,7 +16,7 @@ class LazyConsole:
             }
         console = Console(#force_terminal=True,
                           log_time_format='[%d.%m.%Y][%T]',
-                          color_system='standard',
+                          color_system='truecolor',
                           tab_size=2,
                           log_path=False,
                           file=sys.stdout if os.getenv('PYCHARM_HOSTED') else sys.stderr,
@@ -31,11 +31,19 @@ class LogProxy:
     _log = None
     
     def __call__(self, *args, **kwargs):
+        kwargs.setdefault('_stack_offset', 2)
         if self._log:
             return self._log(*args, **kwargs)
         _log = self.console.log
         self._log = _log
         return _log(*args, **kwargs)
 
+    def debug(self, *args, **kwargs):
+        first_arg, *rest = args
+        return self.__call__('[debug]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
+
+    def title(self, *args, **kwargs):
+        first_arg, *rest = args
+        return self.__call__('[title]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
 
 log = LogProxy()

@@ -16,6 +16,7 @@ pydantic = {url = "https://files.pythonhosted.org/packages/ff/74/54e030641601112
 pytest = "^6.2.5"
 screeninfo = "^0.7"
 ipython-autoimport = "^0.3"
+icecream = "^2.1.1"
 
 [tool.poetry.dev-dependencies]
 IPython = { path = "../ipython/", develop = true }

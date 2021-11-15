@@ -13,6 +13,10 @@ IGNORED_ATTRS = OBJECT_DICT_KEYS | {
     '__module__',
     '__orig_bases__',
     '_abc_impl',
+    '_abc_registry',
+    '_abc_cache',
+    '_abc_negative_cache',
+    '_abc_negative_cache_version',
     }
 
 
@@ -187,7 +191,7 @@ class DefaultDictSpace(DefaultSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V],
     # same logic with __init__ doesn't work because
     # TypedSpace.__new__ is called beforehand
     def __new__(cls, default_factory: Type[DEFAULT_DICT_SPACE_V] = None, **kwargs) -> DEFAULT_DICT_SPACE_V:
-        log(f'[title]{cls.__qualname__}.__new__({default_factory=!r}, {kwargs=!r})...')
+        # log(f'[title]{cls.__qualname__}.__new__({default_factory=!r}, {kwargs=!r})...')
         # TypeError: __init__() takes 1 positional argument but 2 were given error
         # inst = super().__new__(cls, default_factory=default_factory, **kwargs)
         

@@ -113,7 +113,7 @@ class Day(DefaultDictSpace[Any, Activity], default_factory=Activity):
     __v_type__: Type[Activity]
     
     def __getitem__(self, name: Any) -> Activity:
-        log(f'[title]{self.__class__.__qualname__}.__getitem__({name!r})...')
+        # log(f'[title]{self.__class__.__qualname__}.__getitem__({name!r})...')
         try:
             # Don't want the whole DefaultDictSpace->DefaultSpace.__getitem__(name) flow,
             # because we want self.__v_type__(name=name), and DefaultSpace does self.__v_type__()
@@ -128,38 +128,34 @@ class Day(DefaultDictSpace[Any, Activity], default_factory=Activity):
             
             # constructed = self.__dict__[name]
         except KeyError as e:
-            log(f'  KeyError: {e}',
-                f'self.__dict__.get({name!r}) = {self.__dict__.get(name)}',
-                f'self.get({name!r}, UNSET) = {self.get(name, UNSET)}',
-                sep='\n  ')
-            log(f'  constructed = self.__v_type__(name={name!r})')
+            # log(f'  KeyError: {e}',
+            #     f'self.__dict__.get({name!r}) = {self.__dict__.get(name)}',
+            #     f'self.get({name!r}, UNSET) = {self.get(name, UNSET)}',
+            #     sep='\n  ')
+            # log(f'  constructed = self.__v_type__(name={name!r})')
             constructed = self.__v_type__(name=name)
-            log(f'  {constructed = !r} | {constructed.name = !r}')
+            # log(f'  {constructed = !r} | {constructed.name = !r}')
             assert constructed.name == name, f'{constructed.name = !r}, {name = !r}'
-            log(f'  setattr(self, {name!r}, {constructed!r})')
-            # self[name] = constructed
+            # log(f'  setattr(self, {name!r}, {constructed!r})')
             # setattr(self, name, constructed)
-            # assert getattr(self, name) == constructed
-            # assert self.__getattr__(name) == constructed
         else:
-            log(f'  No KeyError',
-                f'{item = !r}',
-                f'self.__dict__.get({name!r}) = {self.__dict__.get(name)}',
-                f'self.get({name!r}, UNSET) = {self.get(name, UNSET)}',
-                f'{isinstance(item, self.__v_type__) = }',
-                f'{item = !r}',
-                f'{getattr(item, "name", UNSET) = !r}',
-                sep='\n  ')
+            # log(f'  No KeyError',
+            #     f'{item = !r}',
+            #     f'self.__dict__.get({name!r}) = {self.__dict__.get(name)}',
+            #     f'self.get({name!r}, UNSET) = {self.get(name, UNSET)}',
+            #     f'{isinstance(item, self.__v_type__) = }',
+            #     f'{item = !r}',
+            #     f'{getattr(item, "name", UNSET) = !r}',
+            #     sep='\n  ')
             if isinstance(item, self.__v_type__):
                 constructed = item
             else:
                 assert not isinstance(item, dict) # because __v_type__ expects pos arg, not **mapping
                 constructed = self.__v_type__(item, name=name)
                 assert constructed.name == name, f'{constructed.name=!r} != {name=!r} | {self.__class__.__qualname__}'
-                # self[name] = constructed
                 # setattr(self, name, constructed)
         assert constructed.name == name, f'{constructed.name=!r} != {name=!r} | {self.__class__.__qualname__}'
-        log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
+        # log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
         return constructed
 
     def ongoing_activity(self) -> Optional[Activity]:
