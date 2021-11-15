@@ -137,7 +137,7 @@ class Day(DefaultDictSpace[Any, Activity], default_factory=Activity):
             # log(f'  {constructed = !r} | {constructed.name = !r}')
             assert constructed.name == name, f'{constructed.name = !r}, {name = !r}'
             # log(f'  setattr(self, {name!r}, {constructed!r})')
-            # setattr(self, name, constructed)
+            setattr(self, name, constructed)
         else:
             # log(f'  No KeyError',
             #     f'{item = !r}',
@@ -153,7 +153,7 @@ class Day(DefaultDictSpace[Any, Activity], default_factory=Activity):
                 assert not isinstance(item, dict) # because __v_type__ expects pos arg, not **mapping
                 constructed = self.__v_type__(item, name=name)
                 assert constructed.name == name, f'{constructed.name=!r} != {name=!r} | {self.__class__.__qualname__}'
-                # setattr(self, name, constructed)
+                setattr(self, name, constructed)
         assert constructed.name == name, f'{constructed.name=!r} != {name=!r} | {self.__class__.__qualname__}'
         # log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
         return constructed

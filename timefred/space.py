@@ -2,6 +2,7 @@
 from collections.abc import Iterable
 from typing import TypeVar, Type, Generic, Any, Union
 from timefred.log import log
+import pdbpp
 
 OBJECT_DICT_KEYS = set(object.__dict__)
 IGNORED_ATTRS = OBJECT_DICT_KEYS | {
@@ -21,7 +22,10 @@ IGNORED_ATTRS = OBJECT_DICT_KEYS | {
 
 
 class Space:
+    DONT_SET_KEYS = {'DONT_SET_KEYS', '__fields__'}
     def __new__(cls, *args, **kwargs):
+        # TypeError: object.__new__(Config) is not safe, use dict.__new__() error
+        # inst = object.__new__(cls)
         inst = super().__new__(cls, *args, **kwargs)
         return inst
     
@@ -43,7 +47,7 @@ TYPED_SPACE_K = TypeVar('TYPED_SPACE_K')
 TYPED_SPACE_V = TypeVar('TYPED_SPACE_V')
 class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
     """Sets __v_type__ and casts __getitem__"""
-    DONT_SET_KEYS = {'__v_type__', 'DONT_SET_KEYS'}
+    DONT_SET_KEYS = Space.DONT_SET_KEYS | {'__v_type__'}
     __v_type__: Type[TYPED_SPACE_V]
     
     # Not good because overwrites DefaultDictSpace.__v_type__
@@ -124,8 +128,6 @@ DICT_SPACE_K = TypeVar('DICT_SPACE_K')
 DICT_SPACE_V = TypeVar('DICT_SPACE_V')
 
 class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
-    DONT_SET_KEYS = set()
-
     def __init__(self, mappable=(), **kwargs) -> None:
         if mappable:
             assert not kwargs
@@ -142,13 +144,15 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     
     def __getattr__(self, name: str):
         """d.foo returns d['foo'] AND sets d.foo = d['foo']"""
-        # What if no key but yes attr?
-        value = super().__getitem__(name)
+        try:
+            value = super().__getitem__(name)
+        except KeyError as keyerr:
+            value = super().__getattribute__(name)
+            breakpoint()
 
         # this can be commented out and tests still pass
         setattr(self, name, value)
         return value
-    
     
     # def __iter__(self):
     #     return iter(set(self.__class__.__dict__) - IGNORED_ATTRS)

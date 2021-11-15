@@ -1,4 +1,4 @@
-from typing import Any, Callable, Type
+from typing import Any, Callable
 
 # from pdbpp import break_on_exc
 
@@ -37,11 +37,7 @@ class Field:
     def __set_name__(self, owner, name):
         self.name = name
         # self.private_name = f'_{name}'
-        # try:
-        #     owner.__fields__[name] = self
-        # except AttributeError:
-        #     setattr(owner, '__fields__', dict())
-        #     owner.__fields__[name] = self
+        
 
     def __call__(self, method):
         """Allows for using Field as a decorator with args, e.g `Field(optional=True)`"""
@@ -67,7 +63,13 @@ class Field:
     def __get__(self, instance, owner):
         if self.should_cache and self.cached_value is not UNSET:
             return self.cached_value
-        value = getattr(self, '__value__', UNSET)
+        if hasattr(instance, '__fields__'):
+            value = instance.__fields__.get(self.name, UNSET)
+        else:
+            setattr(instance, '__fields__', {self.name: UNSET})
+            value = UNSET
+        
+            
         if value is UNSET:
             if self.default is UNSET:
                 if self.default_factory is UNSET:
@@ -80,17 +82,24 @@ class Field:
                 
         if self.caster and value is not UNSET:
             value = self.caster(value)
+        
         if self.should_cache:
             self.cached_value = value
         return value
     
     def __set__(self, instance, value):
         self._unset_cache()
-        setattr(self, '__value__', value)
+        if hasattr(instance, '__fields__'):
+            instance.__fields__[self.name] = value
+        else:
+            setattr(instance, '__fields__', {self.name: value})
     
     def __delete__(self, instance):
         self._unset_cache()
-        delattr(self, '__value__')
+        if hasattr(instance, '__fields__'):
+            del instance.__fields__[self.name]
+        else:
+            setattr(instance, '__fields__', {})
     
     def _unset_cache(self):
         if self.should_cache:

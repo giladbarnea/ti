@@ -93,6 +93,7 @@ class TestSheetWithContent:
                 log.debug('device_validation_activity: Activity = day["On Device Validation"]')
                 name = "On Device Validation"
                 device_validation_activity: Activity = day[name]
+                assert got_to_office_activity.name == "Got to office"
                 assert isinstance(device_validation_activity, Activity)
                 assert device_validation_activity.name == "On Device Validation"
                 assert not device_validation_activity
