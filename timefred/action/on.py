@@ -14,15 +14,13 @@ def on(name: str, time: XArrow, tag=None, note=None):
         ddmmyy = time.DDMMYY
         day = work[ddmmyy]
         assert isinstance(day, Day)
-        assert len(day) == 1
-        assert day
         activity = day[name]
-        assert repr(activity) == f"Activity(name='{name}') []", f'{activity!r}'
         if activity.ongoing() and activity.has_similar_name(name):
             # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
             print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
             return True
         ongoing_activity = day.ongoing_activity()
+        breakpoint()
         ok = stop(time)
         if ok:
             return on(name, time, tag)
@@ -33,7 +31,7 @@ def on(name: str, time: XArrow, tag=None, note=None):
     assert entry
     assert entry.start
     assert isinstance(entry.start, XArrow)
-    assert repr(entry) != '{}'
+    
     activity = Activity(name=name)
     assert not activity
     assert len(activity) == 0

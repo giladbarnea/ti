@@ -6,7 +6,7 @@ from timefred.action.util import ensure_working
 
 
 def stop(end: XArrow) -> bool:
-    ensure_working()
+    # ensure_working()
     
     data = store.load()
     

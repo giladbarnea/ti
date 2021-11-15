@@ -243,13 +243,16 @@ class Store:
             logging.error(f'Failed moving {self.filename}{name_suffix}.backup to {self.filename}', exc_info=True)
             return False
 
-    # @eye
     def dump(self, data: Work) -> bool:
         if getenv('TF_DRYRUN', "").lower() in ('1', 'true', 'yes'):
             print('\n\tDRY RUN, NOT DUMPING\n',
                   data)
             
             return True
+
+        if not self.filename.exists():
+            with self.filename.open('w') as f:
+                toml.dump({}, f, self.encoder)
         
         if not self._backup():
             return False

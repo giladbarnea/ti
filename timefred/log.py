@@ -42,6 +42,10 @@ class LogProxy:
         first_arg, *rest = args
         return self.__call__('[debug]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
 
+    def warning(self, *args, **kwargs):
+        first_arg, *rest = args
+        return self.__call__('[warning]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
+
     def title(self, *args, **kwargs):
         first_arg, *rest = args
         return self.__call__('[title]' + str(first_arg), *rest, **kwargs, _stack_offset=3)

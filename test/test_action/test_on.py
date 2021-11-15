@@ -8,6 +8,8 @@ from timefred.store import Day, Entry, Activity
 from timefred.time import XArrow
 from timefred.store import store
 from timefred.log import log
+# import debug
+
 test_start = XArrow.now()
 
 class TestEmptySheet:
@@ -57,38 +59,38 @@ class TestSheetWithContent:
             work = DefaultDictSpace(Day, **sheet)
             return work
             
+
         class TestOnDeviceValidation08_30:
-            
             def test_sanity(self, work=None):
                 log.title(f"test_sanity({work = })")
-                # now = XArrow.now()
                 if not work:
                     work = TestSheetWithContent.TestOngoingActivity.default_work()
                     
-                log('[debug]work (DefaultDictSpace)')
+                log.debug('work (DefaultDictSpace)')
                 assert isinstance(work, DefaultDictSpace)
                 assert work
                 assert len(work) == 1
                 assert test_start.DDMMYY in work
     
-                log('[debug]day (Day)')
+                log.debug('day (Day)')
                 day: Day = work[test_start.DDMMYY]
                 assert isinstance(day, Day)
                 assert day
                 assert len(day) == 1
                 assert "Got to office" in day
     
-                log('[debug]got_to_office_activity: Activity = day["Got to office"]')
+                log.debug('got_to_office_activity: Activity = day["Got to office"]')
                 got_to_office_activity: Activity = day["Got to office"]
                 assert isinstance(got_to_office_activity, Activity)
                 assert got_to_office_activity
                 assert len(got_to_office_activity) == 1
                 #assert repr(got_to_office_activity) == "Activity(name='Got to office') [{'start': '02:20'}]"
                 assert isinstance(got_to_office_activity.name, Colored)
-                assert got_to_office_activity.ongoing() is True
+                got_to_office_activity_is_ongoing = got_to_office_activity.ongoing()
+                assert got_to_office_activity_is_ongoing is True
                 assert got_to_office_activity.name == "Got to office"
     
-                log('[debug]device_validation_activity: Activity = day["On Device Validation"]')
+                log.debug('device_validation_activity: Activity = day["On Device Validation"]')
                 name = "On Device Validation"
                 device_validation_activity: Activity = day[name]
                 assert isinstance(device_validation_activity, Activity)
@@ -99,42 +101,45 @@ class TestSheetWithContent:
                 assert isinstance(device_validation_activity.name, Colored)
                 device_validation_activity_is_ongoing = device_validation_activity.ongoing()
                 assert device_validation_activity_is_ongoing is False
-    
-                log('[debug]ongoing_activity: Activity = day.ongoing_activity()')
+                
+                log.debug('ongoing_activity: Activity = day.ongoing_activity()')
                 ongoing_activity: Activity = day.ongoing_activity()
-                log('[debug]assert ongoing_activity')
+                log.debug('assert ongoing_activity')
                 assert ongoing_activity
-                log('[debug]assert isinstance(ongoing_activity, Activity)')
+                log.debug('assert isinstance(ongoing_activity, Activity)')
                 assert isinstance(ongoing_activity, Activity)
-                log('[debug]assert ongoing_activity.name == "Got to office"')
+                log.debug('assert ongoing_activity.name == "Got to office"')
                 assert ongoing_activity.name == "Got to office"
                 assert isinstance(ongoing_activity.name, Colored)
                 assert len(ongoing_activity) == 1
                 assert ongoing_activity != device_validation_activity
-    
-                log('[debug]got_to_office_end_time: XArrow = ongoing_activity.stop()')
+
+                assert device_validation_activity.name == "On Device Validation"
+                assert ongoing_activity.name == "Got to office"
+                
+                log.debug('got_to_office_end_time: XArrow = ongoing_activity.stop()')
                 got_to_office_end_time: XArrow = ongoing_activity.stop()
-                log('[debug]assert isinstance(got_to_office_end_time, XArrow)')
+                log.debug('assert isinstance(got_to_office_end_time, XArrow)')
                 assert isinstance(got_to_office_end_time, XArrow)
                 # _arrow_assert_soft_eq(got_to_office_end_time, now)
-                log('[debug]assert not ongoing_activity.ongoing()')
+                log.debug('assert not ongoing_activity.ongoing()')
                 assert not ongoing_activity.ongoing()
                 with assert_raises(Exception):
                     ongoing_activity.stop()
                     
-                log('[debug]assert day.ongoing_activity() is None')
+                log.debug('assert day.ongoing_activity() is None')
                 assert day.ongoing_activity() is None
                 assert work[test_start.DDMMYY].ongoing_activity() is None
 
             def test_load_store(self, work=None):
-                log.title("test_load_store()")
+                log.title(f"test_load_store({work = })")
                 os.environ['TF_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 from timefred.config import config
                 config.sheet.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 store.filename = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 
                 if not work:
-                    log('[debug]work = TestSheetWithContent.TestOngoingActivity.default_work()')
+                    log.debug('work = TestSheetWithContent.TestOngoingActivity.default_work()')
                     work = TestSheetWithContent.TestOngoingActivity.default_work()
                 store.dump(work)
                 
