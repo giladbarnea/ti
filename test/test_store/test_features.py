@@ -5,12 +5,13 @@ from timefred.time import XArrow
 
 test_start = XArrow.now()
 
-
+@eye
 def test_ongoing():
     log.title(f"test_features.test_ongoing()")
     work = default_work(test_start)
-    day: Day = work[test_start.DDMMYY]
-    got_to_office_activity: Activity = day["Got to office"]
+    day: Day = work.__getitem__(test_start.DDMMYY)
+    got_to_office_activity: Activity = day.__getitem__("Got to office")
+    # got_to_office_activity: Activity = day["Got to office"]
     # got_to_office_activity_is_ongoing = got_to_office_activity.ongoing()
     # device_validation_activity: Activity = day["On Device Validation"]
     # device_validation_activity_is_ongoing = device_validation_activity.ongoing()

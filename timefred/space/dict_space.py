@@ -44,6 +44,7 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
     
     
     # def __getitem__(self, name: TYPED_DICT_SPACE_K) -> TYPED_DICT_SPACE_V:
+    @eye
     def __getitem__(self, name):
         """Ensures self[name] is of __default_factory__"""
         try:
@@ -58,9 +59,8 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
                      f"and it's in {self.__class__.DONT_SET_KEYS | IGNORED_ATTRS = }")
                 constructed = self.__default_factory__(**value)
                 # self[name] = constructed # <- bad idea because sets item not attr
-                
-                # this can be commented out and tests still pass
-                # setattr(self, name, constructed)
+                # this cannot be commented out, tests fail
+                setattr(self, name, constructed)
                 return constructed
             return value
 
@@ -74,16 +74,19 @@ class DefaultDictSpace(TypedDictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V
     """KeyError returns a __default_factory__() (also casts __getitem__ from TypedDictSpace)"""
     
     # def __getitem__(self, key: DEFAULT_SPACE_K) -> DEFAULT_SPACE_V:
-    def __getitem__(self, key):
+    @eye
+    def __getitem__(self, name):
         try:
-            return super().__getitem__(key)
+            value = super().__getitem__(name)
+            # print(value)
+            return value
         except KeyError as e:
-            # log(f'[debug] {self.__class__.__qualname__}.__getitem__({key!r}) KeyError: {e}')
+            # log(f'[debug] {self.__class__.__qualname__}.__getitem__({name!r}) KeyError: {e}')
             constructed = self.__default_factory__()
-            # self[key] = constructed # <- bad idea because sets item not attr
+            # self[name] = constructed # <- bad idea because sets item not attr
             
             # this cannot be commented out, tests fail
-            setattr(self, key, constructed)
+            setattr(self, name, constructed)
             return constructed
 
 

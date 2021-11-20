@@ -45,7 +45,7 @@ def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg:
     except BaseException as e:
         pass
 
-
+@eye
 def default_work(got_to_office_day: XArrow = None) -> Work:
     """
     Returns Work of one day with a single activity, "Got to office": [{"start": "02:20"}]

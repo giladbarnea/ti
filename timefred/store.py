@@ -13,7 +13,8 @@ from timefred.space import AttrDictSpace, DefaultAttrDictSpace, TypedListSpace, 
 from timefred.integration.jira import Ticket
 from timefred.note import Note
 from timefred.time import XArrow, Timespan
-from timefred.util import normalize_str
+from timefred.util import normalize_str, shorten
+import cheap_repr
 
 
 class Entry(AttrDictSpace):
@@ -76,9 +77,10 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
         super().__init__(iterable, **kwargs)
     
-    # def __repr__(self):
-    #     representation = f'{self.__class__.__qualname__}(name={getattr(self, "name", "⟨UNSET⟩")!r}) {list.__repr__(self)}'
-    #     return representation
+    def __repr__(self):
+        # representation = f'{self.__class__.__qualname__}(name={getattr(self, "name", "⟨UNSET⟩")!r} <{str(id(self))[-4:]}>) {list.__repr__(self)}'
+        representation = f'{self.__class__.__qualname__}<{str(id(self))[-4:]}> {list.__repr__(self)}'
+        return representation
     
     # @multimethod
     # def has_similar_name(self, other: 'Entry') -> bool:
@@ -88,6 +90,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     def has_similar_name(self, other: str) -> bool:
         return normalize_str(self.name) == normalize_str(other)
     
+    @eye
     def ongoing(self) -> bool:
         try:
             last_entry = self[-1]
@@ -128,11 +131,17 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         self.append(entry)
         return entry
 
+cheap_repr.register_repr(Activity)(cheap_repr.normal_repr)
+# @register_repr(Activity)
+# def Activity_repr(activity, helper: ReprHelper):
+#     helper.level
+    # return repr(activity)
 
 class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
     """Day { activity_name: Activity }"""
     __default_factory__: Type[Activity]
     
+    @eye
     def __getitem__(self, name):
         # log(f'[title]{self.__class__.__qualname__}.__getitem__({name!r})...')
         try:
@@ -186,7 +195,8 @@ assert Day.__default_factory__ == Activity
 class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""
     __default_factory__: Type[Day]
-    
+
+    @eye
     def ongoing_activity(self) -> Activity:
         """
         Raises:
