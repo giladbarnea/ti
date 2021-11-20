@@ -1,6 +1,9 @@
-from contextlib import contextmanager
 import re
+from contextlib import contextmanager
 from typing import Union, Type
+
+from timefred.store import Work, Day
+from timefred.time import XArrow
 
 
 @contextmanager
@@ -42,3 +45,17 @@ def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg:
     except BaseException as e:
         pass
 
+
+def default_work(got_to_office_day: XArrow = None) -> Work:
+    """
+    Returns Work of one day with a single activity, "Got to office": [{"start": "02:20"}]
+    """
+    if not got_to_office_day:
+        got_to_office_day = XArrow.now()
+    sheet = {
+        got_to_office_day.DDMMYY: {
+            "Got to office": [{"start": "02:20"}]
+            }
+        }
+    work = Work(Day, **sheet)
+    return work

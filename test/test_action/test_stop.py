@@ -1,18 +1,5 @@
-from timefred.store import Day, Activity, Work
-from timefred.time import XArrow
-
-test_start = XArrow.now()
-
-
-def default_work() -> Work:
-    sheet = {
-        test_start.DDMMYY: {
-            "Got to office": [{"start": "02:20"}]
-            }
-        }
-    work = Work(Day, **sheet)
-    return work
-
+from test.testutils import default_work
+from timefred.store import Activity, Work
 
 class TestEmptySheet:
     def test_empty_sheet(self):
