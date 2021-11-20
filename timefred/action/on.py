@@ -1,26 +1,21 @@
 from timefred import color as c
 from timefred.color import Colored
-from timefred.space import DefaultDictSpace
 from timefred.note import Note
-from timefred.store import store, Activity, Entry, Day
+from timefred.store import store, Activity, Entry
 from timefred.time import XArrow
 from timefred.action import stop
 
 
 def on(name: str, time: XArrow, tag=None, note=None):
     work = store.load()
-    assert isinstance(work, DefaultDictSpace)
     if work:
         ddmmyy = time.DDMMYY
         day = work[ddmmyy]
-        assert isinstance(day, Day)
         activity = day[name]
         if activity.ongoing() and activity.has_similar_name(name):
             # print(f'{c.orange("Already")} working on {current.name_colored} since {c.time(reformat(current["start"], timeutils.FORMATS.date_time))} ;)')
             print(f'{c.orange("Already")} working on {activity.name.colored} since {c.time(activity.start.DDMMYYHHmmss)} ;)')
             return True
-        ongoing_activity = day.ongoing_activity()
-        breakpoint()
         ok = stop(time)
         if ok:
             return on(name, time, tag)

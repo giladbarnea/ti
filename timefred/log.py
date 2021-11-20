@@ -4,6 +4,7 @@ class LazyConsole:
         import os
         from rich.console import Console
         from rich.theme import Theme
+        PYCHARM_HOSTED = os.getenv('PYCHARM_HOSTED')
         theme = {
             'debug':   'dim',
             'warn':    'yellow',
@@ -14,15 +15,20 @@ class LazyConsole:
             'prompt':  'b bright_cyan',
             'title':   'b bright_white',
             }
-        console = Console(#force_terminal=True,
-                          log_time_format='[%d.%m.%Y][%T]',
-                          color_system='truecolor',
-                          tab_size=2,
-                          log_path=False,
-                          file=sys.stdout if os.getenv('PYCHARM_HOSTED') else sys.stderr,
-                          theme=Theme({**theme, **{k.upper(): v for k, v in theme.items()}}))
+        console = Console(
+                # force_terminal=True,
+                # log_time_format='[%d.%m.%Y][%T]',
+                # safe_box=False,
+                # soft_wrap=True,
+                log_time=False,
+                color_system='auto' if PYCHARM_HOSTED else 'truecolor',
+                tab_size=2,
+                log_path=True,
+                file=sys.stdout if PYCHARM_HOSTED else sys.stderr,
+                theme=Theme({**theme, **{k.upper(): v for k, v in theme.items()}}))
         if console.width == 80:
             console.width = 160
+        console.log(f'[debug]{console.width = }')
         return console
 
 
@@ -37,17 +43,31 @@ class LogProxy:
         _log = self.console.log
         self._log = _log
         return _log(*args, **kwargs)
-
+    
+    @staticmethod
+    def _prepend_level(level: str, *msg_args) -> tuple[str]:
+        return tuple(f'[{level}] {arg}' for arg in msg_args)
+    
     def debug(self, *args, **kwargs):
-        first_arg, *rest = args
-        return self.__call__('[debug]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
-
+        return self.__call__('\n\t'.join(self._prepend_level('debug', *args)), **kwargs, _stack_offset=3)
+    
     def warning(self, *args, **kwargs):
-        first_arg, *rest = args
-        return self.__call__('[warning]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
-
+        return self.__call__(*self._prepend_level('warning', *args), **kwargs, _stack_offset=3)
+    
+    def error(self, *args, **kwargs):
+        return self.__call__(*self._prepend_level('error', *args), **kwargs, _stack_offset=3)
+    
+    def fatal(self, *args, **kwargs):
+        return self.__call__(*self._prepend_level('fatal', *args), **kwargs, _stack_offset=3)
+    
+    def success(self, *args, **kwargs):
+        return self.__call__(*self._prepend_level('success', *args), **kwargs, _stack_offset=3)
+    
+    def prompt(self, *args, **kwargs):
+        return self.__call__(*self._prepend_level('prompt', *args), **kwargs, _stack_offset=3)
+    
     def title(self, *args, **kwargs):
-        first_arg, *rest = args
-        return self.__call__('[title]' + str(first_arg), *rest, **kwargs, _stack_offset=3)
+        return self.__call__(*self._prepend_level('title', *args), **kwargs, _stack_offset=3)
+
 
 log = LogProxy()

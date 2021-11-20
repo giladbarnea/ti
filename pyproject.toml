@@ -17,6 +17,7 @@ pytest = "^6.2.5"
 screeninfo = "^0.7"
 ipython-autoimport = "^0.3"
 icecream = "^2.1.1"
+pytest-lineno = {git = "https://github.com/harupy/pytest-lineno.git", develop = true}
 
 [tool.poetry.dev-dependencies]
 IPython = { path = "../ipython/", develop = true }

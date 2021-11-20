@@ -1,22 +1,30 @@
 import os
 
-# from test.test_times import _arrow_assert_soft_eq
 from test.testutils import assert_raises
 from timefred.color import Colored
-from timefred.space import DefaultDictSpace
-from timefred.store import Day, Entry, Activity
+from timefred.store import Day, Entry, Activity, Work
 from timefred.time import XArrow
 from timefred.store import store
 from timefred.log import log
 # import debug
-
 test_start = XArrow.now()
+
+
+def default_work() -> Work:
+    sheet = {
+        test_start.DDMMYY: {
+            "Got to office": [{"start": "02:20"}]
+            }
+        }
+    work = Work(**sheet)
+    return work
+
 
 class TestEmptySheet:
     def test_on_got_to_office_08_20(self):
-        work = DefaultDictSpace(Day)
+        work = Work()
         '''{ "02/11/21" : Day }'''
-        assert isinstance(work, DefaultDictSpace)
+        assert isinstance(work, Work)
         assert isinstance(work, dict)
         assert not work
         assert len(work) == 0
@@ -47,69 +55,53 @@ class TestEmptySheet:
         assert len(work) == 1
     
 class TestSheetWithContent:
-    class TestOngoingActivity:
-        
-        @staticmethod
-        def default_work() -> DefaultDictSpace:
-            sheet = {
-                test_start.DDMMYY: {
-                    "Got to office": [{"start": "02:20"}]
-                    }
-                }
-            work = DefaultDictSpace(Day, **sheet)
-            return work
-            
-
+    class TestWithOngoingActivity:
         class TestOnDeviceValidation08_30:
             def test_sanity(self, work=None):
                 log.title(f"test_sanity({work = })")
                 if not work:
-                    work = TestSheetWithContent.TestOngoingActivity.default_work()
+                    work = default_work()
                     
-                log.debug('work (DefaultDictSpace)')
-                assert isinstance(work, DefaultDictSpace)
+                log.debug('work (Work)')
+                assert isinstance(work, Work)
                 assert work
                 assert len(work) == 1
                 assert test_start.DDMMYY in work
     
-                log.debug('day (Day)')
+                log.debug('Work["30/12/99"] -> Day')
                 day: Day = work[test_start.DDMMYY]
                 assert isinstance(day, Day)
                 assert day
                 assert len(day) == 1
                 assert "Got to office" in day
     
-                log.debug('got_to_office_activity: Activity = day["Got to office"]')
+                log.debug('Day["Got to office"] -> Activity (ongoing)')
                 got_to_office_activity: Activity = day["Got to office"]
                 assert isinstance(got_to_office_activity, Activity)
                 assert got_to_office_activity
                 assert len(got_to_office_activity) == 1
-                #assert repr(got_to_office_activity) == "Activity(name='Got to office') [{'start': '02:20'}]"
                 assert isinstance(got_to_office_activity.name, Colored)
                 got_to_office_activity_is_ongoing = got_to_office_activity.ongoing()
                 assert got_to_office_activity_is_ongoing is True
                 assert got_to_office_activity.name == "Got to office"
     
-                log.debug('device_validation_activity: Activity = day["On Device Validation"]')
+                log.debug('Day["On Device Validation"] -> Activity (not ongoing)')
                 name = "On Device Validation"
                 device_validation_activity: Activity = day[name]
+                
                 assert got_to_office_activity.name == "Got to office"
                 assert isinstance(device_validation_activity, Activity)
                 assert device_validation_activity.name == "On Device Validation"
                 assert not device_validation_activity
                 assert len(device_validation_activity) == 0
-                #assert repr(device_validation_activity) == f"Activity(name='{name}') []"
                 assert isinstance(device_validation_activity.name, Colored)
                 device_validation_activity_is_ongoing = device_validation_activity.ongoing()
                 assert device_validation_activity_is_ongoing is False
                 
-                log.debug('ongoing_activity: Activity = day.ongoing_activity()')
-                ongoing_activity: Activity = day.ongoing_activity()
-                log.debug('assert ongoing_activity')
+                log.debug('Work.ongoing_activity() -> Activity')
+                ongoing_activity: Activity = work.ongoing_activity()
                 assert ongoing_activity
-                log.debug('assert isinstance(ongoing_activity, Activity)')
                 assert isinstance(ongoing_activity, Activity)
-                log.debug('assert ongoing_activity.name == "Got to office"')
                 assert ongoing_activity.name == "Got to office"
                 assert isinstance(ongoing_activity.name, Colored)
                 assert len(ongoing_activity) == 1
@@ -118,30 +110,71 @@ class TestSheetWithContent:
                 assert device_validation_activity.name == "On Device Validation"
                 assert ongoing_activity.name == "Got to office"
                 
-                log.debug('got_to_office_end_time: XArrow = ongoing_activity.stop()')
-                got_to_office_end_time: XArrow = ongoing_activity.stop()
-                log.debug('assert isinstance(got_to_office_end_time, XArrow)')
-                assert isinstance(got_to_office_end_time, XArrow)
-                # _arrow_assert_soft_eq(got_to_office_end_time, now)
-                log.debug('assert not ongoing_activity.ongoing()')
+                assert ongoing_activity is ongoing_activity
+                ongoing_activity_copy = work.ongoing_activity()
+                assert ongoing_activity_copy is ongoing_activity
+                
+                log.debug('Activity.stop() -> Entry')
+                got_to_office_last_entry: Entry = ongoing_activity.stop()
+                assert isinstance(got_to_office_last_entry, Entry)
+                assert got_to_office_last_entry
+                assert got_to_office_last_entry.end
+                
                 assert not ongoing_activity.ongoing()
-                with assert_raises(Exception):
+                
+                log.debug('Activity.stop() -> ValueError (not ongoing)')
+                with assert_raises(Exception, match=f"{ongoing_activity!r} is not ongoing"):
                     ongoing_activity.stop()
-                    
-                log.debug('assert day.ongoing_activity() is None')
-                assert day.ongoing_activity() is None
-                assert work[test_start.DDMMYY].ongoing_activity() is None
 
+                log.debug('Work.ongoing_activity() -> ValueError (no ongoing activity)')
+                with assert_raises(Exception, match="No ongoing activity"):
+                    work.ongoing_activity()
+
+                log.debug('Work.on("Something New") -> Activity')
+                something_new_activity: Activity = work.on("Something New")
+                assert isinstance(something_new_activity, Activity)
+                assert something_new_activity
+                assert len(something_new_activity) == 1
+                assert something_new_activity.name == "Something New"
+                something_new_activity_is_ongoing = something_new_activity.ongoing()
+                assert something_new_activity_is_ongoing is True
+                assert device_validation_activity.name == "On Device Validation"
+                assert ongoing_activity.name == "Got to office"
+                assert device_validation_activity.ongoing() is False
+                assert ongoing_activity.ongoing() is False
+
+                log.debug('Activity.start() -> ValueError (already ongoing)')
+                with assert_raises(Exception, match=f"{something_new_activity!r} is already ongoing"):
+                    something_new_activity.start()
+
+                log.debug('Work.on("Something New") -> ValueError (already ongoing)')
+                with assert_raises(Exception, match=f"{something_new_activity!r} is already ongoing"):
+                    work.on(something_new_activity.name)
+                
+                log.debug('Work.on("Utterly New") -> Activity')
+                utterly_new_activity: Activity = work.on("Utterly New")
+                assert isinstance(utterly_new_activity, Activity)
+                assert utterly_new_activity
+                assert len(utterly_new_activity) == 1
+                assert utterly_new_activity.name == "Utterly New"
+                assert utterly_new_activity.ongoing() is True
+                assert device_validation_activity.name == "On Device Validation"
+                assert ongoing_activity.name == "Got to office"
+                assert device_validation_activity.ongoing() is False
+                assert ongoing_activity.ongoing() is False
+                something_new_activity_is_still_ongoing = something_new_activity.ongoing()
+                assert something_new_activity_is_still_ongoing is False
+            
             def test_load_store(self, work=None):
                 log.title(f"test_load_store({work = })")
-                os.environ['TF_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
+                os.environ['TIMEFRED_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 from timefred.config import config
                 config.sheet.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 store.filename = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 
                 if not work:
                     log.debug('work = TestSheetWithContent.TestOngoingActivity.default_work()')
-                    work = TestSheetWithContent.TestOngoingActivity.default_work()
+                    work = default_work()
                 store.dump(work)
                 
                 log.debug('work = store.load()')

@@ -2,17 +2,18 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 import toml
 # from pydantic import BaseModel, Field
-from timefred.field import Field
-from timefred.space import Space, DictSpace
+from timefred.space.field import Field
+from timefred.space import AttrDictSpace
+from timefred.log import log
 
 
-class Config(DictSpace):
-    class TimeCfg(DictSpace):
-        class TimeFormats(DictSpace):
+class Config(AttrDictSpace):
+    class TimeCfg(AttrDictSpace):
+        class TimeFormats(AttrDictSpace):
             date: str = 'DD/MM/YY'
             short_date: str = 'DD/MM'
             time: str = 'HH:mm:ss'
@@ -35,20 +36,21 @@ class Config(DictSpace):
         #     super().__init__(timecfg)
         # self.tz = timezone(self.tz)
 
-    class DevCfg(DictSpace):
+    class DevCfg(AttrDictSpace):
         debugger: Optional[str] = Field(default_factory=str)
         traceback: Optional[str]= Field(default_factory=str)
+        repr: Optional[str] = Field(default=repr)
         # features: Optional[BaseModel]
 
-    class Sheet(DictSpace):
-        path = os.path.expanduser(os.environ.get('TF_SHEET', "~/timefred-sheet.toml"))
+    class Sheet(AttrDictSpace):
+        path = os.path.expanduser(os.environ.get('TIMEFRED_SHEET', "~/timefred-sheet.toml"))
     
     time: TimeCfg = Field(default_factory=TimeCfg, cast=TimeCfg)
     sheet: Sheet = Field(default_factory=Sheet, cast=Sheet)
     dev: Optional[DevCfg] = Field(default_factory=DevCfg, cast=DevCfg)
     
     def __init__(self):
-        cfg_file = Path(os.path.expanduser(os.environ.get('TF_CONFIG_PATH', "~/.timefred.toml")))
+        cfg_file = Path(os.path.expanduser(os.environ.get('TIMEFRED_CONFIG_PATH', "~/.timefred.toml")))
         
         if cfg_file.exists():
             cfg = toml.load(cfg_file.open())
@@ -56,18 +58,20 @@ class Config(DictSpace):
             self._create_default_config_file(cfg_file)
             cfg = {}
         super().__init__(**cfg)
+        
         if self.dev.debugger:
             os.environ['PYTHONBREAKPOINT'] = self.dev.debugger
+        
         if self.dev.traceback:
             try:
                 if self.dev.traceback == "rich.traceback":
                     from rich.traceback import install
                     install(show_locals=True)
                 else:
-                    print(f"Don't support {self.dev.traceback}", file=sys.stderr)
+                    log.warning(f"Don't support {self.dev.traceback}")
             except Exception as e:
-                print(f'{e.__class__.__qualname__} caught in {self}.__init__: {e}', file=sys.stderr)
-    
+                log.error(f'{e.__class__.__qualname__} caught in {self}.__init__: {e}')
+                
     def _create_default_config_file(self, cfg_file: Path):
         raise NotImplementedError
         constructed = self.dict()

@@ -1,7 +1,7 @@
 from typing import Callable
 from timefred import color as c
 
-from timefred.field import Field
+from timefred.space.field import Field
 from timefred.space import StringSpace
 
 

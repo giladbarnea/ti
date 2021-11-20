@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, UserDict
 from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
-from pydantic import BaseModel, Field
+# from pydantic import BaseModel, Field
 
 from timefred import color as c
 from timefred.note import Note
@@ -10,10 +10,11 @@ from timefred.store import store, Entry
 from timefred.time.timespan import Timespan
 from timefred.time.timeutils import secs2human, arrows2rel_time
 from timefred.time.xarrow import XArrow
+from timefred.space import DictSpace, Field
 
 
 # @dataclass
-class LogEntry(BaseModel):
+class LogEntry(DictSpace):
     class Config:
         arbitrary_types_allowed = True
     

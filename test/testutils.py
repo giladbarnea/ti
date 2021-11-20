@@ -22,7 +22,7 @@ def assert_raises(exc: Type[Exception], match: Union[str, re.Pattern] = None):
         error = '\n'.join([
             f'{exc_name} was raised but did not match expected exception args.',
             f'Expected: {match!r}',
-            f'Actual: {"; ".join(map(str, e.args))}',
+            f'Actual: {"; ".join(map(str, e.args))!r}',
             ])
         raise AssertionError(error) from e
     except Exception as e:
@@ -41,3 +41,4 @@ def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg:
         assert True
     except BaseException as e:
         pass
+

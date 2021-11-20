@@ -73,12 +73,12 @@ body4 = {
 
 # * Monday
 # PUT https://carmitush-prod.herokuapp.com/api/day-reports/2021-07-26/
-request_payload = {"date":"2021-07-26","type":"full_day","from_home":false}
-auth_bearer = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyMDcsInVzZXJuYW1lIjoiZ2lsYWQuYmFybmVhQGhlcm9sby5jby5pbCIsImV4cCI6MTYyOTc4NjQxNywiZW1haWwiOiJnaWxhZC5iYXJuZWFAaGVyb2xvLmNvLmlsIn0.QDhvA4aytp4zDW23zdCNKW35bRbRMUk8jZtBIsMFd-k"
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.115 Safari/537.36"
+# request_payload = {"date":"2021-07-26","type":"full_day","from_home":false}
+# auth_bearer = "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyMDcsInVzZXJuYW1lIjoiZ2lsYWQuYmFybmVhQGhlcm9sby5jby5pbCIsImV4cCI6MTYyOTc4NjQxNywiZW1haWwiOiJnaWxhZC5iYXJuZWFAaGVyb2xvLmNvLmlsIn0.QDhvA4aytp4zDW23zdCNKW35bRbRMUk8jZtBIsMFd-k"
+# user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.115 Safari/537.36"
 
 # POST https://carmitush-prod.herokuapp.com/api/project-reports/
-request_payload = {"project":49," absence_type":"None","day_report":67661,"description":"Meetings: 16.5, 16.4 Merge, Redis introduction 1/2","end":"16:00:00","start":"09:20:00"}
+# request_payload = {"project":49," absence_type":"None","day_report":67661,"description":"Meetings: 16.5, 16.4 Merge, Redis introduction 1/2","end":"16:00:00","start":"09:20:00"}
 
 # * Sunday
 # POST https://carmitush-prod.herokuapp.com/api/project-reports/
@@ -92,3 +92,4 @@ request_payload = {"project":49," absence_type":"None","day_report":67661,"descr
 # POST https://carmitush-prod.herokuapp.com/api/project-reports/
 # request: {"project":49,"absence_type":"None","day_report":67023,"description":"RSEvents","end":"18:30:00","start":"09:20:00"}
 # response: {"id":40495,"start":"09:20:00","end":"18:30:00","description":"RSEvents","day_report":67023,"project":49,"project_name":"Allot","duration":"09:10:00","client_name":"Allot","client":"38","absence_type":"None"}
+

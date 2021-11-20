@@ -1,4 +1,4 @@
 print()
 import os
 
-os.environ['TF_TESTING'] = '1'
+os.environ['TIMEFRED_TESTING'] = '1'

@@ -33,7 +33,8 @@ from contextlib import suppress
 from typing import Callable, Tuple, List
 
 from timefred._dev import generate_completion
-from timefred.action import log, note, edit, stop, on, status, tag
+from timefred import action
+# from timefred.action import log, note, edit, stop, on, status, tag
 from timefred.config import config
 from timefred.error import TIError, BadArguments
 # from timefred.time.timespan import Timespan
@@ -64,22 +65,19 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
     if not argv:
         argv = sys.argv
     # *** log
-    # ** timefred [-]
+    # ** timefred
     # timefred -> log(detailed=True)
-    # timefred - -> log()
     argv_len = len(argv)
     if argv_len == 1:
-        return log, {'detailed': True}
-    if argv[1] == '-':
-        return log, {'detailed': False}
+        return action.log, {'detailed': True}
     
     # ** timefred thursday
     if len(argv[1]) > 1:
         if argv[1].lower() == 'yesterday':
-            return log, {'period': argv[1], 'detailed': True}
+            return action.log, {'period': argv[1], 'detailed': True}
         with suppress(ValueError):
             isoweekday(argv[1])
-            return log, {'period': argv[1], 'detailed': True}
+            return action.log, {'period': argv[1], 'detailed': True}
     
     head = argv[1]
     tail: list[str] = argv[2:]
@@ -100,19 +98,19 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             'detailed': '-' not in head,
             'groupby':  groupby
             }
-        return log, args
+        return action.log, args
     
     # *** help
     if 'help' in head or head in ('-h', 'h'):
         print(__doc__, file=sys.stderr)
-        sys.exit(1)
+        sys.exit(0)
     
     # *** edit
     elif head in ('e', 'edit'):
-        return edit, {}
+        return action.edit, {}
     
     # *** on
-    elif head in ('o', 'on'):
+    elif head in ('+', 'o', 'on'):
         if not tail:
             raise BadArguments("Need the name of whatever you are working on.")
         
@@ -137,19 +135,19 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             'tag':  _tag,
             'note': _note
             }
-        return on, args
+        return action.on, args
     
     # *** stop
-    elif head in ('f', 'stop'):
+    elif head in ('-', 'stop'):
         args = {
             'time': XArrow.from_human(' '.join(tail) if tail else 'now')
             }
-        return stop, args
+        return action.stop, args
     
     # *** status
-    elif head in ('s', 's+', 'status', 'status+'):
+    elif head in ('?', '??', 's', 's+', 'status', 'status+'):
         args = {'show_notes': '+' in head}
-        return status, args
+        return action.status, args
     
     
     
@@ -168,7 +166,7 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             args = {'tag': tail[0]}
         else:
             args = {'tag': ' '.join(tail)}
-        return tag, args
+        return action.tag, args
     
     # *** note
     elif head in ('n', 'note'):
@@ -185,7 +183,7 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             args = {'content': tail[0]}
         else:
             args = {'content': ' '.join(tail)}
-        return note, args
+        return action.note, args
     
     # *** interrupt
     # elif head in ('i', 'interrupt'):

@@ -1,15 +1,15 @@
 from timefred import color as c
+from timefred.space import DefaultAttrDictSpace
 from timefred.store import store, Entry
 from timefred.time import XArrow
 from timefred.util import confirm
-from timefred.action.util import ensure_working
 
 
 def stop(end: XArrow) -> bool:
     # ensure_working()
     
-    data = store.load()
-    
+    work: DefaultAttrDictSpace = store.load()
+    # TODO: work[day].stop(end). Consider moving .ongoing_activity() to work level because mightve started yesterday
     item = Entry(**data[-1])
     
     if item.start > end:
