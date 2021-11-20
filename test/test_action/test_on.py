@@ -145,10 +145,6 @@ class TestSheetWithContent:
                 with assert_raises(ValueError, match=f"{something_new_activity!r} is already ongoing"):
                     work.on(something_new_activity.name)
                 
-                # TODO: Work.on should stop any ongoing activity (if any),
-                #       and start the new one. This is not yet implemented.
-                #       Note that a few blocks above use Activity.stop() manually
-                #       before starting the new one, which is a cheat.
                 log.debug('Work.on("Something New2") -> Activity')
                 something_new2_activity: Activity = work.on("Something New2")
                 assert isinstance(something_new2_activity, Activity)

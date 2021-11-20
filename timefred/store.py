@@ -6,22 +6,23 @@ from os import path, getenv
 from pathlib import Path
 from typing import Optional, Type, Any, Union, Iterable
 
+import cheap_repr
 import toml
 
 from timefred.color.colored import Colored, TaskString
-from timefred.space import AttrDictSpace, DefaultAttrDictSpace, TypedListSpace, Field
 from timefred.integration.jira import Ticket
 from timefred.note import Note
+from timefred.space import AttrDictSpace, DefaultAttrDictSpace, TypedListSpace, Field
+from timefred.tag import Tag
 from timefred.time import XArrow, Timespan
-from timefred.util import normalize_str, shorten
-import cheap_repr
+from timefred.util import normalize_str
 
 
 class Entry(AttrDictSpace):
     start: XArrow = Field(cast=XArrow.from_formatted)
     end: Optional[XArrow] = Field(cast=XArrow.from_formatted, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
-    tags: Optional[set[str]] = Field(optional=True)
+    tags: Optional[set[Tag]] = Field(optional=True)
     
     # @Field(optional=True)
     @property
@@ -115,7 +116,10 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             last_entry.notes.append(note)
         return last_entry
     
-    def start(self, time: Union[XArrow, str] = None, tag=None, note=None) -> Entry:
+    def start(self,
+              time: Union[XArrow, str] = None,
+              tag: Union["Tag", str] = None,
+              note=None) -> Entry:
         """
         Raises:
             ValueError: if the activity is ongoing
@@ -131,11 +135,14 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         self.append(entry)
         return entry
 
+
 cheap_repr.register_repr(Activity)(cheap_repr.normal_repr)
+
+
 # @register_repr(Activity)
 # def Activity_repr(activity, helper: ReprHelper):
 #     helper.level
-    # return repr(activity)
+# return repr(activity)
 
 class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
     """Day { activity_name: Activity }"""
@@ -187,7 +194,7 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
         # assert constructed.name == name, f'{constructed.name=!r} != {name=!r} ({self.__class__.__qualname__})'
         # log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
         return constructed
-    
+
 
 assert Day.__default_factory__ == Activity
 
@@ -195,13 +202,14 @@ assert Day.__default_factory__ == Activity
 class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""
     __default_factory__: Type[Day]
-
+    
     @eye
     def ongoing_activity(self) -> Activity:
         """
         Raises:
             ValueError: if there is no ongoing activity
         """
+        # TODO: cache somehow
         for ddmmyy in reversed(self.keys()):
             day = self[ddmmyy]  # invoke __getitem__ to get constructed
             for name in reversed(day.keys()):
@@ -210,25 +218,45 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
                     return activity
         raise ValueError(f'No ongoing activity')
     
-    def stop(self, time: Union[str, XArrow] = None, tag=None, note=None) -> Optional[Activity]:
+    def stop(self,
+             time: Union[str, XArrow] = None,
+             tag: Union[str, Tag] = None,
+             note: Union[str, Note] = None) -> Optional[Activity]:
         if time is None:
             time = XArrow.now()
         try:
             ongoing_activity = self.ongoing_activity()
         except ValueError:
             return None
+        # TODO: ongoing_activity.stop() may raise ValueError/IndexError,
+        #       how should be handled?
         ongoing_activity.stop(time=time, tag=tag, note=note)
         stopped_activity = ongoing_activity
         return stopped_activity
+    
+    def on(self,
+           name: str,
+           time: Union[str, XArrow] = None,
+           tag: Union[str, Tag] = None,
+           note: Union[str, Note] = None) -> Activity:
         
-        
-    def on(self, name: str, time: Union[str, XArrow] = None, tag=None, note=None) -> Activity:
         if time is None:
             time = XArrow.now()
-        day = self[time.DDMMYY]
-        activity: Activity = day[name]
-        activity.start(time, tag, note)
-        return activity
+        try:
+            ongoing_activity = self.ongoing_activity()
+        except ValueError:
+            pass
+        else:
+            if ongoing_activity.has_similar_name(name):
+                raise ValueError(f'{ongoing_activity!r} is ongoing, and has a similar name to {name!r}')
+            ongoing_activity.stop(time)
+        finally:
+            day = self[time.DDMMYY]
+            activity: Activity = day[name]
+            activity.start(time, tag, note)
+            return activity
+            
+        
 
 
 assert Work.__default_factory__ == Day
