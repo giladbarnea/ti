@@ -117,11 +117,11 @@ class TestSheetWithContent:
                 assert not ongoing_activity.ongoing()
                 
                 log.debug('Activity.stop() -> ValueError (not ongoing)')
-                with assert_raises(Exception, match=f"{ongoing_activity!r} is not ongoing"):
+                with assert_raises(ValueError, match=f"{ongoing_activity!r} is not ongoing"):
                     ongoing_activity.stop()
                 
                 log.debug('Work.ongoing_activity() -> ValueError (no ongoing activity)')
-                with assert_raises(Exception, match="No ongoing activity"):
+                with assert_raises(ValueError, match="No ongoing activity"):
                     work.ongoing_activity()
                 
                 log.debug('Work.on("Something New") -> Activity')
@@ -138,26 +138,32 @@ class TestSheetWithContent:
                 assert ongoing_activity.ongoing() is False
                 
                 log.debug('Activity.start() -> ValueError (already ongoing)')
-                with assert_raises(Exception, match=f"{something_new_activity!r} is already ongoing"):
+                with assert_raises(ValueError, match=f"{something_new_activity!r} is already ongoing"):
                     something_new_activity.start()
                 
                 log.debug('Work.on("Something New") -> ValueError (already ongoing)')
-                with assert_raises(Exception, match=f"{something_new_activity!r} is already ongoing"):
+                with assert_raises(ValueError, match=f"{something_new_activity!r} is already ongoing"):
                     work.on(something_new_activity.name)
                 
-                log.debug('Work.on("Utterly New") -> Activity')
-                utterly_new_activity: Activity = work.on("Utterly New")
-                assert isinstance(utterly_new_activity, Activity)
-                assert utterly_new_activity
-                assert len(utterly_new_activity) == 1
-                assert utterly_new_activity.name == "Utterly New"
-                assert utterly_new_activity.ongoing() is True
+                # TODO: Work.on should stop any ongoing activity (if any),
+                #       and start the new one. This is not yet implemented.
+                #       Note that a few blocks above use Activity.stop() manually
+                #       before starting the new one, which is a cheat.
+                log.debug('Work.on("Something New2") -> Activity')
+                something_new2_activity: Activity = work.on("Something New2")
+                assert isinstance(something_new2_activity, Activity)
+                assert something_new2_activity
+                assert len(something_new2_activity) == 1
+                assert something_new2_activity.name == "Something New2"
+                assert something_new2_activity.ongoing() is True
                 assert device_validation_activity.name == "On Device Validation"
                 assert ongoing_activity.name == "Got to office"
                 assert device_validation_activity.ongoing() is False
                 assert ongoing_activity.ongoing() is False
                 something_new_activity_is_still_ongoing = something_new_activity.ongoing()
                 assert something_new_activity_is_still_ongoing is False
+                
+                # TODO: Work.stop()
             
             def test_load_store(self, work=None):
                 log.title(f"test_load_store({work = })")
