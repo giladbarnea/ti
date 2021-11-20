@@ -89,6 +89,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     #
     # @multimethod
     def has_similar_name(self, other: str) -> bool:
+        """Compares the activity's lowercase, stripped and non-word-free name to other."""
         return normalize_str(self.name) == normalize_str(other)
     
     @eye
@@ -235,7 +236,7 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
         return stopped_activity
     
     def on(self,
-           name: str,
+           name: Union[str, Activity],
            time: Union[str, XArrow] = None,
            tag: Union[str, Tag] = None,
            note: Union[str, Note] = None) -> Activity:
@@ -245,12 +246,16 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
         try:
             ongoing_activity = self.ongoing_activity()
         except ValueError:
-            pass
+            day = self[time.DDMMYY]
+            activity: Activity = day[name]
+            activity.start(time, tag, note)
+            return activity
         else:
+            if name == ongoing_activity.name:
+                raise ValueError(f'{ongoing_activity!r} is already ongoing')
             if ongoing_activity.has_similar_name(name):
                 raise ValueError(f'{ongoing_activity!r} is ongoing, and has a similar name to {name!r}')
             ongoing_activity.stop(time)
-        finally:
             day = self[time.DDMMYY]
             activity: Activity = day[name]
             activity.start(time, tag, note)

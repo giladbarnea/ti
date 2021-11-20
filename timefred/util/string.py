@@ -4,12 +4,8 @@ NONWORD_RE = re.compile(r'[\W_]')
 COLOR_RE = re.compile(r'(\x1b\[(?:\d;?)*m)')
 WHITESPACE_RE = re.compile(r'\s+')
 
-def normalize_str(s):
-    # if hasattr(s, '__normalized__'):
-    #     return s
-    # normalized = NONWORD_RE.sub('', s.lower().strip())
-    # normalized.__normalized__ = True
-    # return normalized
+def normalize_str(s: str) -> str:
+    """Lower, strip, and remove any non-word characters from the string."""
     return NONWORD_RE.sub('', s.lower().strip())
 
 def decolor(s):

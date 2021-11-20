@@ -156,8 +156,13 @@ class TestSheetWithContent:
                 assert ongoing_activity.name == "Got to office"
                 assert device_validation_activity.ongoing() is False
                 assert ongoing_activity.ongoing() is False
-                something_new_activity_is_still_ongoing = something_new_activity.ongoing()
-                assert something_new_activity_is_still_ongoing is False
+                assert something_new_activity.ongoing() is False
+                
+                log.debug('Work.on("something-new 2") -> ValueError (has similar name)')
+                assert something_new2_activity.has_similar_name("something-new 2") is True
+                with assert_raises(ValueError,
+                                   match=f"{something_new2_activity!r} is ongoing, and has a similar name to 'something-new 2"):
+                    work.on("something-new 2")
                 
                 # TODO: Work.stop()
             
