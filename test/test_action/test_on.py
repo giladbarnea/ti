@@ -163,8 +163,18 @@ class TestSheetWithContent:
                 with assert_raises(ValueError,
                                    match=f"{something_new2_activity!r} is ongoing, and has a similar name to 'something-new 2"):
                     work.on("something-new 2")
+
+                log.debug('Work.stop() -> Optional[Activity]')
+                stop_time = XArrow.now()
+                stopped_activity: Activity = work.stop(stop_time)
+                assert stopped_activity.name == "Something New2"
+                assert stopped_activity[-1].end == stop_time
+                assert stopped_activity.ongoing() is False
+                with assert_raises(ValueError, match=f"No ongoing activity"):
+                    work.ongoing_activity()
+                with assert_raises(ValueError, match=f"No ongoing activity"):
+                    work.stop()
                 
-                # TODO: Work.stop()
             
             def test_load_store(self, work=None):
                 log.title(f"test_load_store({work = })")

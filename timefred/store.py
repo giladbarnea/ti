@@ -79,8 +79,8 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         super().__init__(iterable, **kwargs)
     
     def __repr__(self):
-        # representation = f'{self.__class__.__qualname__}(name={getattr(self, "name", "⟨UNSET⟩")!r} <{str(id(self))[-4:]}>) {list.__repr__(self)}'
-        representation = f'{self.__class__.__qualname__}<{str(id(self))[-4:]}> {list.__repr__(self)}'
+        representation = f'{self.__class__.__qualname__}(name={getattr(self, "name", "⟨UNSET⟩")!r} <{str(id(self))[-4:]}>) {list.__repr__(self)}'
+        # representation = f'{self.__class__.__qualname__}<{str(id(self))[-4:]}> {list.__repr__(self)}'
         return representation
     
     # @multimethod
@@ -100,7 +100,10 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         except IndexError:
             return False
     
-    def stop(self, time: Union[XArrow, str] = None, tag=None, note=None) -> Entry:
+    def stop(self,
+             time: Union[str, XArrow] = None,
+             tag: Union[str, Tag] = None,
+             note: Union[str, Note] = None) -> Entry:
         """
         Raises:
             ValueError: if the activity is not ongoing
@@ -223,14 +226,13 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
              time: Union[str, XArrow] = None,
              tag: Union[str, Tag] = None,
              note: Union[str, Note] = None) -> Optional[Activity]:
+        """
+        Raises:
+            ValueError: if there is no ongoing activity
+        """
+        ongoing_activity = self.ongoing_activity()
         if time is None:
             time = XArrow.now()
-        try:
-            ongoing_activity = self.ongoing_activity()
-        except ValueError:
-            return None
-        # TODO: ongoing_activity.stop() may raise ValueError/IndexError,
-        #       how should be handled?
         ongoing_activity.stop(time=time, tag=tag, note=note)
         stopped_activity = ongoing_activity
         return stopped_activity
@@ -240,17 +242,22 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
            time: Union[str, XArrow] = None,
            tag: Union[str, Tag] = None,
            note: Union[str, Note] = None) -> Activity:
-        
+        """
+        Raises:
+            ValueError: if an activity with the same / similar name is already ongoing
+        """
         if time is None:
             time = XArrow.now()
         try:
             ongoing_activity = self.ongoing_activity()
         except ValueError:
+            # No ongoing activity -> start new activity
             day = self[time.DDMMYY]
             activity: Activity = day[name]
             activity.start(time, tag, note)
             return activity
         else:
+            # Ongoing activity -> stop it and start new activity
             if name == ongoing_activity.name:
                 raise ValueError(f'{ongoing_activity!r} is already ongoing')
             if ongoing_activity.has_similar_name(name):
@@ -260,8 +267,6 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
             activity: Activity = day[name]
             activity.start(time, tag, note)
             return activity
-            
-        
 
 
 assert Work.__default_factory__ == Day
