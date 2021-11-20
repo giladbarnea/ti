@@ -1,5 +1,10 @@
-class LazyConsole:
-    def __get__(self, instance, owner):
+class LogProxy:
+    _log = None
+    
+    def __call__(self, *args, **kwargs):
+        kwargs.setdefault('_stack_offset', 2)
+        if self._log:
+            return self._log(*args, **kwargs)
         import sys
         import os
         from rich.console import Console
@@ -28,46 +33,33 @@ class LazyConsole:
                 theme=Theme({**theme, **{k.upper(): v for k, v in theme.items()}}))
         if console.width == 80:
             console.width = 160
-        console.log(f'[debug]{console.width = }')
-        return console
-
-
-class LogProxy:
-    console = LazyConsole()
-    _log = None
-    
-    def __call__(self, *args, **kwargs):
-        kwargs.setdefault('_stack_offset', 2)
-        if self._log:
-            return self._log(*args, **kwargs)
-        _log = self.console.log
-        self._log = _log
-        return _log(*args, **kwargs)
+        self._log = console.log
+        return self._log(*args, **kwargs)
     
     @staticmethod
     def _prepend_level(level: str, *msg_args) -> tuple[str]:
         return tuple(f'[{level}] {arg}' for arg in msg_args)
     
     def debug(self, *args, **kwargs):
-        return self.__call__('\n\t'.join(self._prepend_level('debug', *args)), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('debug', *args)), **kwargs, _stack_offset=3)
     
     def warning(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('warning', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('warning', *args)), **kwargs, _stack_offset=3)
     
     def error(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('error', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('error', *args)), **kwargs, _stack_offset=3)
     
     def fatal(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('fatal', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('fatal', *args)), **kwargs, _stack_offset=3)
     
     def success(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('success', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('success', *args)), **kwargs, _stack_offset=3)
     
     def prompt(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('prompt', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('prompt', *args)), **kwargs, _stack_offset=3)
     
     def title(self, *args, **kwargs):
-        return self.__call__(*self._prepend_level('title', *args), **kwargs, _stack_offset=3)
+        return self.__call__('\n· '.join(self._prepend_level('title', *args)), **kwargs, _stack_offset=3)
 
 
 log = LogProxy()
