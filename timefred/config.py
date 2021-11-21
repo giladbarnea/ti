@@ -2,7 +2,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 import toml
 # from pydantic import BaseModel, Field
@@ -29,12 +29,12 @@ class Config(AttrDictSpace):
         # tz: BaseTzInfo
         # tz: datetime.timezone = dt.now().astimezone().tzinfo
         # tz: datetime.tzinfo = dt.now().astimezone().tzinfo
+        # tz = timezone(self.tz)
+        # TODO: have a tzinfo that can by psased to XArrow.now()
         tz = 'Asia/Jerusalem'
+        first_day_of_week: Literal['sunday', 'monday'] = Field(cast=str.lower)
         formats: TimeFormats = Field(default_factory=TimeFormats, cast=TimeFormats)
 
-        # def __init__(self, timecfg: dict):
-        #     super().__init__(timecfg)
-        # self.tz = timezone(self.tz)
 
     class DevCfg(AttrDictSpace):
         debugger: Optional[str] = Field(default_factory=str)

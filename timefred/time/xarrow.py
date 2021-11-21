@@ -1,15 +1,22 @@
 import re
-from contextlib import suppress
-from datetime import datetime, timedelta, tzinfo as dt_tzinfo#, date
-# from time import struct_time
-from typing import Type, Optional, Any, Union#, ForwardRef, overload, Tuple, List
 from collections.abc import Callable
+from contextlib import suppress
+from datetime import datetime, timedelta, tzinfo as dt_tzinfo  # , date
+# from time import struct_time
+from typing import Type, Optional, Any, Union, Literal, overload, final
+
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
 
 import timefred.color as c
 from timefred.config import config
 from timefred.time.timeutils import isoweekday
+
+
+@final
+class NoneType:
+    def __bool__(self) -> Literal[False]: ...
+
 
 FORMATS = config.time.formats
 TZINFO = config.time.tz
@@ -64,7 +71,7 @@ class XArrow(Arrow):
         if not self._colored:
             self._colored = c.time(str(self))
         return self._colored
-        
+    
     @classmethod
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> "XArrow":
         rv = super().now(tzinfo)
@@ -79,16 +86,16 @@ class XArrow(Arrow):
                 return date
             raise NotImplementedError(f"{cls.__qualname__}.from_formatted({date = !r}) is Arrow")
         
-        return xarrow_factory.get(date, [FORMATS.datetime, # DD/MM/YY HH:mm:ss
-                                         f"{FORMATS.date} {FORMATS.short_time}", # DD/MM/YY HH:mm
-                                         FORMATS.short_datetime, # DD/MM HH:mm
-                                         FORMATS.date, # DD/MM/YY
-                                         FORMATS.short_date, # DD/MM
-                                         FORMATS.time, # HH:mm:ss
-                                         FORMATS.short_time, # HH:mm
+        return xarrow_factory.get(date, [FORMATS.datetime,  # DD/MM/YY HH:mm:ss
+                                         f"{FORMATS.date} {FORMATS.short_time}",  # DD/MM/YY HH:mm
+                                         FORMATS.short_datetime,  # DD/MM HH:mm
+                                         FORMATS.date,  # DD/MM/YY
+                                         FORMATS.short_date,  # DD/MM
+                                         FORMATS.time,  # HH:mm:ss
+                                         FORMATS.short_time,  # HH:mm
                                          ],
                                   tzinfo=TZINFO)
-
+        
         # noinspection PyUnreachableCode
         if ' ' in date:
             # "19/04/21 10:13:11" → arrow(...)
@@ -113,8 +120,8 @@ class XArrow(Arrow):
         <XArrow ...>
         """
         now = cls.now()
-        now_isoweekday = now.isoweekday()
-        day_isoweekday = isoweekday(day)
+        now_isoweekday: int = now.isoweekday()
+        day_isoweekday: int = isoweekday(day)
         if now_isoweekday == day_isoweekday:
             return now
         diff = abs(now_isoweekday - day_isoweekday)
@@ -253,6 +260,22 @@ class XArrow(Arrow):
             replace.update({'second': 0})
         return self.replace(**replace)
     
+    @overload
+    def isoweekday(self, human: NoneType = None) -> int:...
+    @overload
+    def isoweekday(self, human: Literal['short'] = 'short') -> str:...
+    @overload
+    def isoweekday(self, human: Literal['full'] = 'full') -> str:...
+    def isoweekday(self, human=None):
+        """"""
+        if not human:
+            return isoweekday(self.strftime('%a'))
+        if human == 'short':
+            return self.strftime('%a')
+        if human == 'full':
+            return self.strftime('%A')
+        raise ValueError(f"Bad 'human' value, can be other 'short' or 'full'. Got XArrow.isoweekday({human = !r})")
+    
     @property
     def HHmmss(self):
         if not self._HHmmss:
@@ -278,16 +301,21 @@ class XArrow(Arrow):
         if not self._full:
             self._full: str = f"{self.strftime('%A')} {self.DDMMYY}"
         return self._full
-
-    def __repr__(self):
+    
+    def __str__(self):
         return self.DDMMYYHHmmss
+    
+    def __repr__(self):
+        return f'{self.__class__.__qualname__} ⟨{self.DDMMYYHHmmss}⟩'
+
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]
     
     def __init__(self, type: Type[XArrow] = XArrow) -> None:
         super().__init__(type)
-
+    
     get: Callable[..., XArrow]
+
 
 xarrow_factory = XArrowFactory()

@@ -1,21 +1,27 @@
 from arrow.locales import EnglishLocale
 
+from timefred.config import config
 
-NUM2DAY = list(enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1))
-"""[(1, 'monday'), ..., (7, 'sunday')]"""
+if config.time.first_day_of_week == 'monday':
+    NUM2DAY = list(enumerate(map(str.lower, EnglishLocale.day_names[1:]), start=1))
+    """[(1, 'monday'), ..., (7, 'sunday')]"""
+else:
+    NUM2DAY = list(enumerate(map(str.lower, [EnglishLocale.day_names[-1]] + EnglishLocale.day_names[1:-1]), start=1))
+    """[(1, 'sunday'), ..., (7, 'saturday')]"""
 
 def isoweekday(day: str) -> int:  # perf: µs
     """
+    Depending on config.time.first_day_of_week, returns the ISO week day number
     >>> isoweekday('mon') == 1
     >>> isoweekday('f') == 5
     """
     day = day.lower()
     if len(day) == 1 and day in ('t', 's'):
-        raise ValueError(f"ambiguous day: {repr(day)} (tuesday/thursday, saturday/sunday)")
+        raise ValueError(f"Ambiguous day: {repr(day)} (tuesday/thursday, saturday/sunday)")
     for num, day_name in NUM2DAY:
         if day_name.startswith(day):
             return num
-    raise ValueError(f"unknown day: {repr(day)}")
+    raise ValueError(f"Unknown day: {repr(day)}")
 
 
 def arrows2rel_time(late: "XArrow", early: "XArrow") -> str:

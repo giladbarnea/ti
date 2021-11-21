@@ -1,13 +1,12 @@
-from test.testutils import default_work
+from test.testutils import default_work, assert_raises
 from timefred.store import Activity, Work
 
 class TestEmptySheet:
     def test_empty_sheet(self):
         work = Work()
-        '''{ "02/11/21" : Day }'''
         
-        ongoing_activity = work.ongoing_activity()
-        assert ongoing_activity is None
+        with assert_raises(ValueError):
+            work.ongoing_activity()
 
 
 class TestSheetWithContent:

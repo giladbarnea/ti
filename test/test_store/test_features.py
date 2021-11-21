@@ -5,7 +5,6 @@ from timefred.time import XArrow
 
 test_start = XArrow.now()
 
-@eye
 def test_ongoing():
     log.title(f"test_features.test_ongoing()")
     work = default_work(test_start)

@@ -1,7 +1,10 @@
+import sys
+from copy import copy
 from typing import NoReturn
 
-from timefred.time.xarrow import isoweekday, XArrow
-
+from timefred.time import isoweekday, XArrow
+from timefred.config import config
+test_start = XArrow.now()
 
 def _arrow_assert_soft_eq(arrw1: XArrow, arrw2: XArrow) -> NoReturn:
     """Regular Arrow __eq__ compares microseconds as well"""
@@ -73,22 +76,41 @@ def _arrow_assert_same_time(arrw1: XArrow, arrw2: XArrow) -> NoReturn:
 #     assert wednesday_morning.minute == 45
 #     _arrow_assert_same_time(wednesday_morning, today_morning)
 
-def test__day_num():
-    for num, days in enumerate([('mo', 'mon', 'monday'),
-                                ('tu', 'tue', 'tuesday'),
-                                ('we', 'wed', 'wednesday'),
-                                ('th', 'thur', 'thurs', 'thursday'),
-                                ('fr', 'fri', 'friday'),
-                                ('sa', 'sat', 'saturday'),
-                                ('su', 'sun', 'sunday')],
-                               start=1):
-        for day in days:
-            assert isoweekday(day) == num
-            assert isoweekday(day.title()) == num
+def test__isoweekday():
+    orig_first_day_of_week = copy(config.time.first_day_of_week)
+    config.time.first_day_of_week = 'sunday'
+    [sys.modules.pop(k) for k in list(sys.modules.keys()) if k.startswith('timefred.time')]
+    from timefred.time import isoweekday
+    # noinspection PyUnresolvedReferences
+    assert sys.modules['timefred.time.timeutils'].NUM2DAY[0][1] == 'sunday'
+    days = ['sunday', 'monday', 'tuesday',
+            'wednesday', 'thursday', 'friday', 'saturday']
+    
+    
+    for num, day in enumerate(days, start=1):
+        assert isoweekday(day) == num
+        for i, char in enumerate(day[2:], start=2):
+            assert isoweekday(day[:i]) == num
+
+    config.time.first_day_of_week = 'monday'
+    [sys.modules.pop(k) for k in list(sys.modules.keys()) if k.startswith('timefred.time')]
+    from timefred.time import isoweekday
+    # noinspection PyUnresolvedReferences
+    assert sys.modules['timefred.time.timeutils'].NUM2DAY[0][1] == 'monday'
+    days = ['monday', 'tuesday', 'wednesday',
+            'thursday', 'friday', 'saturday', 'sunday']
+    for num, day in enumerate(days, start=1):
+        assert isoweekday(day) == num
+        for i, char in enumerate(day[2:], start=2):
+            assert isoweekday(day[:i]) == num
+            
+    config.time.first_day_of_week = orig_first_day_of_week
+    [sys.modules.pop(k) for k in list(sys.modules.keys()) if k.startswith('timefred.time')]
+    # noinspection PyUnresolvedReferences
+    from timefred.time import isoweekday
 
 
 def test__XArrow_from_day():
-    # breakpoint()
     sunday = XArrow._from_day('sun')
     saturday = XArrow._from_day('sat')
     assert sunday.day - saturday.day == 1

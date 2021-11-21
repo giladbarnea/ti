@@ -44,7 +44,6 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
     
     
     # def __getitem__(self, name: TYPED_DICT_SPACE_K) -> TYPED_DICT_SPACE_V:
-    @eye
     def __getitem__(self, name):
         """Ensures self[name] is of __default_factory__"""
         try:
@@ -74,7 +73,6 @@ class DefaultDictSpace(TypedDictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V
     """KeyError returns a __default_factory__() (also casts __getitem__ from TypedDictSpace)"""
     
     # def __getitem__(self, key: DEFAULT_SPACE_K) -> DEFAULT_SPACE_V:
-    @eye
     def __getitem__(self, name):
         try:
             value = super().__getitem__(name)

@@ -92,7 +92,6 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         """Compares the activity's lowercase, stripped and non-word-free name to other."""
         return normalize_str(self.name) == normalize_str(other)
     
-    @eye
     def ongoing(self) -> bool:
         try:
             last_entry = self[-1]
@@ -152,7 +151,6 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
     """Day { activity_name: Activity }"""
     __default_factory__: Type[Activity]
     
-    @eye
     def __getitem__(self, name):
         # log(f'[title]{self.__class__.__qualname__}.__getitem__({name!r})...')
         try:
@@ -207,7 +205,6 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""
     __default_factory__: Type[Day]
     
-    @eye
     def ongoing_activity(self) -> Activity:
         """
         Raises:
