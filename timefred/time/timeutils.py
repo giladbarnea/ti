@@ -12,16 +12,17 @@ else:
 def isoweekday(day: str) -> int:  # perf: µs
     """
     Depending on config.time.first_day_of_week, returns the ISO week day number
-    >>> isoweekday('mon') == 1
-    >>> isoweekday('f') == 5
+    >>> isoweekday('mon') == 1 or isoweekday('mon') == 2
+    >>> isoweekday('f') == ...
+    >>> isoweekday('Saturday') == ...
     """
     day = day.lower()
     if len(day) == 1 and day in ('t', 's'):
-        raise ValueError(f"Ambiguous day: {repr(day)} (tuesday/thursday, saturday/sunday)")
+        raise ValueError(f"Ambiguous day: {day!r} (tuesday/thursday, saturday/sunday)")
     for num, day_name in NUM2DAY:
         if day_name.startswith(day):
             return num
-    raise ValueError(f"Unknown day: {repr(day)}")
+    raise ValueError(f"Unknown day: {day!r}")
 
 
 def arrows2rel_time(late: "XArrow", early: "XArrow") -> str:
