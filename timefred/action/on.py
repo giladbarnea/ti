@@ -1,3 +1,5 @@
+from typing import Union
+
 from timefred import color as c
 from timefred.color import Colored
 from timefred.note import Note
@@ -6,7 +8,7 @@ from timefred.time import XArrow
 from timefred.action import stop
 
 
-def on(name: str, time: XArrow, tag=None, note=None):
+def on(name: str, time: Union[str, XArrow], tag=None, note=None):
     work = store.load()
     if work:
         ddmmyy = time.DDMMYY

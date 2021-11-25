@@ -18,13 +18,26 @@ class Config(AttrDictSpace):
             short_date: str = 'DD/MM'
             time: str = 'HH:mm:ss'
             short_time: str = 'HH:mm'
-            datetime: str = f'{date} {time}'
-            short_datetime: str = f'{short_date} {short_time}'
+            datetime: str = f'{date} {time}'  # DD/MM/YY HH:mm:ss
+            shorter_datetime: str = f'{date} {short_time}'  # DD/MM/YY HH:mm
+            short_datetime: str = f'{short_date} {short_time}'  # DD/MM HH:mm
 
             def __init__(self, mappable=(), **kwargs) -> None:
                 super().__init__(mappable, **kwargs)
-                self.date_separator = re.search(r'[^\w]', self.date).group()
-                self.time_separator = re.search(r'[^\w]', self.time).group()
+                self.date_separator = re.search(r'[^\w]', self.date).group()  # e.g '/'
+                self.time_separator = re.search(r'[^\w]', self.time).group()  # e.g ':'
+                
+                if self.date.count(self.date_separator) != 2:
+                    raise ValueError(f'Invalid date format: {self.date!r}. Needs to signify Day, Month and Year.')
+                if self.short_date.count(self.date_separator) != 1:
+                    raise ValueError(f'Invalid date format: {self.short_date!r}. Needs to signify Day and Month.')
+                if self.time.count(self.time_separator) != 2:
+                    raise ValueError(f'Invalid date format: {self.time!r}. Needs to signify Hours, minutes and seconds.')
+                if self.short_time.count(self.time_separator) != 1:
+                    raise ValueError(f'Invalid date format: {self.short_time!r}. Needs to signify Hours and minutes.')
+                
+                self.time_format_re = re.compile(fr'(?P<hour>\d{{1,2}})(?:{self.time_separator}(?P<minute>\d{{2}})(?:{self.time_separator}(?P<second>\d{{2}}))?)?')
+                """23[:31[:56]]"""
 
         # tz: BaseTzInfo
         # tz: datetime.timezone = dt.now().astimezone().tzinfo

@@ -16,8 +16,10 @@ class Note:
 	content: str
 
 	@multimethod
-	def __init__(self, note: str, time: Union[str, XArrow]):
-		self.content = note
+	def __init__(self, content: str, time: Union[str, XArrow]=None):
+		self.content = content
+		if not time:
+			time = XArrow.now()
 		self._time = time
 
 	@multimethod
@@ -56,7 +58,7 @@ class Note:
 		return self._time
 
 	@multimethod
-	def is_similar(self, other: 'Note') -> bool:
+	def is_similar(self, other: "Note") -> bool:
 		return self.is_similar(other.content)
 
 	@multimethod

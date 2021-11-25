@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 import sys
 from collections import Mapping
@@ -6,21 +7,21 @@ from os import path, getenv
 from pathlib import Path
 from typing import Optional, Type, Any, Union, Iterable
 
-import cheap_repr
 import toml
 
 from timefred.color.colored import Colored, TaskString
-from timefred.integration.jira import Ticket
+from timefred.integration.jira import JiraTicket
 from timefred.note import Note
 from timefred.space import AttrDictSpace, DefaultAttrDictSpace, TypedListSpace, Field
+from timefred.log import log
 from timefred.tag import Tag
 from timefred.time import XArrow, Timespan
 from timefred.util import normalize_str
 
 
 class Entry(AttrDictSpace):
-    start: XArrow = Field(cast=XArrow.from_formatted)
-    end: Optional[XArrow] = Field(cast=XArrow.from_formatted, optional=True)
+    start: XArrow = Field(cast=XArrow.from_absolute)
+    end: Optional[XArrow] = Field(cast=XArrow.from_absolute, optional=True)
     notes: Optional[list[Note]] = Field(optional=True)
     tags: Optional[set[Tag]] = Field(optional=True)
     
@@ -28,6 +29,15 @@ class Entry(AttrDictSpace):
     @property
     def timespan(self):
         return Timespan(self.start, self.end)
+    
+    # TODO: this isn't really good because fails e.g test_on.py.
+    #       Need to decide how from_formatted() should work.
+    # noinspection PyMethodParameters
+    # @Field.cast
+    # def start(value):
+    #     rv = XArrow.now().update(value)
+    #     log.debug(f'Entry @start.cast({value!r}) -> {rv!r}')
+    #     return rv
     
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,
@@ -69,18 +79,19 @@ class Entry(AttrDictSpace):
 
 
 class Activity(TypedListSpace[Entry], default_factory=Entry):
-    """Activity (name=...) [Entry, Entry...]"""
-    # name: Colored = Field(cast=lambda s: Colored(s, brush=c.task))
+    """Activity (name=..., jira=...) [Entry, Entry...]"""
     name: Colored = Field(cast=TaskString)
-    jira: Optional[Ticket] = Field(default_factory=Ticket)
+    jira: Optional[JiraTicket] = Field(default_factory=JiraTicket)
     
     def __init__(self, iterable: Iterable = (), **kwargs) -> None:
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
         super().__init__(iterable, **kwargs)
     
-    def __repr__(self):
-        representation = f'{self.__class__.__qualname__}(name={getattr(self, "name", "⟨UNSET⟩")!r} <{str(id(self))[-4:]}>) {list.__repr__(self)}'
-        # representation = f'{self.__class__.__qualname__}<{str(id(self))[-4:]}> {list.__repr__(self)}'
+    def __repr__(self) -> str:
+        name = f'{getattr(self, "name", "⟨UNSET⟩")!r}'
+        short_id = f'{str(id(self))[-4:]}'
+        jira = self.jira
+        representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
         return representation
     
     # @multimethod
@@ -139,7 +150,10 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         return entry
 
 
-cheap_repr.register_repr(Activity)(cheap_repr.normal_repr)
+if os.getenv('TIMEFRED_BIRDSEYE'):
+    import cheap_repr
+    
+    cheap_repr.register_repr(Activity)(cheap_repr.normal_repr)
 
 
 # @register_repr(Activity)
@@ -148,7 +162,7 @@ cheap_repr.register_repr(Activity)(cheap_repr.normal_repr)
 # return repr(activity)
 
 class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
-    """Day { activity_name: Activity }"""
+    """Day { "activity_name": Activity }"""
     __default_factory__: Type[Activity]
     
     def __getitem__(self, name):

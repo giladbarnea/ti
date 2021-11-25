@@ -1,5 +1,5 @@
-from collections import UserString
+from timefred.space import StringSpace
 
 
-class Ticket(UserString):
+class JiraTicket(StringSpace):
     ...

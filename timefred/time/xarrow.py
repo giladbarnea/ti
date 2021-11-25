@@ -10,6 +10,7 @@ from arrow.arrow import TZ_EXPR
 
 import timefred.color as c
 from timefred.config import config
+from timefred.log import log
 from timefred.time.timeutils import isoweekday
 
 
@@ -86,13 +87,13 @@ class XArrow(Arrow):
                 return date
             raise NotImplementedError(f"{cls.__qualname__}.from_formatted({date = !r}) is Arrow")
         
-        return xarrow_factory.get(date, [FORMATS.datetime,  # DD/MM/YY HH:mm:ss
-                                         f"{FORMATS.date} {FORMATS.short_time}",  # DD/MM/YY HH:mm
-                                         FORMATS.short_datetime,  # DD/MM HH:mm
-                                         FORMATS.date,  # DD/MM/YY
-                                         FORMATS.short_date,  # DD/MM
-                                         FORMATS.time,  # HH:mm:ss
-                                         FORMATS.short_time,  # HH:mm
+        return xarrow_factory.get(date, [FORMATS.datetime,          # DD/MM/YY HH:mm:ss
+                                         FORMATS.shorter_datetime,  # DD/MM/YY HH:mm
+                                         FORMATS.short_datetime,    # DD/MM HH:mm
+                                         FORMATS.date,              # DD/MM/YY
+                                         FORMATS.short_date,        # DD/MM
+                                         FORMATS.time,              # HH:mm:ss
+                                         FORMATS.short_time,        # HH:mm
                                          ],
                                   tzinfo=TZINFO)
         
@@ -114,7 +115,7 @@ class XArrow(Arrow):
         return cls(today.year, today.month, today.day, *map(int, date.split(':')))
     
     @classmethod
-    def _from_day(cls, day: str) -> "XArrow":  # perf: µs
+    def _from_day(cls, day: Union[str, "XArrow"]) -> "XArrow":  # perf: µs
         """
         >>> XArrow._from_day('thurs')
         <XArrow ...>
@@ -132,7 +133,7 @@ class XArrow(Arrow):
         return now.shift(days=shift)
     
     @classmethod
-    def _from_relative(cls, time: str) -> "XArrow":
+    def _from_relative(cls, time: Union[str, "XArrow"]) -> "XArrow":
         """
         >>> XArrow._from_relative('3m ago')
         <XArrow ...>
@@ -157,16 +158,15 @@ class XArrow(Arrow):
         return parsed
     
     @classmethod
-    def _from_absolute(cls, time: str) -> "XArrow":
+    def from_absolute(cls, time: Union[str, "XArrow"]) -> "XArrow":
         """
-        >>> XArrow._from_absolute('09:45')
+        >>> XArrow.from_absolute('09:45')
         <XArrow ...>
         """
-        # replace = _time2replace_dict(time)
         return cls.now().update(time)
     
     @classmethod
-    def from_human(cls, engtime: Union[str, "XArrow"] = "now") -> "XArrow":
+    def from_human(cls, human_time: Union[str, "XArrow"] = "now") -> "XArrow":
         """
         Format is e.g.::
 
@@ -178,87 +178,89 @@ class XArrow(Arrow):
 
         For example: "1s ago", "2 minutes ago", "3hr"
         """
-        if isinstance(engtime, Arrow):
-            if isinstance(engtime, XArrow):
-                return engtime
-            raise NotImplementedError(f"{cls.__qualname__}.from_human({engtime = !r}) is Arrow")
-        engtime = engtime.lower()
+        if isinstance(human_time, Arrow):
+            if isinstance(human_time, XArrow):
+                return human_time
+            raise NotImplementedError(f"{cls.__qualname__}.from_human({human_time = !r}) is Arrow")
+        human_time = human_time.lower()
         
         # 'now', 'today', 'yesterday'
-        if engtime in ('now', 'today'):
+        if human_time in ('now', 'today'):
             return cls.now()
-        if engtime == 'yesterday':
+        if human_time == 'yesterday':
             return cls.now().shift(days=-1)
         
         # 'thurs', ...
         with suppress(ValueError):
-            return cls._from_day(engtime)
+            return cls._from_day(human_time)
         
         # '3m'
         with suppress(ValueError):
-            return cls._from_relative(engtime)
+            return cls._from_relative(human_time)
         
         # '09:45'
         with suppress(ValueError):
-            return XArrow._from_absolute(engtime)
+            return XArrow.from_absolute(human_time)
         
         # 05/18/21
-        if FORMATS.date_separator in engtime:
-            return XArrow.from_formatted(engtime)
+        if FORMATS.date_separator in human_time:
+            return XArrow.from_formatted(human_time)
         
         # 'Wednesday 09:45'
-        day, _, time = engtime.partition(' ')
+        day, _, time = human_time.partition(' ')
         # TODO: '05/20/21' doesnt work! and enters here
         day = cls._from_day(day)
         # replace = _time2replace_dict(time)
         return day.update(time)
         
         #
-        # parsed = parsedate(engtime)
+        # parsed = parsedate(human_time)
         #
         #
         # if not parsed:
-        #     raise BadTime(f"BadTime: human2dt({engtime = })")
+        #     raise BadTime(f"BadTime: human2dt({human_time = })")
         # return parsed
-        # if not engtime or engtime.lower().strip() == 'now':
+        # if not human_time or human_time.lower().strip() == 'now':
         #     return now
         #
-        # match = re.match(r'(\d+)\s*(m|mins?|minutes?)(\s+ago\s*)?$', engtime, re.X)
+        # match = re.match(r'(\d+)\s*(m|mins?|minutes?)(\s+ago\s*)?$', human_time, re.X)
         # if match is not None:
         #     minutes = int(match.group(1))
         #     return now - timedelta(minutes=minutes)
         #
-        # match = re.match(r'(\d+)\s*(h|hrs?|hours?)(\s+ago\s*)?$', engtime, re.X)
+        # match = re.match(r'(\d+)\s*(h|hrs?|hours?)(\s+ago\s*)?$', human_time, re.X)
         # if match is not None:
         #     hours = int(match.group(1))
         #     return now - timedelta(hours=hours)
         #
-        # raise BadTime(f"Don't understand the time {engtime!r}")
+        # raise BadTime(f"Don't understand the time {human_time!r}")
     
-    def update(self, time) -> "XArrow":
+    def update(self, time: Union[str, "XArrow"]) -> "XArrow":
         """
-        >>> self.replace('09:45')
-        {'hour': 9, 'minute': 45}
+        >>> self.update('09:45')
+        <XArrow ...>
         """
-        if '/' in time:
-            raise ValueError(f"Don't understand {time = }")
-        match = re.match(r'(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?', time)
-        if not match:
-            raise ValueError(f"Don't understand {time = }")
+        if isinstance(time, XArrow):
+            return time
+        if FORMATS.date_separator in time:
+            raise NotImplementedError(f"Looks like {time = !r} is a date. Currently can only update time.")
+        time_match = FORMATS.time_format_re.match(time)
+        if not time_match:
+            raise ValueError(f"{time = !r} doesn't match {FORMATS.time_format_re}")
         
-        hours = int(match.group(1))
-        minutes = match.group(2)
-        replace = {'hour': hours}
-        if minutes is not None:
-            replace.update({'minute': int(minutes)})
-        else:
-            replace.update({'minute': 0})
-        seconds = match.group(3)
-        if seconds is not None:
-            replace.update({'second': int(seconds)})
-        else:
-            replace.update({'second': 0})
-        return self.replace(**replace)
+        time_match_dict = time_match.groupdict()
+        replace = {}
+        if (hour := time_match_dict['hour']) is not None:
+            replace['hour'] = int(hour)
+        if (minute := time_match_dict['minute']) is not None:
+            replace['minute'] = int(minute)
+        if (second := time_match_dict['second']) is not None:
+            replace['second'] = int(second)
+        
+        
+        rv = self.replace(**replace)
+        log.debug(f'{self!r}.replace({replace}) -> {rv!r}')
+        return rv
     
     @overload
     def isoweekday(self, human: NoneType = None) -> int:...

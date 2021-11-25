@@ -1,8 +1,9 @@
 from collections.abc import Mapping
-from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn
+from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
 
 from timefred.singleton import Singleton
-
+from timefred.log import log
+from pdbpp import break_on_exc
 
 class UNSET_TYPE(Singleton):
     def __repr__(self):
@@ -10,7 +11,7 @@ class UNSET_TYPE(Singleton):
     
     def __bool__(self):
         return False
-
+    
 
 UNSET = UNSET_TYPE()
 
@@ -23,7 +24,7 @@ def updatedefault(obj: Any, name: str, mapping: Mapping):
     """
     try:
         attr = getattr(obj, name)
-    except AttributeError as e:
+    except AttributeError:
         setattr(obj, name, mapping)
         return getattr(obj, name)
     else:
@@ -31,38 +32,43 @@ def updatedefault(obj: Any, name: str, mapping: Mapping):
         return attr
 
 
-TFieldType = TypeVar('TFieldType')
+TFieldValue = TypeVar('TFieldValue')
 
 
 class FieldData(TypedDict):
-    value: TFieldType
-    cached: TFieldType
+    value: TFieldValue
+    cached: TFieldValue
 
 
-class HasFields(Protocol[TFieldType]):
+class HasFields(Protocol[TFieldValue]):
     __fields__: dict[str, FieldData]
 
+class DefaultFactory(Protocol[TFieldValue]):
+    def __call__(self) -> TFieldValue:
+        ...
 
-# TODO: Field(Generic)
-class Field:
+class Cast(Protocol[TFieldValue]):
+    def __call__(self, value: TFieldValue) -> TFieldValue:
+        ...
+
+
+class Field(Generic[TFieldValue]):
+    """field_data['cached'] > field_data['value'] > default > default_factory"""
     def __init__(self,
-                 default_factory: Callable = UNSET,
+                 default_factory: DefaultFactory[TFieldValue] = UNSET,
                  *,
-                 default: Any = UNSET,
-                 cast: Callable = UNSET,
+                 default: TFieldValue = UNSET,
+                 cast: Cast[TFieldValue] = UNSET,
                  optional=False,
                  cache=True
                  ):
         self.default = default
         self.default_factory = default_factory
-        self.caster = cast
+        self.cast = cast
         self.should_cache = cache
-        # TODO (urgent): set cached_value on INSTANCE
-        # self.cached_value = UNSET
-        
         self.optional = optional
     
-    def __set_name__(self, instance_cls: Type[HasFields], name):
+    def __set_name__(self, instance_cls: Type[HasFields], name: str):
         self.name = name
     
     def __call__(self, method: Callable) -> "Field":
@@ -86,22 +92,20 @@ class Field:
         else:
             instance.__fields__[self.name] = field_data
             
-            
     def _repred_attrs(self) -> dict:
         default_factory_repr = getattr(self.default_factory, '__qualname__', self.default_factory)
-        caster_repr = getattr(self.caster, '__qualname__', self.caster)
+        cast_repr = getattr(self.cast, '__qualname__', self.cast)
         attrs = dict(default=self.default,
                      default_factory=default_factory_repr,
-                     cast=caster_repr,
-                     # cached_value=repr(self.cached_value),
+                     cast=cast_repr,
                      optional=self.optional,
                      cache=self.should_cache)
         return attrs
     
     # def __repr__(self):
     #     return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
-    
-    def __get__(self, instance: HasFields, instance_cls: Type[HasFields]):
+    # @break_on_exc
+    def __get__(self, instance: HasFields, instance_cls: Type[HasFields]) -> TFieldValue:
         field_data = self.get_set_default_instance_field_data(instance, {'value': UNSET, 'cached': UNSET})
         if self.should_cache and field_data['cached'] is not UNSET:
             return field_data['cached']
@@ -117,17 +121,15 @@ class Field:
             else:
                 value = self.default
         
-        if self.caster and value is not UNSET:
-            value = self.caster(value)
+        if self.cast and value is not UNSET:
+            value = self.cast(value)
         
         if self.should_cache:
-            # field_data['cached'] = value
             instance.__fields__[self.name]['cached'] = value
         return value
     
     def __set__(self, instance: HasFields, value):
         # log.debug(f"setting {instance}.__fields__[ {self.name!r} ] = {value!r}")
-        # self._unset_cache(instance)
         self.set_instance_field_data(instance, {'value': value, 'cached': UNSET})
         # if not hasattr(instance, '__fields__'):
         #     setattr(instance, '__fields__', {self.name: {'value': value, 'cached': UNSET}})
@@ -140,7 +142,6 @@ class Field:
     
     def __delete__(self, instance: HasFields):
         # log.debug(f"deleting {instance}.__fields__[ {self.name!r} ]")
-        # self._unset_cache(instance)
         self.set_instance_field_data(instance, {'value': UNSET, 'cached': UNSET})
         # if not hasattr(instance, '__fields__'):
         #     setattr(instance, '__fields__', {self.name: {'value': UNSET, 'cached': UNSET}})

@@ -1,14 +1,13 @@
 import os
 
+from test import TEST_START_ARROW
+from test.test_times import assert_arrows_soft_eq
 from test.testutils import assert_raises, default_work
 from timefred.color import Colored
 from timefred.log import log
 from timefred.store import Day, Entry, Activity, Work
 from timefred.store import store
 from timefred.time import XArrow
-
-# import debug
-test_start = XArrow.now()
 
 
 class TestEmptySheet:
@@ -24,7 +23,9 @@ class TestEmptySheet:
         assert entry
         assert entry.start
         assert isinstance(entry.start, XArrow)
-        assert entry.start == XArrow.from_formatted("02:20")
+        absolute = XArrow.from_absolute("02:20")
+        entry_start = entry.start
+        assert_arrows_soft_eq(entry_start, absolute)
         
         name = "Got to office"
         activity = Activity(name=name)
@@ -52,15 +53,15 @@ class TestSheetWithContent:
             def test_sanity(self, work=None):
                 log.title(f"test_sanity({work = })")
                 if not work:
-                    work = default_work(test_start)
+                    work = default_work(TEST_START_ARROW)
                 
                 log.debug('work (Work)')
                 assert isinstance(work, Work)
                 assert work
                 assert len(work) == 1
-                assert test_start.DDMMYY in work
+                assert TEST_START_ARROW.DDMMYY in work
                 log.debug('Work["30/12/99"] -> Day')
-                day: Day = work[test_start.DDMMYY]
+                day: Day = work[TEST_START_ARROW.DDMMYY]
                 assert isinstance(day, Day)
                 assert day
                 assert len(day) == 1

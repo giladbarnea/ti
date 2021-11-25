@@ -1,8 +1,7 @@
 from typing import Callable
 from timefred import color as c
 
-from timefred.space.field import Field
-from timefred.space import StringSpace
+from timefred.space import Field, StringSpace
 
 
 class Colored(StringSpace):

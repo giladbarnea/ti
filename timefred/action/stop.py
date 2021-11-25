@@ -9,6 +9,7 @@ def stop(end: XArrow) -> bool:
     # ensure_working()
     
     work: DefaultAttrDictSpace = store.load()
+    
     # TODO: work[day].stop(end). Consider moving .ongoing_activity() to work level because mightve started yesterday
     item = Entry(**data[-1])
     
