@@ -33,9 +33,14 @@ def assert_equal_attrs(obj1, obj2, attr: Union[str, Iterable[str]], *attrs) -> N
     for attribute in attributes:
         try:
             assert getattr(obj1, attribute) == getattr(obj2, attribute)
-        except AttributeError as e:
-            raise AssertionError(f'{obj1!r}.{attribute} not equal to {obj2!r}.{attribute} because AttributeError: {e}') from None
-
+        except AttributeError as attr_err:
+            raise AssertionError(f'{obj1!r}.{attribute} not equal to {obj2!r}.{attribute} because AttributeError: {attr_err}') from None
+        except AssertionError as ass_err:
+            if attribute != 'second':
+                raise
+            import debug
+            what(obj1)
+            raise
 
 def assert_arrows_soft_eq(arrow1: Arrow, arrow2: Arrow, *, compare_second=True) -> NoReturn:
     """Compares year, month, day, hour, minute, second.
@@ -157,7 +162,6 @@ class TestXArrow:
         
     
     class TestDehumanize:
-        # @break_on_exc
         @pytest.mark.slow
         def test_dehumanize_vanilla(self):
             """Make sure we don't break vanilla Arrow.dehumanize() functionality"""
@@ -312,27 +316,34 @@ class TestXArrow:
                                 dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
                                 assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
                                 assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-                            
+
         def test_dehumanize_static(self):
             now_dehumanized = XArrow.dehumanize("now")
             now = XArrow.now()
             assert_arrows_soft_eq(now_dehumanized, now)
-            
+    
             today = XArrow.dehumanize('today')
             assert_arrows_soft_eq(today, now)
-            
+    
             yesterday = XArrow.dehumanize('yesterday')
-            assert_equal_attrs(now, yesterday, TIME_UNITS - {'day'})
+            assert_equal_attrs(now, yesterday, TIME_UNITS - {'day', 'week'})
             assert_arrows_soft_eq(now.shift(days=-1), yesterday)
     
             tomorrow = XArrow.dehumanize('tomorrow')
-            assert_equal_attrs(now, tomorrow, TIME_UNITS - {'day'})
+            assert_equal_attrs(now, tomorrow, TIME_UNITS - {'day', 'week'})
             assert_arrows_soft_eq(now.shift(days=+1), tomorrow)
             
         def test_dehumanize_instance(self):
             now = XArrow.now()
-            yesterday = XArrow.dehumanize('yesterday')
-            tomorrow = XArrow.dehumanize('tomorrow')
+            now_dehumanized = now.dehumanize("now")
+            assert_arrows_soft_eq(now_dehumanized, now)
+
+            today = now.dehumanize('today')
+            assert_arrows_soft_eq(today, now)
+            assert_arrows_soft_eq(today, now_dehumanized)
+            
+            yesterday = now.dehumanize('yesterday')
+            tomorrow = now.dehumanize('tomorrow')
             _1_days_ago = now.dehumanize('1 days ago')
             assert_arrows_soft_eq(_1_days_ago, yesterday)
             
@@ -346,7 +357,8 @@ class TestXArrow:
             assert_arrows_soft_eq(in_1_day, tomorrow)
     
             now.dehumanize('1d ago')
-            
+        
+        @pytest.mark.skip
         def test_dehumanize_advanced(self): # can decide not to support if too difficult
             XArrow.dehumanize('1 days from now')
             XArrow.dehumanize('1 days from today')

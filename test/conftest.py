@@ -1,4 +1,10 @@
 import pytest
+import sys
+import os
+
+homedir = os.path.expanduser('~')
+if homedir not in sys.path:
+    sys.path.append(homedir)
 
 
 def pytest_addoption(parser):
