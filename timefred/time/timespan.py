@@ -11,7 +11,8 @@ from timefred.time.xarrow import XArrow
 @dataclass
 class Timespan:
     # todo: XArrow - XArrow -> Timespan?
-    #  inherit from timedelta?
+    #       inherit from timedelta?
+    #       XArrow.span() -> (XArrow, XArrow)?
     # class Config:
     #     arbitrary_types_allowed = True
     # start = Field(cast=XArrow)

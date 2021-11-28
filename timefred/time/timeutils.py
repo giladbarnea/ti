@@ -25,15 +25,16 @@ def isoweekday(day: str) -> int:  # perf: µs
     raise ValueError(f"Unknown day: {day!r}")
 
 
-def arrows2rel_time(late: "XArrow", early: "XArrow") -> str:
+def arrows2rel_time(present: "XArrow", past: "XArrow") -> str:
     """
     >>> arrows2rel_time(now(), now().shift(days=-5, minutes=3))
     '4 days, 23 hours & 57 minutes ago'
     """
-    # if (late.year != early.year or
-    #         late.month != early.month):
+    # TODO: check out present.humanize(past, granularity=["hour", "minute", "second"])
+    # if (present.year != past.year or
+    #         present.month != past.month):
     #     raise NotImplemented(f"Can only handle differences in weeks and below")
-    secs = int((late - early).total_seconds())
+    secs = int((present - past).total_seconds())
     if not secs:
         return ''
     return secs2human(secs) + ' ago'

@@ -30,15 +30,6 @@ class Entry(AttrDictSpace):
     def timespan(self):
         return Timespan(self.start, self.end)
     
-    # TODO: this isn't really good because fails e.g test_on.py.
-    #       Need to decide how from_formatted() should work.
-    # noinspection PyMethodParameters
-    # @Field.cast
-    # def start(value):
-    #     rv = XArrow.now().update(value)
-    #     log.debug(f'Entry @start.cast({value!r}) -> {rv!r}')
-    #     return rv
-    
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,
     # 						  start=start,

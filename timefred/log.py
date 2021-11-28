@@ -42,6 +42,9 @@ class LogProxy:
     
     def debug(self, *args, **kwargs):
         return self.__call__('\n· '.join(self._prepend_level('debug', *args)), **kwargs, _stack_offset=3)
+
+    def info(self, *args, **kwargs):
+        return self.__call__('\n· '.join(self._prepend_level('info', *args)), **kwargs, _stack_offset=3)
     
     def warning(self, *args, **kwargs):
         return self.__call__('\n· '.join(self._prepend_level('warning', *args)), **kwargs, _stack_offset=3)
