@@ -14,7 +14,7 @@ from random import randint, random
 from arrow import Arrow
 from pdbpp import break_on_exc
 from itertools import product
-from pytest import mark, skip
+import pytest
 
 ic.configureOutput(prefix='')
 
@@ -158,7 +158,7 @@ class TestXArrow:
     
     class TestDehumanize:
         # @break_on_exc
-        @mark.slow
+        @pytest.mark.slow
         def test_dehumanize_vanilla(self):
             """Make sure we don't break vanilla Arrow.dehumanize() functionality"""
             log.title('TestXArrow.TestDehumanize.test_dehumanize_vanilla')
