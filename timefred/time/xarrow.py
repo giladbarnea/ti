@@ -22,29 +22,38 @@ class NoneType:
 FORMATS = config.time.formats
 TZINFO = config.time.tz
 
-ABBREVS = {
+TIME_UNITS_FIRST_DIGIT_TO_PLURAL = {
     's': 'seconds',
     'm': 'minutes',
     'h': 'hours',
     'd': 'days',
     'w': 'weeks',
-    'M': 'months'
+    'M': 'months',
+    'q': 'quarters',
+    'y': 'years',
     }
 
 # DAYS = set(map(str.lower, EnglishLocale.day_abbreviations[1:] + EnglishLocale.day_names[1:]))
 # """{'fri', 'friday', ...}"""
 
-TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|(ou)?r|ay|eek|onth)?s?"
 
-HUMAN_RELATIVE = re.compile((rf'(?P<amount1>\d+)\s*(?P<fullunit1>(?P<unit1>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
-                             rf'('
-                             rf'(?P<amount2>\d+)\s*(?P<fullunit2>(?P<unit2>([smhdw]))\s*{TIMEUNIT_REMAINDER})\s*'
-                             rf'('
-                             rf'(?P<amount3>\d+)\s*(?P<fullunit3>(?P<unit3>([smhdw]))\s*{TIMEUNIT_REMAINDER})'
-                             rf')?'
-                             rf')?'
-                             rf'\s*'
-                             r'(?:\s+ago\s*)?$'), re.IGNORECASE)
+TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|ay|eek|onth|(ou|uarte|ea)?r)?s?"
+# for token_num in range(1, 8):
+# TIMEUNITS = "(?:sec(?:ond)?|in(ute)?|ay|eek|onth|(ou|uarte|ea)?r)?s?"
+
+HUMAN_RELATIVE = re.compile(
+        rf' *(?P<future>in )? *'
+        rf'(?P<quantity_1>(an?|\d+)) *(?P<time_unit_1>(?P<time_unit_1_first_char>([smhdwqy])){TIMEUNIT_REMAINDER}) *,? *(?:and)? *'
+        rf'('
+        rf'(?P<quantity_2>(an?|\d+)) *(?P<time_unit_2>(?P<time_unit_2_first_char>([smhdwqy])){TIMEUNIT_REMAINDER}) *,? *(?:and)? *'
+        rf'('
+        rf'(?P<quantity_3>(an?|\d+)) *(?P<time_unit_3>(?P<time_unit_3_first_char>([smhdwqy])){TIMEUNIT_REMAINDER})'
+        rf')?'
+        rf')?'
+        rf' *'
+        rf'(?P<past>ago)? *$',
+        re.IGNORECASE
+        )
 """3 hours 2m 15 secs ago
 Used in `XArrow._dehumanize_relative`"""
 
@@ -76,7 +85,7 @@ class XArrow(Arrow):
         self._DDMMYYHHmmss = None
         self._full = None
         self._colored = None
-        super().__init__(year, month, day, hour, minute, second, microsecond, tzinfo, **kwargs)
+        super().__init__(year, month, day, hour, minute, second, microsecond=0, tzinfo=tzinfo, **kwargs)
     
     @property
     def colored(self):
@@ -125,30 +134,56 @@ class XArrow(Arrow):
         else:
             shift = diff * -1
         return now.shift(days=shift)
-    
-    @classmethod
-    def _dehumanize_relative(cls, time: Union[str, "XArrow"]) -> "XArrow":
+
+    def _dehumanize_relative(self, time: Union[str, "XArrow"]) -> "XArrow":
         """
         >>> XArrow._dehumanize_relative('3m ago')
         <XArrow ...>
         """
+        
         match = HUMAN_RELATIVE.fullmatch(time)
         if not match:
             raise ValueError(f"Don't understand {time = !r}")
-        grpdict = match.groupdict()
-        amount1 = int(grpdict['amount1'])
-        unit1 = grpdict['unit1']
-        fullunit1 = grpdict['fullunit1']
-        if unit1 == 'm' and fullunit1 == 'month':
-            unit1 = 'M'
-        delta = {ABBREVS[unit1]: amount1}
-        if amount2 := grpdict.get('amount2'):
-            delta.update({ABBREVS[grpdict['unit2']]: int(amount2)})
-            if amount3 := grpdict.get('amount3'):
-                delta.update({ABBREVS[grpdict['unit3']]: int(amount3)})
-        parsed: XArrow = cls.now() - timedelta(**delta)
-        if not isinstance(parsed, XArrow):
-            raise NotImplementedError(f"{cls.__qualname__}._dehumanize_relative({time = !r}) returning {parsed = !r} (not XArrow)")
+        match_group_dict = match.groupdict()
+        
+        # Both "3m" and "3m ago" are past, so only "in 3m" is future
+        sign = +1 if match_group_dict.get("future") else -1
+        
+        quantity_1 = match_group_dict['quantity_1']
+        try:
+            quantity_1 = int(quantity_1) * sign
+        except ValueError:
+            # "a day ago"
+            quantity_1 = sign
+            
+        time_unit_1_first_char = match_group_dict['time_unit_1_first_char']
+        time_unit_1 = match_group_dict['time_unit_1']
+        time_unit_1_plural = match_group_dict['time_unit_1'] + 's'
+        shift_kwargs = {time_unit_1_plural: quantity_1}
+        
+        if quantity_2 := match_group_dict.get('quantity_2'):
+            try:
+                quantity_2 = int(quantity_2) * sign
+            except ValueError:
+                quantity_2 = sign
+            time_unit_2_first_char = match_group_dict['time_unit_2_first_char']
+            time_unit_2 = match_group_dict['time_unit_2']
+            time_unit_2_plural = match_group_dict['time_unit_2'] + 's'
+            # if time_unit_2_first_char == 'm' and time_unit_2 == 'month':
+            #     time_unit_2_first_char = 'M'
+            shift_kwargs.update({time_unit_2_plural: quantity_2})
+            
+            if quantity_3 := match_group_dict.get('quantity_3'):
+                try:
+                    quantity_3 = int(quantity_3) * sign
+                except ValueError:
+                    quantity_3 = sign
+                
+                time_unit_3_plural = match_group_dict['time_unit_3'] + 's'
+                shift_kwargs.update({time_unit_3_plural: quantity_3})
+        parsed = self.shift(**shift_kwargs)
+        # parsed: XArrow = cls.now() - timedelta(**delta)
+        assert isinstance(parsed, XArrow), f"{self.__class__.__qualname__}._dehumanize_relative(...) -> {parsed = !r} (not XArrow)"
         return parsed
     
     @classmethod
@@ -161,13 +196,9 @@ class XArrow(Arrow):
     
     # noinspection PyMethodOverriding,PyMethodParameters
     @overload
-    def dehumanize(input_string: str, locale: str = "local") -> "XArrow":
-        ...
-    
+    def dehumanize(input_string: str, locale: str = "local") -> "XArrow": ...
     @overload
-    def dehumanize(self: "XArrow", input_string: str, locale: str = "local") -> "XArrow":
-        ...
-    
+    def dehumanize(self: "XArrow", input_string: str, locale: str = "local") -> "XArrow": ...
     # noinspection PyMethodParameters
     def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> "XArrow":
         if isinstance(self_or_input_string, str):
@@ -177,7 +208,7 @@ class XArrow(Arrow):
             called_static = False
             input_string = input_string_or_locale.lower()
         
-        if input_string in ('now', 'today'):
+        if input_string in ('now', 'today', 'just now', 'right now'):
             return XArrow.now()
         
         if input_string in ('yesterday', 'tomorrow'):
@@ -187,7 +218,8 @@ class XArrow(Arrow):
             self: XArrow = XArrow.now()
         else:
             self: XArrow = self_or_input_string
-        rv = super(type(self), self).dehumanize(input_string)
+        rv = self._dehumanize_relative(input_string)
+        # rv = super(type(self), self).dehumanize(input_string)
         assert isinstance(rv, XArrow)
         return rv
     

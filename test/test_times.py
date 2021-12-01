@@ -35,12 +35,6 @@ def assert_equal_attrs(obj1, obj2, attr: Union[str, Iterable[str]], *attrs) -> N
             assert getattr(obj1, attribute) == getattr(obj2, attribute)
         except AttributeError as attr_err:
             raise AssertionError(f'{obj1!r}.{attribute} not equal to {obj2!r}.{attribute} because AttributeError: {attr_err}') from None
-        except AssertionError as ass_err:
-            if attribute != 'second':
-                raise
-            import debug
-            what(obj1)
-            raise
 
 def assert_arrows_soft_eq(arrow1: Arrow, arrow2: Arrow, *, compare_second=True) -> NoReturn:
     """Compares year, month, day, hour, minute, second.
@@ -82,7 +76,7 @@ def assert_arrows_same_time(arrow1: Arrow, arrow2: Arrow, *, compare_second=True
 #                  'h', 'hr', 'hrs', 'hour', 'hours',
 #                  'd', 'day', 'days'):
 #         # sometimes fails because a second passes
-#         now2 = now.shift(**{ABBREVS[unit[0]]: -1})
+#         now2 = now.shift(**{TIME_UNITS_FIRST_DIGIT_TO_PLURAL[unit[0]]: -1})
 #         for foo in (unit, f' {unit}'):  # "s", " s"
 #
 #             for bar in (foo, f'{foo} ago'):  # "s",  "s ago"
@@ -162,6 +156,7 @@ class TestXArrow:
         
     
     class TestDehumanize:
+        # @break_on_exc
         @pytest.mark.slow
         def test_dehumanize_vanilla(self):
             """Make sure we don't break vanilla Arrow.dehumanize() functionality"""
@@ -191,6 +186,14 @@ class TestXArrow:
                     now = XArrow.now()
                     now_shifted = now.shift(**shift_kwargs)
                     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                    # try:
+                    #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                    # except AssertionError:
+                    #     dehumanized_static = XArrow.dehumanize(human_expression)
+                    #     now = XArrow.now()
+                    #     now_shifted = now.shift(**shift_kwargs)
+                    #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                        
                 
                     dehumanized_instance = now.dehumanize(human_expression)
                     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
@@ -234,27 +237,35 @@ class TestXArrow:
                         
                         now = XArrow.now()
                         dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
+                        dehumanized_instance_vanilla.microsecond = 0
                         dehumanized_static = XArrow.dehumanize(human_expression)
                         
                         now_shifted = now.shift(**shift_kwargs)
                         dehumanized_instance = now.dehumanize(human_expression)
-                       
-                        try:
-                            assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-                            assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                            assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
-                            assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-                        except AssertionError:
-                            now = XArrow.now()
-                            dehumanized_instance = now.dehumanize(human_expression)
-                            now_shifted = now.shift(**shift_kwargs)
-                            assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-                            dehumanized_static = XArrow.dehumanize(human_expression)
-                            assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                            dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
-                            assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
-                            assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-                            
+                        
+                        if dehumanized_instance != now_shifted != dehumanized_static != dehumanized_instance_vanilla:
+                            now.dehumanize(human_expression)
+                        assert_arrows_soft_eq(dehumanized_instance, now_shifted)
+                        assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                        assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
+                        assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
+                        
+                        # try:
+                        #     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
+                        #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                        #     assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
+                        #     assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
+                        # except AssertionError:
+                        #     now = XArrow.now()
+                        #     dehumanized_instance = now.dehumanize(human_expression)
+                        #     now_shifted = now.shift(**shift_kwargs)
+                        #     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
+                        #     dehumanized_static = XArrow.dehumanize(human_expression)
+                        #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                        #     dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
+                        #     assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
+                        #     assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
+                        #
 
                     # * 3 units
                     for time_unit_3 in TIME_UNITS:
@@ -332,7 +343,7 @@ class TestXArrow:
             tomorrow = XArrow.dehumanize('tomorrow')
             assert_equal_attrs(now, tomorrow, TIME_UNITS - {'day', 'week'})
             assert_arrows_soft_eq(now.shift(days=+1), tomorrow)
-            
+        
         def test_dehumanize_instance(self):
             now = XArrow.now()
             now_dehumanized = now.dehumanize("now")
@@ -342,21 +353,43 @@ class TestXArrow:
             assert_arrows_soft_eq(today, now)
             assert_arrows_soft_eq(today, now_dehumanized)
             
+            # Past
             yesterday = now.dehumanize('yesterday')
-            tomorrow = now.dehumanize('tomorrow')
+            
             _1_days_ago = now.dehumanize('1 days ago')
             assert_arrows_soft_eq(_1_days_ago, yesterday)
+            
+            a_day_ago = now.dehumanize('a day ago')
+            assert_arrows_soft_eq(a_day_ago, yesterday)
             
             _1_day_ago = now.dehumanize('1 day ago')
             assert_arrows_soft_eq(_1_day_ago, yesterday)
     
+            _1d_ago = now.dehumanize('1d ago')
+            assert_arrows_soft_eq(_1d_ago, yesterday)
+
+            _1_days_ago = now.dehumanize('1 days ago')
+            assert_arrows_soft_eq(_1_days_ago, yesterday)
+
+            a_day = now.dehumanize('a day')
+            assert_arrows_soft_eq(a_day, yesterday)
+
+            _1_day = now.dehumanize('1 day')
+            assert_arrows_soft_eq(_1_day, yesterday)
+
+            _1d = now.dehumanize('1d')
+            assert_arrows_soft_eq(_1d, yesterday)
+
+            _1_days = now.dehumanize('1 days')
+            assert_arrows_soft_eq(_1_days, yesterday)
+            
+            # Future
             in_1_days = now.dehumanize('in 1 days')
+            tomorrow = now.dehumanize('tomorrow')
             assert_arrows_soft_eq(in_1_days, tomorrow)
     
             in_1_day = now.dehumanize('in 1 day')
             assert_arrows_soft_eq(in_1_day, tomorrow)
-    
-            now.dehumanize('1d ago')
         
         @pytest.mark.skip
         def test_dehumanize_advanced(self): # can decide not to support if too difficult
