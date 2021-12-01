@@ -135,32 +135,34 @@ class XArrow(Arrow):
             shift = diff * -1
         return now.shift(days=shift)
 
-    def _dehumanize_relative(self, time: Union[str, "XArrow"]) -> "XArrow":
+    def _dehumanize_relative(self, input_string: Union[str, "XArrow"]) -> "XArrow":
         """
         >>> XArrow._dehumanize_relative('3m ago')
         <XArrow ...>
         """
-        
-        match = HUMAN_RELATIVE.fullmatch(time)
+    
+        match = HUMAN_RELATIVE.fullmatch(input_string)
         if not match:
-            raise ValueError(f"Don't understand {time = !r}")
+            raise ValueError(f"Don't understand {input_string = !r}")
         match_group_dict = match.groupdict()
-        
+    
         # Both "3m" and "3m ago" are past, so only "in 3m" is future
         sign = +1 if match_group_dict.get("future") else -1
-        
+    
         quantity_1 = match_group_dict['quantity_1']
         try:
             quantity_1 = int(quantity_1) * sign
         except ValueError:
             # "a day ago"
             quantity_1 = sign
-            
-        # time_unit_1_first_char = match_group_dict['time_unit_1_first_char']
-        # time_unit_1 = match_group_dict['time_unit_1']
-        time_unit_1_plural = match_group_dict['time_unit_1'].removesuffix('s') + 's'
+    
+        time_unit_1_first_char = match_group_dict['time_unit_1_first_char']
+        time_unit_1 = match_group_dict['time_unit_1']
+        if time_unit_1_first_char == 'm' and time_unit_1 == 'month':
+            time_unit_1_first_char = 'M'
+        time_unit_1_plural = TIME_UNITS_FIRST_DIGIT_TO_PLURAL[time_unit_1_first_char]
         shift_kwargs = {time_unit_1_plural: quantity_1}
-        
+    
         if quantity_2 := match_group_dict.get('quantity_2'):
             try:
                 quantity_2 = int(quantity_2) * sign
@@ -168,24 +170,28 @@ class XArrow(Arrow):
                 quantity_2 = sign
             time_unit_2_first_char = match_group_dict['time_unit_2_first_char']
             time_unit_2 = match_group_dict['time_unit_2']
-            time_unit_2_plural = match_group_dict['time_unit_2'].removesuffix('s') + 's'
-            # if time_unit_2_first_char == 'm' and time_unit_2 == 'month':
-            #     time_unit_2_first_char = 'M'
+            if time_unit_2_first_char == 'm' and time_unit_2 == 'month':
+                time_unit_2_first_char = 'M'
+            time_unit_2_plural = TIME_UNITS_FIRST_DIGIT_TO_PLURAL[time_unit_2_first_char]
             shift_kwargs.update({time_unit_2_plural: quantity_2})
-            
+        
             if quantity_3 := match_group_dict.get('quantity_3'):
                 try:
                     quantity_3 = int(quantity_3) * sign
                 except ValueError:
                     quantity_3 = sign
-                
-                time_unit_3_plural = match_group_dict['time_unit_3'].removesuffix('s') + 's'
+            
+                time_unit_3 = match_group_dict['time_unit_3']
+                time_unit_3_first_char = match_group_dict['time_unit_3_first_char']
+                if time_unit_3_first_char == 'm' and time_unit_3 == 'month':
+                    time_unit_3_first_char = 'M'
+                time_unit_3_plural = TIME_UNITS_FIRST_DIGIT_TO_PLURAL[time_unit_3_first_char]
                 shift_kwargs.update({time_unit_3_plural: quantity_3})
         parsed = self.shift(**shift_kwargs)
         # parsed: XArrow = cls.now() - timedelta(**delta)
         assert isinstance(parsed, XArrow), f"{self.__class__.__qualname__}._dehumanize_relative(...) -> {parsed = !r} (not XArrow)"
         return parsed
-    
+
     @classmethod
     def from_absolute(cls, time: Union[str, "XArrow"]) -> "XArrow":
         """

@@ -329,12 +329,13 @@ class TestXArrow:
             assert_arrows_soft_eq(today, now)
     
             yesterday = XArrow.dehumanize('yesterday')
-            assert_equal_attrs(now, yesterday, TIME_UNITS - {'day', 'week'})
-            assert_arrows_soft_eq(now.shift(days=-1), yesterday)
+            now_shift_yesterday = now.shift(days=-1)
+            assert_arrows_soft_eq(now_shift_yesterday, yesterday)
     
             tomorrow = XArrow.dehumanize('tomorrow')
             assert_equal_attrs(now, tomorrow, TIME_UNITS - {'day', 'week'})
-            assert_arrows_soft_eq(now.shift(days=+1), tomorrow)
+            now_shift_tomorrow = now.shift(days=+1)
+            assert_arrows_soft_eq(now_shift_tomorrow, tomorrow)
         
         def test_dehumanize_instance(self):
             now = XArrow.now()
