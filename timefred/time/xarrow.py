@@ -156,9 +156,9 @@ class XArrow(Arrow):
             # "a day ago"
             quantity_1 = sign
             
-        time_unit_1_first_char = match_group_dict['time_unit_1_first_char']
-        time_unit_1 = match_group_dict['time_unit_1']
-        time_unit_1_plural = match_group_dict['time_unit_1'] + 's'
+        # time_unit_1_first_char = match_group_dict['time_unit_1_first_char']
+        # time_unit_1 = match_group_dict['time_unit_1']
+        time_unit_1_plural = match_group_dict['time_unit_1'].removesuffix('s') + 's'
         shift_kwargs = {time_unit_1_plural: quantity_1}
         
         if quantity_2 := match_group_dict.get('quantity_2'):
@@ -168,7 +168,7 @@ class XArrow(Arrow):
                 quantity_2 = sign
             time_unit_2_first_char = match_group_dict['time_unit_2_first_char']
             time_unit_2 = match_group_dict['time_unit_2']
-            time_unit_2_plural = match_group_dict['time_unit_2'] + 's'
+            time_unit_2_plural = match_group_dict['time_unit_2'].removesuffix('s') + 's'
             # if time_unit_2_first_char == 'm' and time_unit_2 == 'month':
             #     time_unit_2_first_char = 'M'
             shift_kwargs.update({time_unit_2_plural: quantity_2})
@@ -179,7 +179,7 @@ class XArrow(Arrow):
                 except ValueError:
                     quantity_3 = sign
                 
-                time_unit_3_plural = match_group_dict['time_unit_3'] + 's'
+                time_unit_3_plural = match_group_dict['time_unit_3'].removesuffix('s') + 's'
                 shift_kwargs.update({time_unit_3_plural: quantity_3})
         parsed = self.shift(**shift_kwargs)
         # parsed: XArrow = cls.now() - timedelta(**delta)

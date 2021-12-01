@@ -185,14 +185,13 @@ class TestXArrow:
                     shift_kwargs = {unit.removesuffix('s') + 's': shift}
                     now = XArrow.now()
                     now_shifted = now.shift(**shift_kwargs)
-                    assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                    # try:
-                    #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                    # except AssertionError:
-                    #     dehumanized_static = XArrow.dehumanize(human_expression)
-                    #     now = XArrow.now()
-                    #     now_shifted = now.shift(**shift_kwargs)
-                    #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                    try:
+                        assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                    except AssertionError:
+                        dehumanized_static = XArrow.dehumanize(human_expression)
+                        now = XArrow.now()
+                        now_shifted = now.shift(**shift_kwargs)
+                        assert_arrows_soft_eq(dehumanized_static, now_shifted)
                         
                 
                     dehumanized_instance = now.dehumanize(human_expression)
@@ -243,29 +242,22 @@ class TestXArrow:
                         now_shifted = now.shift(**shift_kwargs)
                         dehumanized_instance = now.dehumanize(human_expression)
                         
-                        if dehumanized_instance != now_shifted != dehumanized_static != dehumanized_instance_vanilla:
-                            now.dehumanize(human_expression)
-                        assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-                        assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                        assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
-                        assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
                         
-                        # try:
-                        #     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-                        #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                        #     assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
-                        #     assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-                        # except AssertionError:
-                        #     now = XArrow.now()
-                        #     dehumanized_instance = now.dehumanize(human_expression)
-                        #     now_shifted = now.shift(**shift_kwargs)
-                        #     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-                        #     dehumanized_static = XArrow.dehumanize(human_expression)
-                        #     assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                        #     dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
-                        #     assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
-                        #     assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-                        #
+                        try:
+                            assert_arrows_soft_eq(dehumanized_instance, now_shifted)
+                            assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                            assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
+                            assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
+                        except AssertionError:
+                            now = XArrow.now()
+                            dehumanized_instance = now.dehumanize(human_expression)
+                            now_shifted = now.shift(**shift_kwargs)
+                            assert_arrows_soft_eq(dehumanized_instance, now_shifted)
+                            dehumanized_static = XArrow.dehumanize(human_expression)
+                            assert_arrows_soft_eq(dehumanized_static, now_shifted)
+                            dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
+                            assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
+                            assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
 
                     # * 3 units
                     for time_unit_3 in TIME_UNITS:
