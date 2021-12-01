@@ -333,11 +333,11 @@ class TestXArrow:
             assert_arrows_soft_eq(now_shift_yesterday, yesterday)
     
             tomorrow = XArrow.dehumanize('tomorrow')
-            assert_equal_attrs(now, tomorrow, TIME_UNITS - {'day', 'week'})
             now_shift_tomorrow = now.shift(days=+1)
             assert_arrows_soft_eq(now_shift_tomorrow, tomorrow)
         
         def test_dehumanize_instance(self):
+            # TODO: multiple time units
             now = XArrow.now()
             now_dehumanized = now.dehumanize("now")
             assert_arrows_soft_eq(now_dehumanized, now)
@@ -346,11 +346,10 @@ class TestXArrow:
             assert_arrows_soft_eq(today, now)
             assert_arrows_soft_eq(today, now_dehumanized)
             
-            # Past
+            # * Past
+            # 1 day ago
             yesterday = now.dehumanize('yesterday')
-            
-            _1_days_ago = now.dehumanize('1 days ago')
-            assert_arrows_soft_eq(_1_days_ago, yesterday)
+            assert_arrows_soft_eq(now.shift(days=-1), yesterday)
             
             a_day_ago = now.dehumanize('a day ago')
             assert_arrows_soft_eq(a_day_ago, yesterday)
@@ -363,6 +362,9 @@ class TestXArrow:
 
             _1_days_ago = now.dehumanize('1 days ago')
             assert_arrows_soft_eq(_1_days_ago, yesterday)
+            
+            _1_d_ago = now.dehumanize('1 d ago')
+            assert_arrows_soft_eq(_1_d_ago, yesterday)
 
             a_day = now.dehumanize('a day')
             assert_arrows_soft_eq(a_day, yesterday)
@@ -373,16 +375,54 @@ class TestXArrow:
             _1d = now.dehumanize('1d')
             assert_arrows_soft_eq(_1d, yesterday)
 
+            _1_d = now.dehumanize('1 d')
+            assert_arrows_soft_eq(_1_d, yesterday)
+
             _1_days = now.dehumanize('1 days')
             assert_arrows_soft_eq(_1_days, yesterday)
+
+            # 5 days ago
+            five_days_ago = now.shift(days=-5)
             
-            # Future
+            _5_day_ago = now.dehumanize('5 day ago')
+            assert_arrows_soft_eq(_5_day_ago, five_days_ago)
+
+            _5d_ago = now.dehumanize('5d ago')
+            assert_arrows_soft_eq(_5d_ago, five_days_ago)
+
+            _5_days_ago = now.dehumanize('5 days ago')
+            assert_arrows_soft_eq(_5_days_ago, five_days_ago)
+
+            _5_d_ago = now.dehumanize('5 d ago')
+            assert_arrows_soft_eq(_5_d_ago, five_days_ago)
+
+            _5_day = now.dehumanize('5 day')
+            assert_arrows_soft_eq(_5_day, five_days_ago)
+
+            _5d = now.dehumanize('5d')
+            assert_arrows_soft_eq(_5d, five_days_ago)
+
+            _5_d = now.dehumanize('5 d')
+            assert_arrows_soft_eq(_5_d, five_days_ago)
+
+            _5_days = now.dehumanize('5 days')
+            assert_arrows_soft_eq(_5_days, five_days_ago)
+            
+            # * Future
             in_1_days = now.dehumanize('in 1 days')
             tomorrow = now.dehumanize('tomorrow')
             assert_arrows_soft_eq(in_1_days, tomorrow)
+            assert_arrows_soft_eq(now.shift(days=+1), tomorrow)
+            assert_arrows_soft_eq(now.shift(days=+1), in_1_days)
     
             in_1_day = now.dehumanize('in 1 day')
             assert_arrows_soft_eq(in_1_day, tomorrow)
+
+            in_5_days = now.dehumanize('in 5 days')
+            assert_arrows_soft_eq(now.shift(days=+5), in_5_days)
+
+            in_5_day = now.dehumanize('in 5 day')
+            assert_arrows_soft_eq(in_5_day, now.shift(days=+5))
         
         @pytest.mark.skip
         def test_dehumanize_advanced(self): # can decide not to support if too difficult
