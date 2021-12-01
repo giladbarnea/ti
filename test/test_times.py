@@ -13,7 +13,7 @@ from timefred.time import XArrow
 from random import randint, random
 from arrow import Arrow
 from pdbpp import break_on_exc
-from itertools import product
+from itertools import product, permutations
 import pytest
 
 ic.configureOutput(prefix='')
@@ -166,8 +166,8 @@ class TestXArrow:
             assert_arrows_soft_eq(now_dehumanized, now)
             assert_arrows_soft_eq(XArrow.dehumanize("just now"), now)
             # * 1 unit
+            # "hour": "an hour", "days": "{0} days"
             for unit, expression in EnglishLocale.timeframes.items():
-                # "hour": "an hour", "days": "{0} days"
                 for relative_fmt in ("{0} ago", "in {0}"):
                     if 'now' in expression:
                         continue
@@ -337,7 +337,6 @@ class TestXArrow:
             assert_arrows_soft_eq(now_shift_tomorrow, tomorrow)
         
         def test_dehumanize_instance(self):
-            # TODO: multiple time units
             now = XArrow.now()
             now_dehumanized = now.dehumanize("now")
             assert_arrows_soft_eq(now_dehumanized, now)
@@ -408,6 +407,34 @@ class TestXArrow:
             _5_days = now.dehumanize('5 days')
             assert_arrows_soft_eq(_5_days, five_days_ago)
             
+            # months
+            _5_months = now.dehumanize('5 months')
+            assert_arrows_soft_eq(_5_months, now.shift(months=-5))
+            
+            _5_month = now.dehumanize('5 month')
+            assert_arrows_soft_eq(_5_month, now.shift(months=-5))
+            
+            # Complex
+            _5h_32m_1s_ago = now.dehumanize('5h 32m 1s ago')
+            assert_arrows_soft_eq(_5h_32m_1s_ago, now.shift(hours=-5, minutes=-32, seconds=-1))
+
+            _5_minutes_5_months = now.dehumanize('5 minutes 5 months')
+            assert_arrows_soft_eq(_5_minutes_5_months, now.shift(minutes=-5, months=-5))
+
+            _5m_5_months = now.dehumanize('5m 5 months')
+            assert_arrows_soft_eq(_5m_5_months, now.shift(minutes=-5, months=-5))
+
+            _5m_5M = now.dehumanize('5m 5M')
+            assert_arrows_soft_eq(_5m_5M, now.shift(minutes=-5, months=-5))
+            
+            _5m_5M_7w = now.dehumanize('5m 5M 7w')
+            now_shift_5_minutes_5_months_7_weeks_ago = now.shift(minutes=-5, months=-5, weeks=-7)
+            assert_arrows_soft_eq(_5m_5M_7w, now_shift_5_minutes_5_months_7_weeks_ago)
+            
+            for perm in permutations(['5m', '5M', '7w'], 3):
+                complex = now.dehumanize(' '.join(perm))
+                assert_arrows_soft_eq(complex, now_shift_5_minutes_5_months_7_weeks_ago)
+            
             # * Future
             in_1_days = now.dehumanize('in 1 days')
             tomorrow = now.dehumanize('tomorrow')
@@ -423,6 +450,11 @@ class TestXArrow:
 
             in_5_day = now.dehumanize('in 5 day')
             assert_arrows_soft_eq(in_5_day, now.shift(days=+5))
+
+            now_shift_in_5_minutes_5_months_7_weeks = now.shift(minutes=+5, months=+5, weeks=+7)
+            for perm in permutations(['5m', '5M', '7w'], 3):
+                complex = now.dehumanize('in ' + ' '.join(perm))
+                assert_arrows_soft_eq(complex, now_shift_in_5_minutes_5_months_7_weeks)
         
         @pytest.mark.skip
         def test_dehumanize_advanced(self): # can decide not to support if too difficult

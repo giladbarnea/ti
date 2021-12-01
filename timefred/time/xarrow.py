@@ -37,17 +37,17 @@ TIME_UNITS_FIRST_DIGIT_TO_PLURAL = {
 # """{'fri', 'friday', ...}"""
 
 
-TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|ay|eek|onth|(ou|uarte|ea)?r)?s?"
+TIMEUNIT_REMAINDER = "(?:ec(?:ond)?|in(ute)?|ay|eek|onth|(ou|uarte|ea)?r)?"
 # for token_num in range(1, 8):
 # TIMEUNITS = "(?:sec(?:ond)?|in(ute)?|ay|eek|onth|(ou|uarte|ea)?r)?s?"
 
 HUMAN_RELATIVE = re.compile(
         rf' *(?P<future>in )? *'
-        rf'(?P<quantity_1>(an?|\d+)) *(?P<time_unit_1>(?P<time_unit_1_first_char>([smhdwqy])){TIMEUNIT_REMAINDER}) *,? *(?:and)? *'
+        rf'(?P<quantity_1>(an?|\d+)) *(?P<time_unit_1>(?P<time_unit_1_first_char>([smhdwqy])){TIMEUNIT_REMAINDER})s? *,? *(?:and)? *'
         rf'('
-        rf'(?P<quantity_2>(an?|\d+)) *(?P<time_unit_2>(?P<time_unit_2_first_char>([smhdwqy])){TIMEUNIT_REMAINDER}) *,? *(?:and)? *'
+        rf'(?P<quantity_2>(an?|\d+)) *(?P<time_unit_2>(?P<time_unit_2_first_char>([smhdwqy])){TIMEUNIT_REMAINDER})s? *,? *(?:and)? *'
         rf'('
-        rf'(?P<quantity_3>(an?|\d+)) *(?P<time_unit_3>(?P<time_unit_3_first_char>([smhdwqy])){TIMEUNIT_REMAINDER})'
+        rf'(?P<quantity_3>(an?|\d+)) *(?P<time_unit_3>(?P<time_unit_3_first_char>([smhdwqy])){TIMEUNIT_REMAINDER})s?'
         rf')?'
         rf')?'
         rf' *'
@@ -209,24 +209,26 @@ class XArrow(Arrow):
     def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> "XArrow":
         if isinstance(self_or_input_string, str):
             called_static = True
-            input_string = self_or_input_string.lower()
+            input_string = self_or_input_string
         else:
             called_static = False
-            input_string = input_string_or_locale.lower()
-        
-        if input_string in ('now', 'today', 'just now', 'right now'):
+            input_string = input_string_or_locale
+
+        input_string_lowercase = input_string.lower()
+        if input_string_lowercase in ('now', 'today', 'just now', 'right now'):
             return XArrow.now()
         
-        if input_string in ('yesterday', 'tomorrow'):
-            return XArrow.now().shift(days=+1 if input_string == 'tomorrow' else -1)
+        if input_string_lowercase == 'yesterday':
+            return XArrow.now().shift(days=-1)
+        
+        if input_string_lowercase == 'tomorrow':
+            return XArrow.now().shift(days=1)
         
         if called_static:
             self: XArrow = XArrow.now()
         else:
             self: XArrow = self_or_input_string
         rv = self._dehumanize_relative(input_string)
-        # rv = super(type(self), self).dehumanize(input_string)
-        assert isinstance(rv, XArrow)
         return rv
     
     @classmethod
