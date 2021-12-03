@@ -2,12 +2,12 @@ from collections.abc import Mapping
 from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
 
 from timefred.singleton import Singleton
-from timefred.log import log
-from pdbpp import break_on_exc
+# from timefred.log import log
+# from pdbpp import break_on_exc
 
 class UNSET_TYPE(Singleton):
     def __repr__(self):
-        return f'UNSET'
+        return f'⟨UNSET⟩'
     
     def __bool__(self):
         return False
