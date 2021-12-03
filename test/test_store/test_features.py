@@ -37,7 +37,6 @@ class TestStop:
         last_entry: Entry = got_to_office_activity[-1]
         log.debug(f'{ last_entry = !r}')
         log.debug(f'{ last_entry.start = !r}')
-        got_to_office_activity.stop()
-        with assert_raises(ValueError):
-            got_to_office_activity.stop()
+        with assert_raises(ValueError, "Cannot stop"):
+            got_to_office_activity.stop('yesterday')
     

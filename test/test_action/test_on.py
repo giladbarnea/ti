@@ -115,7 +115,7 @@ class TestSheetWithContent:
                 assert got_to_office_last_entry
                 assert got_to_office_last_entry.end
                 
-                assert not ongoing_activity.ongoing()
+                assert ongoing_activity.ongoing() is False
                 
                 log.debug('Activity.stop() -> ValueError (not ongoing)')
                 with assert_raises(ValueError, match=f"{ongoing_activity!r} is not ongoing"):

@@ -1,17 +1,17 @@
 from timefred import color as c
-from timefred.space import DefaultAttrDictSpace
-from timefred.store import store, Entry
+from timefred.note import Note
+from timefred.store import store, Entry, Work
+from timefred.tag import Tag
 from timefred.time import XArrow
 from timefred.util import confirm
 
 
-def stop(end: XArrow) -> bool:
+def stop(end: XArrow, tag: Tag, note: Note) -> bool:
     # ensure_working()
     
-    work: DefaultAttrDictSpace = store.load()
-    
-    # TODO: work[day].stop(end). Consider moving .ongoing_activity() to work level because mightve started yesterday
-    item = Entry(**data[-1])
+    work: Work = store.load()
+    ongoing_activity = work.ongoing_activity()
+    entry = ongoing_activity.stop(end, tag, note)
     
     if item.start > end:
         print(f'{c.orange("Cannot")} finish {item.name_colored} at {c.time(end.DDMMYYHHmmss)} because it only started at {c.time(item.start.DDMMYYHHmmss)}.')

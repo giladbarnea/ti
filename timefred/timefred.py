@@ -130,8 +130,8 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
         else:
             time = XArrow.now()
         args = {
-            'name':  name,
-            'time':  time,
+            'name': name,
+            'time': time,
             'tag':  _tag,
             'note': _note
             }

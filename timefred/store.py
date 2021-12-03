@@ -79,12 +79,33 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         super().__init__(iterable, **kwargs)
     
     def __repr__(self) -> str:
-        name = f'{getattr(self, "name", "⟨UNSET⟩")!r}'
+        name = f'{getattr(self, "name")}'
         short_id = f'{str(id(self))[-4:]}'
         jira = self.jira
         representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
         return representation
     
+    def shortrepr(self) -> str:
+        """Like repr, but with only the last entry."""
+        name = f'{getattr(self, "name")}'
+        short_id = f'{str(id(self))[-4:]}'
+        jira = self.jira
+        last_entry = self._safe_last_entry()
+        self_len = len(self)
+        if self_len > 1:
+            short_entries_repr = f'[... {last_entry}]'
+        elif self_len == 1:
+            short_entries_repr = f'[{last_entry}]'
+        else:
+            short_entries_repr = f'[]'
+        representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {short_entries_repr}'
+        return representation
+    
+    def _safe_last_entry(self) -> Optional[Entry]:
+        try:
+            return self[-1]
+        except IndexError:
+            return None
     # @multimethod
     # def has_similar_name(self, other: 'Entry') -> bool:
     #     return self.has_similar_name(other.name)
@@ -95,11 +116,8 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         return normalize_str(self.name) == normalize_str(other)
     
     def ongoing(self) -> bool:
-        try:
-            last_entry = self[-1]
-            return not last_entry.end
-        except IndexError:
-            return False
+        last_entry = self._safe_last_entry()
+        return bool(last_entry and not last_entry.end)
     
     def stop(self,
              time: Union[str, XArrow] = None,
@@ -109,12 +127,15 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         Raises:
             ValueError: if the activity is not ongoing
         """
-        last_entry = self[-1]
-        if last_entry.end:
-            raise ValueError(f'{self!r} is not ongoing')
+        last_entry = self._safe_last_entry()
+        if not last_entry or last_entry.end:
+            raise ValueError(f'{self.shortrepr()} is not ongoing')
         if not time:
             time = XArrow.now()
+        if last_entry.start > time:
+            raise ValueError(f'Cannot stop {self.shortrepr()} before start time (tried to stop at {time!r})')
         last_entry.end = time
+        
         if tag:
             last_entry.tags.add(tag)
         if note:
@@ -130,7 +151,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             ValueError: if the activity is ongoing
         """
         if self.ongoing():
-            raise ValueError(f'{self!r} is already ongoing')
+            raise ValueError(f'{self.shortrepr()} is already ongoing')
         entry = Entry(start=time)
         if tag:
             entry.tags.add(tag)
@@ -261,9 +282,9 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
         else:
             # Ongoing activity -> stop it and start new activity
             if name == ongoing_activity.name:
-                raise ValueError(f'{ongoing_activity!r} is already ongoing')
+                raise ValueError(f'{ongoing_activity.shortrepr()} is already ongoing')
             if ongoing_activity.has_similar_name(name):
-                raise ValueError(f'{ongoing_activity!r} is ongoing, and has a similar name to {name!r}')
+                raise ValueError(f'{ongoing_activity.shortrepr()} is ongoing, and has a similar name to {name!r}')
             ongoing_activity.stop(time)
             day = self[time.DDMMYY]
             activity: Activity = day[name]

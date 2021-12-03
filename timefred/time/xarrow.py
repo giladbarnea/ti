@@ -7,7 +7,6 @@ from typing import Type, Optional, Any, Union, Literal, overload, final
 
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
-from arrow.locales import EnglishLocale
 
 import timefred.color as c
 from timefred.config import config
@@ -68,6 +67,15 @@ Used in `XArrow._dehumanize_relative`"""
 #     "year":    "({0}|a) years",
 #     }
 
+def dehumanize_other_if_str(method: Callable[["XArrow", Any], bool]) -> Callable[["XArrow", Any], bool]:
+    """
+    Decorator to convert string to `XArrow` if needed.
+    """
+    def wrapper(self: "XArrow", other: Any) -> bool:
+        if isinstance(other, str):
+            other = self.dehumanize(other)
+        return method(self, other)
+    return wrapper
 
 class XArrow(Arrow):
     def __init__(self,
@@ -140,7 +148,6 @@ class XArrow(Arrow):
         >>> XArrow._dehumanize_relative('3m ago')
         <XArrow ...>
         """
-    
         match = HUMAN_RELATIVE.fullmatch(input_string)
         if not match:
             raise ValueError(f"Don't understand {input_string = !r}")
@@ -188,8 +195,6 @@ class XArrow(Arrow):
                 time_unit_3_plural = TIME_UNITS_FIRST_DIGIT_TO_PLURAL[time_unit_3_first_char]
                 shift_kwargs.update({time_unit_3_plural: quantity_3})
         parsed = self.shift(**shift_kwargs)
-        # parsed: XArrow = cls.now() - timedelta(**delta)
-        assert isinstance(parsed, XArrow), f"{self.__class__.__qualname__}._dehumanize_relative(...) -> {parsed = !r} (not XArrow)"
         return parsed
 
     @classmethod
@@ -248,21 +253,15 @@ class XArrow(Arrow):
             if isinstance(human_time, XArrow):
                 return human_time
             raise NotImplementedError(f"{cls.__qualname__}.from_human({human_time = !r}) is Arrow")
-        human_time = human_time.lower()
         
-        # 'now', 'today', 'yesterday'
-        if human_time in ('now', 'today'):
-            return cls.now()
-        if human_time == 'yesterday':
-            return cls.now().shift(days=-1)
+        # '3m'
+        with suppress(ValueError):
+            return cls.dehumanize(human_time)
         
         # 'thurs', ...
         with suppress(ValueError):
             return cls.from_day(human_time)
         
-        # '3m'
-        with suppress(ValueError):
-            return cls._dehumanize_relative(human_time)
         
         # '09:45'
         with suppress(ValueError):
@@ -326,19 +325,12 @@ class XArrow(Arrow):
         return rv
     
     @overload
-    def isoweekday(self, human: NoneType = None) -> int:
-        ...
-    
+    def isoweekday(self, human: NoneType = None) -> int: ...
     @overload
-    def isoweekday(self, human: Literal['short'] = 'short') -> str:
-        ...
-    
+    def isoweekday(self, human: Literal['short'] = 'short') -> str: ...
     @overload
-    def isoweekday(self, human: Literal['full'] = 'full') -> str:
-        ...
-    
+    def isoweekday(self, human: Literal['full'] = 'full') -> str: ...
     def isoweekday(self, human=None):
-        """"""
         if not human:
             return isoweekday(self.strftime('%a'))
         if human == 'short':
@@ -379,6 +371,13 @@ class XArrow(Arrow):
     def __repr__(self):
         return f'{self.__class__.__qualname__} ⟨{self.DDMMYYHHmmss}⟩'
 
+    
+    __eq__ = dehumanize_other_if_str(Arrow.__eq__)
+    __ne__ = dehumanize_other_if_str(Arrow.__ne__)
+    __gt__ = dehumanize_other_if_str(Arrow.__gt__)
+    __ge__ = dehumanize_other_if_str(Arrow.__ge__)
+    __lt__ = dehumanize_other_if_str(Arrow.__lt__)
+    __le__ = dehumanize_other_if_str(Arrow.__le__)
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]
