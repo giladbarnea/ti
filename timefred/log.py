@@ -20,6 +20,7 @@ class LogProxy:
             'prompt':  'b bright_cyan',
             'title':   'b bright_white',
             }
+        # noinspection PyTypeChecker
         console = Console(
                 # force_terminal=True,
                 # log_time_format='[%d.%m.%Y][%T]',

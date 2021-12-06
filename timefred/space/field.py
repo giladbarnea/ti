@@ -1,6 +1,5 @@
 from collections.abc import Mapping
 from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
-
 from timefred.singleton import Singleton
 # from timefred.log import log
 # from pdbpp import break_on_exc
@@ -59,12 +58,14 @@ class Field(Generic[TFieldValue]):
                  *,
                  default: TFieldValue = UNSET,
                  cast: Cast[TFieldValue] = UNSET,
+                 validate: Callable[..., bool] = UNSET,
                  optional=False,
                  cache=True
                  ):
         self.default = default
         self.default_factory = default_factory
         self.cast = cast
+        self.validate = validate
         self.should_cache = cache
         self.optional = optional
     
@@ -74,12 +75,12 @@ class Field(Generic[TFieldValue]):
     def __call__(self, method: Callable) -> "Field":
         """Allows for using Field as a decorator with args, e.g `Field(optional=True)`"""
         if not callable(method):
-            raise TypeError(("A Field instance was called. "
-                             "Did you mean to call @Field as a method decorator?"))
+            raise TypeError(f"A Field instance was called (name = {self.name!r}). "
+                            "Did you mean to call @Field as a method decorator?")
         self.default_factory = method
         return self
     
-    def get_set_default_instance_field_data(self, instance: HasFields, default_field_data: FieldData) -> FieldData:
+    def get_set_default_field_data_from_instance(self, instance: HasFields, default_field_data: FieldData) -> FieldData:
         if not hasattr(instance, '__fields__'):
             setattr(instance, '__fields__', {self.name: default_field_data})
         elif self.name not in instance.__fields__:
@@ -95,9 +96,11 @@ class Field(Generic[TFieldValue]):
     def _repred_attrs(self) -> dict:
         default_factory_repr = getattr(self.default_factory, '__qualname__', self.default_factory)
         cast_repr = getattr(self.cast, '__qualname__', self.cast)
+        validate_repr = getattr(self.validate, '__qualname__', self.validate)
         attrs = dict(default=self.default,
                      default_factory=default_factory_repr,
                      cast=cast_repr,
+                     validate=validate_repr,
                      optional=self.optional,
                      cache=self.should_cache)
         return attrs
@@ -106,7 +109,7 @@ class Field(Generic[TFieldValue]):
     #     return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
     # @break_on_exc
     def __get__(self, instance: HasFields, instance_cls: Type[HasFields]) -> TFieldValue:
-        field_data = self.get_set_default_instance_field_data(instance, {'value': UNSET, 'cached': UNSET})
+        field_data = self.get_set_default_field_data_from_instance(instance, {'value': UNSET, 'cached': UNSET})
         if self.should_cache and field_data['cached'] is not UNSET:
             return field_data['cached']
         
@@ -130,6 +133,8 @@ class Field(Generic[TFieldValue]):
     
     def __set__(self, instance: HasFields, value):
         # log.debug(f"setting {instance}.__fields__[ {self.name!r} ] = {value!r}")
+        if self.validate is not UNSET and not self.validate(value):
+            raise ValueError(f"{self.name} is not valid: {value!r}")
         self.set_instance_field_data(instance, {'value': value, 'cached': UNSET})
         # if not hasattr(instance, '__fields__'):
         #     setattr(instance, '__fields__', {self.name: {'value': value, 'cached': UNSET}})

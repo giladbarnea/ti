@@ -68,9 +68,6 @@ Used in `XArrow._dehumanize_relative`"""
 #     }
 
 def dehumanize_other_if_str(method: Callable[["XArrow", Any], bool]) -> Callable[["XArrow", Any], bool]:
-    """
-    Decorator to convert string to `XArrow` if needed.
-    """
     def wrapper(self: "XArrow", other: Any) -> bool:
         if isinstance(other, str):
             other = self.dehumanize(other)
@@ -104,7 +101,7 @@ class XArrow(Arrow):
     @classmethod
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> "XArrow":
         rv = super().now(tzinfo)
-        assert isinstance(rv, XArrow), f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv = !r} (not XArrow)"
+        assert isinstance(rv, XArrow), f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv!r} (not XArrow)"
         return rv
     
     @classmethod
@@ -337,7 +334,7 @@ class XArrow(Arrow):
             return self.strftime('%a')
         if human == 'full':
             return self.strftime('%A')
-        raise ValueError(f"Bad 'human' value, can be either 'short' or 'full'. Got XArrow.isoweekday({human = !r})")
+        raise ValueError(f"Bad 'human' value, can be either None, 'short' or 'full'. Got XArrow.isoweekday({human = !r})")
     
     @property
     def HHmmss(self):

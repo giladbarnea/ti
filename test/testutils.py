@@ -45,14 +45,14 @@ def assert_doesnt_raise(exc: Type[BaseException] = BaseException, match_exc_arg:
     except BaseException as e:
         pass
 
-def default_work(got_to_office_day: XArrow = None) -> Work:
+def default_work(day: XArrow = None) -> Work:
     """
     Returns Work of one day with a single activity, "Got to office": [{"start": "02:20"}]
     """
-    if not got_to_office_day:
-        got_to_office_day = XArrow.now()
+    if not day:
+        day = XArrow.now()
     sheet = {
-        got_to_office_day.DDMMYY: {
+        day.DDMMYY: {
             "Got to office": [{"start": "02:20:00"}]
             }
         }

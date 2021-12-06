@@ -1,11 +1,11 @@
 import os
 import re
-import sys
 from pathlib import Path
 from typing import Optional, Literal
 
 import toml
 # from pydantic import BaseModel, Field
+from timefred.singleton import Singleton
 from timefred.space.field import Field
 from timefred.space import AttrDictSpace
 from timefred.log import log
@@ -52,7 +52,8 @@ class Config(AttrDictSpace):
     class DevCfg(AttrDictSpace):
         debugger: Optional[str] = Field(default_factory=str)
         traceback: Optional[str]= Field(default_factory=str)
-        repr: Optional[str] = Field(default=repr)
+        # repr: Optional[str] = Field(default=repr)
+        log_level: Optional[str] = Field(default_factory=str, cast=str.upper)
         # features: Optional[BaseModel]
 
     class Sheet(AttrDictSpace):
@@ -90,4 +91,12 @@ class Config(AttrDictSpace):
         constructed = self.dict()
         toml.dump(constructed, cfg_file.open(mode="x"))
 
-config = Config()
+class ConfigProxy(Singleton):
+    _config: Config = None
+    def __getattr__(self, name):
+        if self._config is None:
+            self._config = Config()
+        return getattr(self._config, name)
+
+# config = Config()
+config = ConfigProxy()

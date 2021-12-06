@@ -90,7 +90,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         name = f'{getattr(self, "name")}'
         short_id = f'{str(id(self))[-4:]}'
         jira = self.jira
-        last_entry = self._safe_last_entry()
+        last_entry = self.safe_last_entry()
         self_len = len(self)
         if self_len > 1:
             short_entries_repr = f'[... {last_entry}]'
@@ -101,7 +101,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {short_entries_repr}'
         return representation
     
-    def _safe_last_entry(self) -> Optional[Entry]:
+    def safe_last_entry(self) -> Optional[Entry]:
         try:
             return self[-1]
         except IndexError:
@@ -116,7 +116,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         return normalize_str(self.name) == normalize_str(other)
     
     def ongoing(self) -> bool:
-        last_entry = self._safe_last_entry()
+        last_entry = self.safe_last_entry()
         return bool(last_entry and not last_entry.end)
     
     def stop(self,
@@ -124,10 +124,12 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
              tag: Union[str, Tag] = None,
              note: Union[str, Note] = None) -> Entry:
         """
+        Returns:
+            Last entry.
         Raises:
             ValueError: if the activity is not ongoing
         """
-        last_entry = self._safe_last_entry()
+        last_entry = self.safe_last_entry()
         if not last_entry or last_entry.end:
             raise ValueError(f'{self.shortrepr()} is not ongoing')
         if not time:
@@ -238,7 +240,7 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
         """
         # TODO: cache somehow
         for ddmmyy in reversed(self.keys()):
-            day = self[ddmmyy]  # invoke __getitem__ to get constructed
+            day = self[ddmmyy]  # invoke __getitem__ to get constructed Day
             for name in reversed(day.keys()):
                 activity = day[name]
                 if activity.ongoing():
@@ -254,7 +256,7 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
             ValueError: if there is no ongoing activity
         """
         ongoing_activity = self.ongoing_activity()
-        if time is None:
+        if not time:
             time = XArrow.now()
         ongoing_activity.stop(time=time, tag=tag, note=note)
         stopped_activity = ongoing_activity

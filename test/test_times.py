@@ -12,7 +12,7 @@ from timefred.log import log
 from timefred.time import XArrow
 from random import randint, random
 from arrow import Arrow
-from pdbpp import break_on_exc
+# from pdbpp import break_on_exc
 from itertools import product, permutations
 import pytest
 
