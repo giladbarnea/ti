@@ -1,19 +1,12 @@
-from typing import Union, Optional, Any
-from collections.abc import Mapping
-
-from functools import partial
-import pytest
-import sys
 import os
-import pdb
+import sys
+from collections.abc import Mapping
+from typing import Union
 
-from _pytest._code import code
+import pytest
 from _pytest.config import Config
 from _pytest.config.argparsing import Parser
-from _pytest.nodes import Item, Collector
 from _pytest.reports import TestReport, CollectReport
-from _pytest.runner import CallInfo
-from _pytest.terminal import TerminalReporter
 
 homedir = os.path.expanduser('~')
 if homedir not in sys.path:
@@ -45,7 +38,6 @@ def pytest_report_teststatus(report: Union[CollectReport, TestReport], config: C
             return report.outcome, '√', 'Passed'
     # if report.skipped:
     #     return report.outcome, '🟡', 'Skipped'
-
 
 # def pytest_runtest_logreport(report: TestReport) -> None:
 #     if report.failed and hasattr(report.longrepr, 'getrepr'):

@@ -2,8 +2,6 @@ import re
 from collections import defaultdict, UserDict
 from typing import List, Tuple, Literal, TypeVar, MutableMapping
 
-# from pydantic import BaseModel, Field
-
 from timefred import color as c
 from timefred.note import Note
 from timefred.store import store, Entry

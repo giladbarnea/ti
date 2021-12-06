@@ -1,4 +1,3 @@
-# import debug
 from typing import TypeVar, Type, Generic
 from collections.abc import Callable
 from timefred.log import log

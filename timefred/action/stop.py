@@ -1,6 +1,6 @@
 from timefred import util, color as c
 from timefred.note import Note
-from timefred.store import store, Entry, Work
+from timefred.store import store, Work
 from timefred.tag import Tag
 from timefred.time import XArrow
 
@@ -16,8 +16,6 @@ def stop(end: XArrow, tag: Tag = None, note: Note = None) -> bool:
         if not util.confirm(f'{ongoing_activity.name} started on {c.time(entry.start.DDMMYYHHmmss)}, continue?'):
             return False
     
-    data[-1]['end'] = end.DDMMYYHHmmss
-    item.end = end
-    ok = store.dump(data)
-    print(f'{c.yellow("Stopped")} working on {item.name_colored} at {c.time(item.end.DDMMYYHHmmss)}. ok: {ok}')
+    ok = store.dump(work)
+    print(f'{c.yellow("Stopped")} working on {ongoing_activity.name.colored} at {c.time(entry.end.DDMMYYHHmmss)}. ok: {ok}')
     return ok

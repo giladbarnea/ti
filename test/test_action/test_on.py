@@ -5,7 +5,7 @@ from test.test_times import assert_arrows_soft_eq
 from test.testutils import assert_raises, default_work
 from timefred.color import Colored
 from timefred.log import log
-from timefred.store import Day, Entry, Activity, Work
+from timefred.store import Day, Activity, Work, Entry
 from timefred.store import store
 from timefred.time import XArrow
 

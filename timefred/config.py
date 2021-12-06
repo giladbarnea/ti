@@ -4,10 +4,8 @@ from pathlib import Path
 from typing import Optional, Literal
 
 import toml
-# from pydantic import BaseModel, Field
 from timefred.singleton import Singleton
-from timefred.space.field import Field
-from timefred.space import AttrDictSpace
+from timefred.space import AttrDictSpace, Field
 from timefred.log import log
 
 
@@ -98,5 +96,6 @@ class ConfigProxy(Singleton):
             self._config = Config()
         return getattr(self._config, name)
 
-# config = Config()
-config = ConfigProxy()
+
+# noinspection PyTypeChecker
+config: Config = ConfigProxy()
