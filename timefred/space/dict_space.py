@@ -39,7 +39,7 @@ TYPED_DICT_SPACE_V = TypeVar('TYPED_DICT_SPACE_V')
 
 class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
 # class TypedDictSpace(TypedSpace):
-    """Defines __default_factory__ and casts __getitem__. No default on KeyError stuff."""
+    """Defines __default_factory__ and casts __getitem__. No KeyError handling."""
     __default_factory__: Type[TYPED_DICT_SPACE_V]
     
     
@@ -69,7 +69,6 @@ DEFAULT_DICT_SPACE_V = TypeVar('DEFAULT_DICT_SPACE_V')
 
 
 class DefaultDictSpace(TypedDictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V]):
-# class DefaultDictSpace(TypedDictSpace):
     """KeyError returns a __default_factory__() (also casts __getitem__ from TypedDictSpace)"""
     
     # def __getitem__(self, key: DEFAULT_SPACE_K) -> DEFAULT_SPACE_V:

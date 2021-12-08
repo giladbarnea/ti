@@ -44,7 +44,6 @@ class Store:
     encoder: TomlEncoder = Field(default_factory=TomlEncoder)
     
     def __init__(self, filename):
-        # self.filename = Path(filename)
         # self.encoder = TomlEncoder()
         self.filename = Path(filename)
         # super().__init__(filename=Path(filename))

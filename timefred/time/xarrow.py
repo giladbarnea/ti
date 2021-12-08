@@ -1,12 +1,13 @@
 import re
 from collections.abc import Callable
 from contextlib import suppress
-from datetime import timedelta, tzinfo as dt_tzinfo  # , date
+from datetime import timedelta, tzinfo as dt_tzinfo, datetime as dt_datetime  # , date
 # from time import struct_time
 from typing import Type, Optional, Any, Union, Literal, overload, final
 
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
+from dateutil.relativedelta import relativedelta
 
 import timefred.color as c
 from timefred.config import config
@@ -101,7 +102,6 @@ class XArrow(Arrow):
     @classmethod
     def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> "XArrow":
         rv = super().now(tzinfo)
-        assert isinstance(rv, XArrow), f"{cls.__qualname__}.now({tzinfo = !r}) returning {rv!r} (not XArrow)"
         return rv
     
     @classmethod
@@ -368,7 +368,6 @@ class XArrow(Arrow):
     def __repr__(self):
         return f'{self.__class__.__qualname__} ⟨{self.DDMMYYHHmmss}⟩'
 
-    
     __eq__ = dehumanize_other_if_str(Arrow.__eq__)
     __ne__ = dehumanize_other_if_str(Arrow.__ne__)
     __gt__ = dehumanize_other_if_str(Arrow.__gt__)

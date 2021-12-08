@@ -1,14 +1,12 @@
 import os
-
+from timefred.store import store
 from test import TEST_START_ARROW
 from test.test_times import assert_arrows_soft_eq
 from test.testutils import assert_raises, default_work
 from timefred.color import Colored
-from timefred.log import log
 from timefred.store import Day, Activity, Work, Entry
-from timefred.store import store
 from timefred.time import XArrow
-
+from timefred.log import log
 
 class TestEmptySheet:
     def test_on_got_to_office_08_20(self):

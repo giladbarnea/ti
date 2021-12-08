@@ -25,6 +25,5 @@ class TestSheetWithContent:
             assert isinstance(got_to_office_last_entry, Entry)
             assert got_to_office_last_entry
             assert got_to_office_last_entry.end
-
-            assert not ongoing_activity.ongoing()
             
+            assert not ongoing_activity.ongoing()
