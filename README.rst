@@ -1,79 +1,70 @@
 =================================
-Timefred -- Not a silly simple time tracker
+Timefred -- A time tracker for optimizing deep focus.
 =================================
 
-``Timefred`` is a small command line time-tracking application.
-Simple basic usage looks like this::
+``Timefred`` is a CLI app that strives to be the Alfred to your Batman.
 
-    $ tf on my-project
+Basic usage::
+
+    $ tf on 'unit tests'
     $ tf stop
 
-You can also give it human-readable times::
+It also understands "natural language" commands, like::
 
-    $ tf on my-project 30mins ago
+    $ tf on 'unit tests' 30m ago
+Fancy report generation::
 
-``Timefred`` sports many other cool features. Read along to discover.
+    $ tf report
 
-Wat?
+Sync with 3rd-party services::
+
+    $ tf sync
+``Timefred`` supports a wide range of functionality, including Jira integration, data aggregation, and daemon mode.
+
+Assumptions
 ====
+- No-one wants to do any time tracking.
+- Your boss wants you to do all the time tracking.
+- You're Batman.
 
-``Timefred`` is a simple command line time tracker. It has been completely rewritten
-in Python (originally a bash script) and has (almost) complete test coverage. It
-is inspired by `timed <http://adeel.github.com/timed>`_, which is a nice project
-that you should check out if you don't like ``Timefred``. ``Timefred`` also takes
-inspiration from the simplicity of `t <http://stevelosh.com/projects/t/>`_.
+Like the comic book character, ``Timefred`` works by minimizing the user's interaction with it, while
+maximizing distraction-free work, and taking care of all the tedious details.
 
-If a time-tracking tool makes me think for more than 3-5 seconds, I lose my line
-of thought and forget what I was doing. This is why I created ``Timefred``. With
-``Timefred``, you'll be as fast as you can type, which you should be good with anyway.
-
-The most important part about ``Timefred`` is that it provides just a few commands to
-manage your time-tracking and then gets out of your way.
-
-All data is saved in a JSON file ,``~/.tf-sheet``. (This can be changed using the
-``$SHEET_FILE``  environment variable.) The JSON is easy to access and can be
-processed into other more stylized documents. Some ideas:
-
-- Read your JSON file to generate beautiful HTML reports.
-- Build monthly statistics based on tags or tasks.
-- Read your currently working project and display it in your terminal prompt.
-  Maybe even with the number of hours you've been working.
-
-It's *your* data.
-
-Oh and by the way, the source is a fairly small Python script, so if you know
-Python, you may want to skim over it to get a better feel of how it works.
-
-*Note*: If you have used the previous bash version of ``Timefred``, which was horribly
-tied up to only work on Linux, you might notice the lack of plugins in this
-Python version. I am not really missing them, so I might not add them. If anyone
-has any interesting use cases for it, I'm willing to consider.
+It does this by {describe 'oh-crap I forgot to toggle my timer'}, zero learning curve, "smart" behavior
+(doesn't need to be told to do things) like "on" automatically stops the previous timer etc.
 
 Usage
 =====
-
 Here's the minimal usage style::
 
-    $ tf on my-project
-    Start working on my-project.
+    $ tf on 'unit tests'
+    Start working on 'unit tests'.
 
     $ tf status
-    You have been working on my-project for less than a minute.
+    You have been working on 'unit tests' for less than a minute.
 
     $ tf stop
-    So you stopped working on my-project.
+    Stopped working on 'unit tests'.
 
-``on`` and ``stop`` can take a time (format described further down) at which to
-apply the action::
+    $ tf report
+    Thursday April 05 2021
+      ...
 
-    $ tf on another-project 2 hours ago
-    Start working on another-project.
+``on`` and ``stop`` can take arguments for:
+
+- time (format described further down)
+- tag
+- note
+Example::
+
+    $ tf on research 2 hours ago
+    Started working on research at 2:40 PM.
 
     $ tf s
-    You have been working on another-project for about 2 hours.
+    You have been working on research for about 2 hours (since 2:40 PM).
 
     $ tf stop 30 minutes ago
-    So you stopped working on another-project.
+    Stopped working on research at 2:10 PM.
 
 Also illustrating in the previous example is short aliases of all commands,
 their first letter. Like, ``s`` for ``status``, ``o`` for ``on``,
@@ -226,37 +217,32 @@ handled, but should be, please open an issue about it or a pull request
 Where *n* is an arbitrary number and any number of spaces between *n* and the
 time unit are allowed (including zero spaces).
 
+Inspiration / Alternatives
+=====
+While building ``Timefred``, I kept `Watson <https://github.com/TailorDev/Watson>`_ in mind for its impressive functionality, and `ti <https://github.com/richmeta/ti>`_ for its simplicity.
+
+`Watson` was awkward to use, and `ti` lacked some features. I wanted something simpler, and more enjoyable to use, that would just let me do my work and not have to worry about the time tracking.
+
 Status
 ======
 
 The project is in beta. If you find any bug or have any feedback, please do open
-`a GitHub issue <https://github.com/tbekolay/Timefred/issues>`_.
+`a GitHub issue <https://github.com/giladbarnea/Timefred/issues>`_.
 
 
-Gimme!
+Installation
 ======
 
-You can download ``Timefred`` `from the source on
-GitHub <https://raw.github.com/giladbarnea/timefred/master/bin/Timefred>`_.
-
-- Put it somewhere in your ``$PATH`` and make sure it has executable permissions.
-- Install ``pyyaml`` using the command ``pip install --user pyyaml``.
-- Install ``colorama`` using the command ``pip install --user colorama``.
-
-After that, ``Timefred`` should be working fine.
-
-Also, visit the `project page on GitHub <https://github.com/giladbanrea/timefred>`_ for
-any further details.
-
-Who?
-====
-
-Originally created and fed by Shrikant Sharat
-(`@sharat87 <https://twitter.com/#!sharat87>`_).
-Now forked and maintained by Gilad Barnea
-(`@tbekolay <https://github.com/giladbarnea>`_) on GitHub.
 
 License
 =======
 
-`MIT License <http://mitl.sharats.me>`_.
+MIT License
+
+Content snippets
+===============
+# You don't have to do anything
+- Why does timeBro save so much time? Because you can completely forget time tracking and do it retrospectively in a relaxed manner. For example just before the end of the working day. Or at the end of the week.
+- Instead of constantly having to reflect and interrupt during the day, you make time entries only once using the memory aid - efficiently and in one go.
+- There are good reasons why many users prefer to estimate their times at the end of the day rather than using stopwatches. Nobody wants to be constantly interrupted by time tracking, because it costs time and focus.
+- Thanks to timeBro, these interruptions of the workflow are eliminated - and even the headache of making estimates.

@@ -5,7 +5,8 @@
 - [ ] `tf interrupt [start] [end]` and `tf resume`. if `end` is in the past, automatically `resume`
 - [ ] `tf mark`, e.g 'Got to office', isn't continuous
 - [ ] `tf on foo 10:00 10:15` (specify end time)
-- [ ] `log` shows total dead time between tasks 
+- [ ] `tf log` shows total dead time between tasks 
+- [ ] `tf on foo @home` for tags
 
 # Bugs
 - [ ] Ignores time: `tf on "K8" -t learning 16:50`
