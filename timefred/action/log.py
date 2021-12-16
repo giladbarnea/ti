@@ -125,7 +125,7 @@ def log(time: Union[str, XArrow] = "today",
     if not day:
         return False
     _log = Log()
-    activities = list(day.values())
+    activities = day.values()
     activity = activities[0]
     entry = activity[0]
     by_tag = defaultdict(set)   # activities = list(day.values());

@@ -66,8 +66,12 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V],
             return value
 
 
-    # def values(self) -> ValuesView[TYPED_DICT_SPACE_V]:
-    #     return super().values()
+    def values(self) -> list[TYPED_DICT_SPACE_V]:
+        values: list[TYPED_DICT_SPACE_V] = []
+        for key in self.keys():
+            value = self[key]
+            values.append(value)
+        return values
     
 
 DEFAULT_DICT_SPACE_K = TypeVar('DEFAULT_DICT_SPACE_K')
