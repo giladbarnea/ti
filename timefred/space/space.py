@@ -24,16 +24,16 @@ class Space:
     """Invokes each of its Field's `__set__` method by calling setattr on defined attributes in `__init__`."""
     DONT_SET_KEYS = {'DONT_SET_KEYS', '__fields__'}
     
-    def __new__(cls, *args, **kwargs):
-        # TODO: what if args are passed? currently ignored in __init__
+    def __new__(cls, mappable=(), **kwargs):
         # TypeError: object.__new__(Config) is not safe, use dict.__new__() error
         # instance = object.__new__(cls)
         instance = super().__new__(cls)
         # instance = super().__new__(cls, *args, **kwargs)
         return instance
     
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, mappable=(), **kwargs) -> None:
         """setattr keys (Fields) that are defined on class-level"""
+        kwargs.update(dict(mappable))
         defined_attributes = set(self.__class__.__dict__) - IGNORED_ATTRS  # todo: return if not kwargs
         for name, val in kwargs.items():
             if name in defined_attributes:

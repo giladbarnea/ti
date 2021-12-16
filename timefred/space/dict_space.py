@@ -12,7 +12,7 @@ DefaultDictSpace (KeyError __default_factory__)           /
                         DefaultAttrDictSpace
         
 """
-from typing import TypeVar, Type, ValuesView
+from typing import TypeVar, Type
 
 from timefred.space import Space, TypedSpace
 from .space import IGNORED_ATTRS
@@ -25,13 +25,14 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     """Inherits from dict thus defining __getitem__, __setitem__ etc,
     and inherits from Space thus `setattr`s defined fields in __init__."""
     
-    def __init__(self, mappable=(), **kwargs) -> None:
+    def __new__(cls, mappable=(), **kwargs) -> "DictSpace":
         if mappable:
-            assert not kwargs
-            super().__init__(**dict(mappable))
-            return
-        assert not mappable, f"{self}({mappable = }, {kwargs = })"
-        super().__init__(**kwargs)
+            assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
+            instance = dict.__new__(cls, **dict(mappable))
+            return instance
+        assert not mappable, f"{cls}.__new__({mappable = }, {kwargs = })"
+        instance = dict.__new__(cls, **kwargs)
+        return instance
 
 
 TYPED_DICT_SPACE_K = TypeVar('TYPED_DICT_SPACE_K')
