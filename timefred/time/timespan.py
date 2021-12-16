@@ -21,7 +21,7 @@ class Timespan(DictSpace):
     start: XArrow = Field(cast=XArrow.from_absolute)
     # end:   Optional[XArrow] = None
     # end = Field(optional=True, cast=XArrow)
-    end: XArrow = Field(cast=XArrow.from_absolute)
+    end: XArrow = Field(optional=True, cast=XArrow.from_absolute)
     
     @multimethod
     def __radd__(self, other) -> int:

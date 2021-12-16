@@ -180,7 +180,7 @@ class TestSheetWithContent:
                 os.environ['TIMEFRED_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 from timefred.config import config
                 config.sheet.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
-                store.filename = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
+                store.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
                 
                 if not work:
                     log.debug('work = TestSheetWithContent.TestOngoingActivity.default_work()')

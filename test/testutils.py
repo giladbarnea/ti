@@ -1,9 +1,13 @@
+import os
 import re
 from contextlib import contextmanager
 from typing import Union, Type
+from pathlib import Path
 
-from timefred.store import Work, Day
+from timefred.config import config
+from timefred.store import Work, Day, store
 from timefred.time import XArrow
+from time import time_ns
 
 
 @contextmanager
@@ -58,3 +62,26 @@ def default_work(day: XArrow = None) -> Work:
         }
     work = Work(Day, **sheet)
     return work
+
+
+@contextmanager
+def sheet_path(path, rm=False):
+    old_path = config.sheet.path
+    if 'TIMEFRED_SHEET' in os.environ and os.environ['TIMEFRED_SHEET'] != old_path != store.path:
+        raise ValueError(f"Sheet path config mismatch: "
+                         f"{os.environ['TIMEFRED_SHEET'] = !r}, {config.sheet.path = !r}, {store.path = !r}")
+    store._backup(f'_{int(time_ns())}')
+    os.environ['TIMEFRED_SHEET'] = path
+    config.sheet.path = path
+    store.path = path
+    store._store = None
+    
+    try:
+        yield
+    finally:
+        os.environ['TIMEFRED_SHEET'] = old_path
+        config.sheet.path = old_path
+        store.path = old_path
+        if rm:
+            if os.path.exists(path):
+                os.remove(path)

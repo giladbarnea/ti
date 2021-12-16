@@ -7,7 +7,7 @@ from pathlib import Path
 import toml
 
 from timefred.singleton import Singleton
-from timefred.space import Field
+from timefred.space import Field, Space
 from timefred.store import Work
 from timefred.time import XArrow
 
@@ -38,23 +38,23 @@ class TomlEncoder(toml.TomlEncoder):
 #         notes?: [...] },
 #       { ... },
 #   ]
-class Store:
+class Store(Space):
     # cache: StoreCache = Field(default_factory=StoreCache)
-    filename: Path = Field(default_factory=Path, cast=Path)
+    path: Path = Field(cast=Path)
     encoder: TomlEncoder = Field(default_factory=TomlEncoder)
     
-    def __init__(self, filename):
-        # self.encoder = TomlEncoder()
-        self.filename = Path(filename)
-        # super().__init__(filename=Path(filename))
+    # def __init__(self, path):
+    #     # self.encoder = TomlEncoder()
+    #     self.path = Path(path)
+    #     # super().__init__(path=Path(path))
     
     def load(self) -> Work:
         # perf: 150ms?
         # if self.cache.data:
         #     return self.cache.data
         
-        if self.filename.exists():
-            with self.filename.open() as f:
+        if self.path.exists():
+            with self.path.open() as f:
                 data = toml.load(f)
             
             if not data:
@@ -62,42 +62,46 @@ class Store:
         
         else:
             data = {}
-            with self.filename.open('w') as f:
+            with self.path.open('w') as f:
                 toml.load(data, f)
         # self.cache.data = data
         return Work(**data)
     
     def _backup(self, name_suffix='') -> bool:
+        from timefred.config import config
+        destination = (config.cache.path / self.path.name)
+        destination_name = self.path.stem + name_suffix + '.backup'
+        destination = destination.with_name(destination_name)
         try:
-            shutil.copyfile(self.filename, f'{self.filename}{name_suffix}.backup')
+            shutil.copyfile(self.path, destination)
             return True
         except Exception as e:
-            logging.error(f'Failed copying {self.filename} to {self.filename}{name_suffix}.backup', exc_info=True)
+            logging.error(f'Failed copying {self.path} to {destination}', exc_info=True)
             return False
     
     def _restore_from_backup(self, name_suffix='') -> bool:
+        from timefred.config import config
+        destination = (config.cache.path / self.path.name).with_name(self.path.stem + name_suffix + '.backup')
         try:
-            shutil.move(f'{self.filename}{name_suffix}.backup', self.filename)
+            shutil.move(destination, self.path)
             return True
         except Exception as e:
-            logging.error(f'Failed moving {self.filename}{name_suffix}.backup to {self.filename}', exc_info=True)
+            logging.error(f'Failed moving {destination} to {self.path}', exc_info=True)
             return False
     
     def dump(self, data: Work) -> bool:
         if getenv('TIMEFRED_DRYRUN', "").lower() in ('1', 'true', 'yes'):
-            print('\n\tDRY RUN, NOT DUMPING\n',
-                  data)
-            
+            print('\n\tDRY RUN, NOT DUMPING\n', data)
             return True
         
-        if not self.filename.exists():
-            with self.filename.open('w') as f:
+        if not self.path.exists():
+            with self.path.open('w') as f:
                 toml.dump({}, f, self.encoder)
         
         if not self._backup():
             return False
         try:
-            with self.filename.open('w') as f:
+            with self.path.open('w') as f:
                 toml.dump(data, f, self.encoder)
             return True
         except Exception as e:
@@ -111,9 +115,11 @@ class StoreProxy(Singleton):
     _store: Store = None
     
     def __getattr__(self, name):
+        if name == '_store':
+            return self._store
         if self._store is None:
             from timefred.config import config
-            self._store = Store(path.expanduser(config.sheet.path))
+            self._store = Store(path=path.expanduser(config.sheet.path))
         return getattr(self._store, name)
 
 

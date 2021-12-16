@@ -1,13 +1,13 @@
 import re
 from collections.abc import Callable
 from contextlib import suppress
-from datetime import timedelta, tzinfo as dt_tzinfo, datetime as dt_datetime  # , date
+from datetime import tzinfo as dt_tzinfo
 # from time import struct_time
 from typing import Type, Optional, Any, Union, Literal, overload, final
 
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
-from dateutil.relativedelta import relativedelta
+# from dateutil.relativedelta import relativedelta
 
 import timefred.color as c
 from timefred.config import config
@@ -251,7 +251,7 @@ class XArrow(Arrow):
                 return human_time
             raise NotImplementedError(f"{cls.__qualname__}.from_human({human_time = !r}) is Arrow")
         
-        # '3m'
+        # '3m' / 'now', 'today', 'yesterday', 'tomorrow'
         with suppress(ValueError):
             return cls.dehumanize(human_time)
         

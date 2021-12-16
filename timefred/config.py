@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Optional, Literal
 
 import toml
+
+from timefred.log import log
 from timefred.singleton import Singleton
 from timefred.space import AttrDictSpace, Field
-from timefred.log import log
 
 
 class Config(AttrDictSpace):
@@ -19,7 +20,7 @@ class Config(AttrDictSpace):
             datetime: str = f'{date} {time}'  # DD/MM/YY HH:mm:ss
             shorter_datetime: str = f'{date} {short_time}'  # DD/MM/YY HH:mm
             short_datetime: str = f'{short_date} {short_time}'  # DD/MM HH:mm
-
+            
             def __init__(self, mappable=(), **kwargs) -> None:
                 super().__init__(mappable, **kwargs)
                 self.date_separator = re.search(r'[^\w]', self.date).group()  # e.g '/'
@@ -36,7 +37,7 @@ class Config(AttrDictSpace):
                 
                 self.time_format_re = re.compile(fr'(?P<hour>\d{{1,2}})(?:{self.time_separator}(?P<minute>\d{{2}})(?:{self.time_separator}(?P<second>\d{{2}}))?)?')
                 """23[:31[:56]]"""
-
+        
         # tz: BaseTzInfo
         # tz: datetime.timezone = dt.now().astimezone().tzinfo
         # tz: datetime.tzinfo = dt.now().astimezone().tzinfo
@@ -45,20 +46,29 @@ class Config(AttrDictSpace):
         tz = 'Asia/Jerusalem'
         first_day_of_week: Literal['sunday', 'monday'] = Field(cast=str.lower)
         formats: TimeFormats = Field(default_factory=TimeFormats, cast=TimeFormats)
-
-
+    
     class DevCfg(AttrDictSpace):
         debugger: Optional[str] = Field(default_factory=str)
-        traceback: Optional[str]= Field(default_factory=str)
+        traceback: Optional[str] = Field(default_factory=str)
         # repr: Optional[str] = Field(default=repr)
         log_level: Optional[str] = Field(default_factory=str, cast=str.upper)
         # features: Optional[BaseModel]
-
-    class Sheet(AttrDictSpace):
-        path = os.path.expanduser(os.environ.get('TIMEFRED_SHEET', "~/timefred-sheet.toml"))
     
+    class Sheet(AttrDictSpace):
+        path: Path = Path(os.path.expanduser(os.environ.get('TIMEFRED_SHEET', "~/timefred-sheet.toml")))
+
+    class Cache(AttrDictSpace):
+        path: Path
+        @Field(cast=Path)
+        def path():
+            path = Path(os.path.expanduser(os.environ.get('TIMEFRED_CACHE_DIR', "~/.cache/timefred")))
+            if not path.exists():
+                path.mkdir(exist_ok=True)
+            return path
+        
     time: TimeCfg = Field(default_factory=TimeCfg, cast=TimeCfg)
     sheet: Sheet = Field(default_factory=Sheet, cast=Sheet)
+    cache: Cache = Field(default_factory=Cache, cast=Cache)
     dev: Optional[DevCfg] = Field(default_factory=DevCfg, cast=DevCfg)
     
     def __init__(self):
@@ -83,14 +93,16 @@ class Config(AttrDictSpace):
                     log.warning(f"Don't support {self.dev.traceback}")
             except Exception as e:
                 log.error(f'{e.__class__.__qualname__} caught in {self}.__init__: {e}')
-                
+    
     def _create_default_config_file(self, cfg_file: Path):
         raise NotImplementedError
         constructed = self.dict()
         toml.dump(constructed, cfg_file.open(mode="x"))
 
+
 class ConfigProxy(Singleton):
     _config: Config = None
+    
     def __getattr__(self, name):
         if self._config is None:
             self._config = Config()

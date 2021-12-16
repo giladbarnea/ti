@@ -1,29 +1,28 @@
 import re
-from collections import defaultdict, UserDict
-from typing import List, Tuple, Literal, TypeVar, MutableMapping
+from collections import defaultdict
+from typing import Literal, Any, Union
 
 from timefred import color as c
 from timefred.note import Note
-from timefred.store import store, Entry
+from timefred.store import store, Day
+from timefred.tag import Tag
 from timefred.time.timespan import Timespan
 from timefred.time.timeutils import secs2human, arrows2rel_time
 from timefred.time.xarrow import XArrow
-from timefred.space import DictSpace, Field
+from timefred.space import DictSpace, Field, DefaultAttrDictSpace
+
 
 
 # @dataclass
-class LogEntry(DictSpace):
-    class Config:
-        arbitrary_types_allowed = True
+class Aggregation(DictSpace):
+    """Represents a collection of `Activity`s or `Entry`s,
+    to allow grouping by name, jira, tag etc."""
     
-    name: str = ''
-    is_current: bool = False
-    # timespans: List[Timespan] = field(default_factory=list)  # Multiple (start, end) pairs
-    timespans: list = Field(default_factory=list)  # Multiple (start, end) pairs
-    # notes: List[Note] = field(default_factory=list)
+    # name: str = ''
+    # is_current: bool = False
+    timespans: list[Timespan] = Field(default_factory=list[Timespan])  # Multiple (start, end) pairs
     notes: list[Note] = Field(default_factory=list[Note])
-    # tags: Set[str] = field(default_factory=set)
-    tags: set[str] = Field(default_factory=set[str])
+    tags: set[Tag] = Field(default_factory=set[Tag])
     
     def seconds(self) -> int:
         return sum(self.timespans)
@@ -77,18 +76,19 @@ class LogEntry(DictSpace):
         return pretty
 
 
-K = TypeVar('K')
+# K = TypeVar('K')
 
 
-class Log(UserDict, MutableMapping[K, LogEntry]):
-    def __getitem__(self, key):
-        if key in self.data:
-            return super().__getitem__(key)
-        self.data[key] = LogEntry()
-        return self.data[key]
+# class Log(UserDict, MutableMapping[K, Aggregation]):
+class Log(DefaultAttrDictSpace[Any, Aggregation], default_factory=Aggregation):
+    # def __getitem__(self, key):
+    #     if key in self.data:
+    #         return super().__getitem__(key)
+    #     self.data[key] = Aggregation()
+    #     return self.data[key]
     
-    def sorted_entries(self) -> List[Tuple[K, LogEntry]]:
-        """Takes each log entry's earliest start time and compares to other log entries"""
+    def sorted_entries(self) -> list[tuple[Any, Aggregation]]:
+        """Compares log entries by their earliest start time"""
         
         def by_earliest_start(name_log_entry_pair):
             log_entry = name_log_entry_pair[1]
@@ -108,20 +108,32 @@ class Log(UserDict, MutableMapping[K, LogEntry]):
 
 
 # @break_on_exc
-def log(period="today", *, detailed=True, groupby: Literal['t', 'tag'] = None):
+def log(time: Union[str, XArrow] = "today",
+        *,
+        detailed=True,
+        groupby: Literal['t', 'tag'] = None) -> bool:
+    
     if groupby and groupby not in ('t', 'tag'):
-        raise ValueError(f"log({period = }, {groupby = }) groupby must be either 't' | 'tag'")
+        raise ValueError(f"log({time = !r}, {detailed = }, {groupby = !r}) groupby must be either 't' | 'tag'")
     work = store.load()
-    _log = Log()
+    if not work:
+        return False
     current = None
-    # period_arrow = human2arrow(period)
-    period_arrow = XArrow.from_human(period)
-    now = period_arrow.now()
-    
-    by_tag = defaultdict(set)
-    
-    for i, entry in enumerate(reversed(work)):
-        item = Entry(**entry)
+    arrow = XArrow.from_human(time)
+    # now = arrow.now() # TODO: should support a range of times, spanning several days etc
+    day = work[arrow.DDMMYY]
+    if not day:
+        return False
+    _log = Log()
+    activities = list(day.values())
+    activity = activities[0]
+    entry = activity[0]
+    by_tag = defaultdict(set)   # activities = list(day.values());
+    # for i, entry in enumerate(reversed(work)):
+    for day_key in reversed(work):
+        day: Day = work[day_key]
+        # day
+        # item = Entry(**entry)
         # for i, item in enumerate(map(lambda w: Entry(**w), reversed(work))):
         item_start = item.start
         item_start_DDMMYY = item_start.DDMMYY

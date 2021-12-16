@@ -21,13 +21,15 @@ IGNORED_ATTRS = OBJECT_DICT_KEYS | {
 
 
 class Space:
-    """Does setattr on defined attributes, thus invoking each its Field's __set__ method."""
+    """Invokes each of its Field's `__set__` method by calling setattr on defined attributes in `__init__`."""
     DONT_SET_KEYS = {'DONT_SET_KEYS', '__fields__'}
     
     def __new__(cls, *args, **kwargs):
+        # TODO: what if args are passed? currently ignored in __init__
         # TypeError: object.__new__(Config) is not safe, use dict.__new__() error
-        # inst = object.__new__(cls)
-        instance = super().__new__(cls, *args, **kwargs)
+        # instance = object.__new__(cls)
+        instance = super().__new__(cls)
+        # instance = super().__new__(cls, *args, **kwargs)
         return instance
     
     def __init__(self, **kwargs) -> None:
@@ -53,7 +55,8 @@ TYPED_SPACE_V = TypeVar('TYPED_SPACE_V')
 
 
 class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
-    """Defines __default_factory__, and defines abstract __(get|set|del)item__."""
+    """Defines __default_factory__, and defines typing of __(get|set|del)item__.
+    No data manipulation."""
     DONT_SET_KEYS = Space.DONT_SET_KEYS | {'__default_factory__'}
     __default_factory__: Type[TYPED_SPACE_V]
     
@@ -81,8 +84,8 @@ class TypedSpace(Space, Generic[TYPED_SPACE_K, TYPED_SPACE_V]):
             #     f"Tried to set {cls.__qualname__}.__default_factory__ = {default_factory} but it's already defined: {cls.__default_factory__}"
             if __default_factory__not_defined:
                 assert callable(default_factory)
-                # TODO: this is weird, why not cls.__default_factory__ = default_factory?
                 # inst.__default_factory__ = default_factory
+                # TODO: class TYPED_SPACE_V_TYPE(Protocol)
                 cls.__default_factory__ = default_factory
         return instance
     

@@ -30,9 +30,8 @@ Options:
 """
 import sys
 from contextlib import suppress
-from typing import Callable, Tuple, List
+from typing import Callable
 
-from timefred._dev import generate_completion
 from timefred import action
 # from timefred.action import log, note, edit, stop, on, status, tag
 from timefred.config import config
@@ -61,7 +60,7 @@ FORMATS = config.time.formats
 # 	print('You are now %d deep in interrupts.' % len(interrupt_stack))
 
 
-def parse_args(argv=[]) -> Tuple[Callable, dict]:
+def parse_args(argv=[]) -> tuple[Callable, dict]:
     if not argv:
         argv = sys.argv
     # *** log
@@ -74,10 +73,10 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
     # ** timefred thursday
     if len(argv[1]) > 1:
         if argv[1].lower() == 'yesterday':
-            return action.log, {'period': argv[1], 'detailed': True}
+            return action.log, {'time': argv[1], 'detailed': True}
         with suppress(ValueError):
             isoweekday(argv[1])
-            return action.log, {'period': argv[1], 'detailed': True}
+            return action.log, {'time': argv[1], 'detailed': True}
     
     head = argv[1]
     tail: list[str] = argv[2:]
@@ -90,11 +89,11 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
             groupby = tail[groupby_idx + 1]
             tail = tail[:groupby_idx]
         if tail:
-            period = ' '.join(tail)
+            time = ' '.join(tail)
         else:
-            period = 'today'
+            time = 'today'
         args = {
-            'period':   period,
+            'time':     time,
             'detailed': '-' not in head,
             'groupby':  groupby
             }
@@ -198,7 +197,7 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
     # 	return interrupt, args
     
     # *** aggregate
-    elif head in ('a', 'ag', 'agg', 'aggreg', 'aggregate'):
+    elif head == 'a' or head.startswith('ag'):
         if not tail:
             raise BadArguments("Need at least <start> <stop>")
         if len(tail) == 1:
@@ -220,6 +219,7 @@ def parse_args(argv=[]) -> Tuple[Callable, dict]:
     # *** _dev
     if head == '_dev':
         if tail[0] == 'generate completion':
+            from timefred._dev import generate_completion
             return generate_completion, {}
     
     raise BadArguments("I don't understand %r" % (head,))

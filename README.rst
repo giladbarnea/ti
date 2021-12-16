@@ -246,3 +246,5 @@ Content snippets
 - Instead of constantly having to reflect and interrupt during the day, you make time entries only once using the memory aid - efficiently and in one go.
 - There are good reasons why many users prefer to estimate their times at the end of the day rather than using stopwatches. Nobody wants to be constantly interrupted by time tracking, because it costs time and focus.
 - Thanks to timeBro, these interruptions of the workflow are eliminated - and even the headache of making estimates.
+
+https://upload.wikimedia.org/wikipedia/en/5/5c/Alfred_Pennyworth_%28Alex_Ross%29.jpg

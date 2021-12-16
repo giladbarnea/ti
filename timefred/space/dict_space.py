@@ -12,7 +12,7 @@ DefaultDictSpace (KeyError __default_factory__)           /
                         DefaultAttrDictSpace
         
 """
-from typing import TypeVar, Type
+from typing import TypeVar, Type, ValuesView
 
 from timefred.space import Space, TypedSpace
 from .space import IGNORED_ATTRS
@@ -22,7 +22,8 @@ DICT_SPACE_V = TypeVar('DICT_SPACE_V')
 
 
 class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
-    """Inherits from dict thus defining __getitem__, __setitem__ etc"""
+    """Inherits from dict thus defining __getitem__, __setitem__ etc,
+    and inherits from Space thus `setattr`s defined fields in __init__."""
     
     def __init__(self, mappable=(), **kwargs) -> None:
         if mappable:
@@ -37,9 +38,10 @@ TYPED_DICT_SPACE_K = TypeVar('TYPED_DICT_SPACE_K')
 TYPED_DICT_SPACE_V = TypeVar('TYPED_DICT_SPACE_V')
 
 
-class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
+class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V],
+                     DictSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
 # class TypedDictSpace(TypedSpace):
-    """Defines __default_factory__ and casts __getitem__. No KeyError handling."""
+    """Casts __getitem__, No KeyError handling. Inherits from TypedSpace thus defining __default_factory__."""
     __default_factory__: Type[TYPED_DICT_SPACE_V]
     
     
@@ -64,12 +66,16 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V]):
             return value
 
 
+    # def values(self) -> ValuesView[TYPED_DICT_SPACE_V]:
+    #     return super().values()
+    
+
 DEFAULT_DICT_SPACE_K = TypeVar('DEFAULT_DICT_SPACE_K')
 DEFAULT_DICT_SPACE_V = TypeVar('DEFAULT_DICT_SPACE_V')
 
 
 class DefaultDictSpace(TypedDictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V]):
-    """KeyError returns a __default_factory__() (also casts __getitem__ from TypedDictSpace)"""
+    """KeyError returns a __default_factory__() (also casts __getitem__ via TypedDictSpace)"""
     
     # def __getitem__(self, key: DEFAULT_SPACE_K) -> DEFAULT_SPACE_V:
     def __getitem__(self, name):
@@ -90,7 +96,8 @@ class DefaultDictSpace(TypedDictSpace[DEFAULT_DICT_SPACE_K, DEFAULT_DICT_SPACE_V
 ATTR_DICT_SPACE_K = TypeVar('ATTR_DICT_SPACE_K')
 ATTR_DICT_SPACE_V = TypeVar('ATTR_DICT_SPACE_V')
 class AttrDictSpace(DictSpace[ATTR_DICT_SPACE_K, ATTR_DICT_SPACE_V]):
-    """Defines __getitem__ and __setitem__ from `DictSpace(dict)`, and implements __getattr__ and __setattr__.
+    """Implements __getattr__ and __setattr__ (gets / sets keys),
+    and inherits from `DictSpace(dict)`, thus defining __getitem__ and __setitem__.
     No __default_factory__ or default stuff."""
     
     def __setattr__(self, name: str, value) -> None:
@@ -150,7 +157,8 @@ DEFAULT_ATTR_DICT_SPACE_V = TypeVar('DEFAULT_ATTR_DICT_SPACE_V')
 class DefaultAttrDictSpace(DefaultDictSpace[DEFAULT_ATTR_DICT_SPACE_K, DEFAULT_ATTR_DICT_SPACE_V],
                            AttrDictSpace[DEFAULT_ATTR_DICT_SPACE_K, DEFAULT_ATTR_DICT_SPACE_V]):
 
-    """__getattr__ and __setattr__ from AttrDictSpace, and casts / returns __default_factory__(...)"""
+    """Casts / returns __default_factory__(...) via DefaultDictSpace,
+    and __getattr__ and __setattr__ via AttrDictSpace."""
     
     # same logic with __init__ doesn't work because
     # TypedDictSpace.__new__ is called beforehand
