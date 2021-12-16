@@ -60,7 +60,7 @@ class Config(AttrDictSpace):
     class Cache(AttrDictSpace):
         path: Path
         @Field(cast=Path)
-        def path():
+        def path(): # when fixing, note that sometimes we do want self
             path = Path(os.path.expanduser(os.environ.get('TIMEFRED_CACHE_DIR', "~/.cache/timefred")))
             if not path.exists():
                 path.mkdir(exist_ok=True)

@@ -65,23 +65,31 @@ def default_work(day: XArrow = None) -> Work:
 
 
 @contextmanager
-def sheet_path(path, rm=False):
+def temp_sheet(path, rm=True):
     old_path = config.sheet.path
     if 'TIMEFRED_SHEET' in os.environ and os.environ['TIMEFRED_SHEET'] != old_path != store.path:
         raise ValueError(f"Sheet path config mismatch: "
                          f"{os.environ['TIMEFRED_SHEET'] = !r}, {config.sheet.path = !r}, {store.path = !r}")
-    store._backup(f'_{int(time_ns())}')
+    now_ns = int(time_ns())
+    store._backup(f'_{now_ns}')
     os.environ['TIMEFRED_SHEET'] = path
+    path = Path(path)
     config.sheet.path = path
     store.path = path
     store._store = None
     
     try:
         yield
+    except:
+        rm = False
     finally:
-        os.environ['TIMEFRED_SHEET'] = old_path
+        old_path = Path(old_path)
+        os.environ['TIMEFRED_SHEET'] = str(old_path)
         config.sheet.path = old_path
         store.path = old_path
         if rm:
             if os.path.exists(path):
                 os.remove(path)
+            backup_path = (config.cache.path / old_path.name).with_name(old_path.stem + f'_{now_ns}.backup')
+            backup_path.unlink(True)
+            

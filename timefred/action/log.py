@@ -4,7 +4,7 @@ from typing import Literal, Any, Union
 
 from timefred import color as c
 from timefred.note import Note
-from timefred.store import store, Day
+from timefred.store import store, Day, Entry, Activity
 from timefred.tag import Tag
 from timefred.time.timespan import Timespan
 from timefred.time.timeutils import secs2human, arrows2rel_time
@@ -125,9 +125,9 @@ def log(time: Union[str, XArrow] = "today",
     if not day:
         return False
     _log = Log()
-    activities = day.values()
-    activity = activities[0]
-    entry = activity[0]
+    activities: list[Activity] = day.values()
+    activity: Activity = activities[0]
+    entry: Entry = activity[0]
     by_tag = defaultdict(set)   # activities = list(day.values());
     # for i, entry in enumerate(reversed(work)):
     for day_key in reversed(work):
