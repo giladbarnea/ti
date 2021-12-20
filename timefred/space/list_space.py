@@ -1,4 +1,4 @@
-from typing import TypeVar, Union
+from typing import TypeVar, Union, Iterator
 from collections.abc import Iterable
 from timefred.space import Space, TypedSpace
 from .space import IGNORED_ATTRS
@@ -19,6 +19,13 @@ TYPED_LIST_SPACE_V = TypeVar('TYPED_LIST_SPACE_V')
 class TypedListSpace(ListSpace[TYPED_LIST_SPACE_V],
                      TypedSpace[Union[int, slice], TYPED_LIST_SPACE_V]
                      ):
+    
+    def __iter__(self) -> Iterator[TYPED_LIST_SPACE_V]:
+        for i in range(len(self)):
+            item = self[i]
+            yield item
+        # return super().__iter__()
+
     # def __getitem__(self, name: Union[int, slice]) -> LIST_SPACE_V:
     def __getitem__(self, name):
         """Ensures self[name] is of __default_factory__"""
