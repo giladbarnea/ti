@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+import typing as t
 from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
 from timefred.singleton import Singleton
 # from timefred.log import log
@@ -123,10 +124,24 @@ class Field(Generic[TFieldValue]):
                     value = self.default_factory()
             else:
                 value = self.default
-        
-        if self.cast and value is not UNSET:
-            value = self.cast(value)
-        
+
+        if self.cast:
+            if t.get_origin(self.cast) in (list, tuple, set, dict):
+                type_arg, *type_args = t.get_args(self.cast)
+                if type_args:
+                    raise NotImplementedError(f'{self.cast = !r} has multiple args; {t.get_args(self.cast) = }')
+                if type(value) in (list, tuple, set, dict):
+                    value = self.cast(map(type_arg, value))
+                else:
+                    if value is UNSET:
+                        value = self.cast((value,))
+                    else:
+                        value = self.cast(type_arg(value))
+            else:
+                if value is not UNSET:
+                    value = self.cast(value)
+                
+
         if self.should_cache:
             instance.__fields__[self.name]['cached'] = value
         return value

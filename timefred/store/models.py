@@ -1,21 +1,22 @@
 import os
 from typing import Optional, Iterable, Union, Any, Type, Mapping
 
-from timefred.color import Colored
-from timefred.color.colored import TaskString
+from timefred import color as c
+from timefred.color import Colored, TaskString
 from timefred.integration.jira import JiraTicket
 from timefred.note import Note
 from timefred.space import AttrDictSpace, Field, TypedListSpace, DefaultAttrDictSpace
 from timefred.tag import Tag
 from timefred.time import XArrow, Timespan
+from timefred.time.timeutils import secs2human
 from timefred.util import normalize_str
 
 
 class Entry(AttrDictSpace):
     start: XArrow = Field(cast=XArrow.from_absolute)
-    end: Optional[XArrow] = Field(cast=XArrow.from_absolute, optional=True)
-    notes: Optional[list[Note]] = Field(optional=True)
-    tags: Optional[set[Tag]] = Field(optional=True)
+    end: Optional[XArrow] = Field(optional=True, cast=XArrow.from_absolute)
+    notes: Optional[list[Note]] = Field(optional=True, cast=list[Note])
+    tags: Optional[set[Tag]] = Field(optional=True, cast=list[Tag])
     
     # @Field(optional=True)
     @property
@@ -159,6 +160,62 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         self.append(entry)
         return entry
 
+    def timespans(self) -> list[Timespan]:
+        return sorted(map(lambda entry: entry.timespan, self))
+
+    def seconds(self) -> int:
+        return sum(self.timespans())
+
+    def human_duration(self) -> str:
+        return secs2human(self.seconds())
+
+    def pretty(self, detailed: bool = True, width: int = 24):
+        timespans = self.timespans()
+        if detailed:
+            time = "\n  \x1b[2m"
+            notes = []
+            [notes.extend(filter(bool, entry.notes)) for entry in self]
+            if notes:
+                time += '\n  ' + c.grey150('Times')
+        
+            for start, end in timespans:
+                if end:
+                    time += f'\n  {start.HHmmss} → {end.HHmmss} ({end - start})'
+                else:
+                    time += f'\n  {start.HHmmss}'
+        
+            if notes:
+                time += '\n\n  ' + c.grey150('Notes')
+        
+            # for note_time, note_content in sorted(log_entry.notes, key=lambda _n: _n[0] if _n[0] else '0'):
+            for note_content, note_time in filter(bool, notes):
+                if note_time:
+                    time += f'\n  {note_content} ({note_time.HHmmss})'
+                else:
+                    time += f'\n  {note_content}'
+        
+            time += "\x1b[0m\n"
+        else:
+            # earliest_start_time = self.earliest_start()
+            earliest_start_time = timespans[0].start
+            time = c.i(c.dim('   started ' + earliest_start_time.HHmmss))
+    
+        if self.ongoing():
+            name = c.title(self.name)
+        else:
+            name = c.w200(self.name)
+    
+        if detailed:
+            tags = set()
+            [tags.update(set(filter(bool, entry.tags))) for entry in self]
+            name += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
+    
+        pretty = ' '.join([c.ljust_with_color(name, width),
+                           '\x1b[2m\t\x1b[0m ',
+                           self.human_duration(),
+                           time])
+        return pretty
+
 
 class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
     """Day { "activity_name": Activity }"""
@@ -210,6 +267,11 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
         # log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
         return constructed
 
+    def seconds(self) -> int:
+        return sum(map(lambda activity: activity.seconds(), self.values()))
+
+    def human_duration(self) -> str:
+        return secs2human(self.seconds())
 
 class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""

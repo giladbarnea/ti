@@ -1,5 +1,7 @@
-from dataclasses import dataclass, field
+# from dataclasses import dataclass, field
 from datetime import timedelta
+from collections.abc import Iterator
+from typing import Optional
 
 from multimethod import multimethod
 
@@ -39,6 +41,8 @@ class Timespan(DictSpace):
         #     return self_seconds + int(other.timedelta().total_seconds())
         # except AttributeError: # other is int
         #     return self_seconds + other
+    def __lt__(self, other):
+        return self.start > other.start
     
     def __add__(self, other) -> int:
         self_seconds = self.seconds()
@@ -47,7 +51,12 @@ class Timespan(DictSpace):
     
     def __bool__(self):
         return bool(self.start) or bool(self.end)
-    
+
+    def __iter__(self) -> Iterator[Optional[XArrow]]:
+        yield self.start
+        yield self.end
+        # return super().__iter__()
+
     def timedelta(self) -> timedelta:
         return self.end - self.start
     
