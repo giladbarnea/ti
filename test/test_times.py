@@ -507,6 +507,12 @@ class TestXArrow:
         assert from_absolute.minute == 0
         assert from_absolute.second == 0
 
+        HHmmss = "02:53:49"
+        from_absolute = XArrow.from_absolute(HHmmss)
+        assert from_absolute.hour == 2
+        assert from_absolute.minute == 53
+        assert from_absolute.second == 49
+
     def test_from_absolute_HHmm(self):
         HHmm = "02:00"
         from_absolute = XArrow.from_absolute(HHmm)
