@@ -200,7 +200,10 @@ class XArrow(Arrow):
         >>> XArrow.from_absolute('09:45')
         <XArrow ...>
         """
-        now = cls.now()
+        # if `time` specifies second, it would get updated
+        # otherwise expected behavior is like constructing datetime.time(23, 59) (second==0)
+        now = cls.now().replace(second=0)
+        
         updated = now.update(time)
         return updated
     

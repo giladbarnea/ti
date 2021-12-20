@@ -482,11 +482,11 @@ class TestXArrow:
                 assert getattr(from_formatted, not_included_attr) == 0 if not_included_attr in {'hour', 'minute', 'second'} else 1
     
     
-    def test_from_absolute(self):
-        now = XArrow.now()
-        now_from_absolute = XArrow.from_absolute(now)
-        assert_arrows_soft_eq(now_from_absolute, now)
-        assert now_from_absolute is now
+    def test_from_absolute_now(self):
+        now = XArrow.now().replace(second=0)
+        from_absolute_now = XArrow.from_absolute(now)
+        assert_arrows_soft_eq(from_absolute_now, now)
+        assert from_absolute_now is now
         
         for fmt in [  # FORMATS.date,
             # FORMATS.short_date:       ['month', 'day'],
@@ -496,7 +496,22 @@ class TestXArrow:
             # FORMATS.shorter_datetime: ['year', 'month', 'day', 'hour', 'minute'],
             # FORMATS.short_datetime:   ['month', 'day', 'hour', 'minute'],
             ]:
-            from_absolute: XArrow = XArrow.from_absolute(now.format(fmt))
-            assert_arrows_soft_eq(from_absolute, now)
+            formatted = now.format(fmt)
+            from_absolute_formatted: XArrow = XArrow.from_absolute(formatted)
+            assert_arrows_soft_eq(from_absolute_formatted, now)
+
+    def test_from_absolute_HHmmss(self):
+        HHmmss = "02:00:00"
+        from_absolute = XArrow.from_absolute(HHmmss)
+        assert from_absolute.hour == 2
+        assert from_absolute.minute == 0
+        assert from_absolute.second == 0
+
+    def test_from_absolute_HHmm(self):
+        HHmm = "02:00"
+        from_absolute = XArrow.from_absolute(HHmm)
+        assert from_absolute.hour == 2
+        assert from_absolute.minute == 0
+        assert from_absolute.second == 0
     
     
