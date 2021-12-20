@@ -31,7 +31,10 @@ class Timespan(DictSpace):
 
     @multimethod
     def __radd__(self, other) -> int:
-        return self.__radd__(int(other.timedelta().total_seconds()))
+        other_timedelta = other.timedelta()
+        other_total_seconds = other_timedelta.total_seconds()
+        other_total_seconds_int = int(other_total_seconds)
+        return self.__radd__(other_total_seconds_int)
     
     @multimethod
     def __radd__(self, other: int) -> int:
@@ -58,10 +61,15 @@ class Timespan(DictSpace):
         # return super().__iter__()
 
     def timedelta(self) -> timedelta:
-        return self.end - self.start
-    
+        if self.end:
+            return self.end - self.start
+        else:
+            return timedelta(seconds=0)
+    #
     def seconds(self) -> int:
-        return int(self.timedelta().total_seconds())
+        td = self.timedelta()
+        td_total_seconds = td.total_seconds()
+        return int(td_total_seconds)
     
     def human_duration(self) -> str:
         return secs2human(self.seconds())
