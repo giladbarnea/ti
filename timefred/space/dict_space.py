@@ -27,9 +27,6 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     
     # @break_on_exc
     def __new__(cls, *args, **kwargs) -> "DictSpace":
-        if 'Timespan' in str(cls):
-            # log.title(f'{cls}.__new__({mappable = }, {kwargs = })')
-            log.title(f'{cls}.__new__({args = }, {kwargs = })')
         # if mappable:
         #     assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
         #     instance = dict.__new__(cls, **dict(mappable))

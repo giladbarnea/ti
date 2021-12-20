@@ -22,7 +22,8 @@ class Entry(AttrDictSpace):
     def timespan(self):
         start = self.start
         end = self.end
-        return Timespan(start, end)
+        timespan = Timespan(start=start, end=end)
+        return timespan
     
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,

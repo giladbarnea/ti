@@ -20,8 +20,12 @@ class Timespan(DictSpace):
     # end = Field(optional=True, cast=XArrow)
     end: XArrow = Field(optional=True, cast=XArrow.from_absolute)
 
-    def __init__(self, mappable=(), **kwargs) -> None:
-        super().__init__(mappable, **kwargs)
+    def __repr__(self):
+        short_id = f'{str(id(self))[-4:]}'
+        start = self.start
+        end = self.end
+        representation = f'{self.__class__.__qualname__} ({start=!r}, {end=!r}) <{short_id}>'
+        return representation
 
     @multimethod
     def __radd__(self, other) -> int:

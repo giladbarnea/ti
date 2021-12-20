@@ -1,7 +1,7 @@
 import re
 from collections.abc import Callable
 from contextlib import suppress
-from datetime import tzinfo as dt_tzinfo
+from datetime import tzinfo as dt_tzinfo, time as dt_time
 # from time import struct_time
 from typing import Type, Optional, Any, Union, Literal, overload, final
 
@@ -105,7 +105,7 @@ class XArrow(Arrow):
         return rv
     
     @classmethod
-    def from_formatted(cls, date: Union[str, "XArrow"]) -> "XArrow":
+    def from_formatted(cls, date: Union[str, dt_time, "XArrow"]) -> "XArrow":
         """`date` can be any `config.time.formats`, e.g `DD/MM/YY HH:mm:ss` ... `HH:MM`"""
         if isinstance(date, Arrow):
             if isinstance(date, XArrow):
@@ -123,7 +123,7 @@ class XArrow(Arrow):
                                   tzinfo=TZINFO)
     
     @classmethod
-    def from_day(cls, day: Union[str, "XArrow"]) -> "XArrow":  # perf: µs
+    def from_day(cls, day: Union[str, dt_time, "XArrow"]) -> "XArrow":  # perf: µs
         """
         >>> XArrow.from_day('thurs')
         <XArrow ...>
@@ -140,7 +140,7 @@ class XArrow(Arrow):
             shift = diff * -1
         return now.shift(days=shift)
 
-    def _dehumanize_relative(self, input_string: Union[str, "XArrow"]) -> "XArrow":
+    def _dehumanize_relative(self, input_string: Union[str, dt_time, "XArrow"]) -> "XArrow":
         """
         >>> XArrow._dehumanize_relative('3m ago')
         <XArrow ...>
@@ -195,12 +195,14 @@ class XArrow(Arrow):
         return parsed
 
     @classmethod
-    def from_absolute(cls, time: Union[str, "XArrow"]) -> "XArrow":
+    def from_absolute(cls, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
         """
         >>> XArrow.from_absolute('09:45')
         <XArrow ...>
         """
-        return cls.now().update(time)
+        now = cls.now()
+        updated = now.update(time)
+        return updated
     
     # noinspection PyMethodOverriding,PyMethodParameters
     @overload
@@ -234,7 +236,7 @@ class XArrow(Arrow):
         return rv
     
     @classmethod
-    def from_human(cls, human_time: Union[str, "XArrow"] = "now") -> "XArrow":
+    def from_human(cls, human_time: Union[str, dt_time, "XArrow"] = "now") -> "XArrow":
         """
         Format is e.g.::
 
@@ -296,27 +298,34 @@ class XArrow(Arrow):
         #
         # raise BadTime(f"Don't understand the time {human_time!r}")
     
-    def update(self, time: Union[str, "XArrow"]) -> "XArrow":
+    def update(self, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
         """
         >>> self.update('09:45')
         <XArrow ...>
         """
         if isinstance(time, XArrow):
             return time
-        if FORMATS.date_separator in time:
-            raise NotImplementedError(f"Looks like {time = !r} is a date. Currently can only update time.")
-        time_match = FORMATS.time_format_re.match(time)
-        if not time_match:
-            raise ValueError(f"{time = !r} doesn't match {FORMATS.time_format_re}")
         
-        time_match_dict = time_match.groupdict()
         replace = {}
-        if (hour := time_match_dict['hour']) is not None:
-            replace['hour'] = int(hour)
-        if (minute := time_match_dict['minute']) is not None:
-            replace['minute'] = int(minute)
-        if (second := time_match_dict['second']) is not None:
-            replace['second'] = int(second)
+        if isinstance(time, str):
+            if FORMATS.date_separator in time:
+                raise NotImplementedError(f"Looks like {time = !r} is a date. Currently can only update time.")
+            time_match = FORMATS.time_format_re.match(time)
+            if not time_match:
+                raise ValueError(f"{time = !r} doesn't match {FORMATS.time_format_re}")
+            
+            time_match_dict = time_match.groupdict()
+            if (hour := time_match_dict['hour']) is not None:
+                replace['hour'] = int(hour)
+            if (minute := time_match_dict['minute']) is not None:
+                replace['minute'] = int(minute)
+            if (second := time_match_dict['second']) is not None:
+                replace['second'] = int(second)
+        
+        else: # time or datetime
+            for name in self._ATTRS:
+                if name != 'microsecond' and (attr := getattr(time, name, None)):
+                    replace[name] = attr
         
         rv = self.replace(**replace)
         return rv
