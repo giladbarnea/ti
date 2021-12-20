@@ -15,6 +15,7 @@ from timefred.util import normalize_str
 class Entry(AttrDictSpace):
     start: XArrow = Field(cast=XArrow.from_absolute)
     end: Optional[XArrow] = Field(optional=True, cast=XArrow.from_absolute)
+    synced: Optional[bool] = Field(optional=True)
     notes: Optional[list[Note]] = Field(optional=True, cast=list[Note])
     tags: Optional[set[Tag]] = Field(optional=True, cast=list[Tag])
     
@@ -72,8 +73,14 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     
     def __init__(self, iterable: Iterable = (), **kwargs) -> None:
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
-        super().__init__(iterable, **kwargs)
-    
+        try:
+            super().__init__(iterable, **kwargs)
+        except TypeError as e:
+            if not e.args[0].endswith('is not iterable'):
+                raise
+            iterable = (dict(start=iterable), )
+            super().__init__(iterable, **kwargs)
+            
     def __repr__(self) -> str:
         name = f'{getattr(self, "name")}'
         short_id = f'{str(id(self))[-4:]}'
@@ -161,20 +168,27 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         return entry
 
     def timespans(self) -> list[Timespan]:
-        return sorted(map(lambda entry: entry.timespan, self))
+        sorted_entries = sorted(map(lambda entry: entry.timespan, self))
+        return sorted_entries
 
     def seconds(self) -> int:
-        return sum(self.timespans())
+        timespans = self.timespans()
+        return sum(timespans)
 
     def human_duration(self) -> str:
-        return secs2human(self.seconds())
+        seconds = self.seconds()
+        human = secs2human(seconds)
+        return human
 
     def pretty(self, detailed: bool = True, width: int = 24):
         timespans = self.timespans()
         if detailed:
             time = "\n  \x1b[2m"
             notes = []
-            [notes.extend(filter(bool, entry.notes)) for entry in self]
+            for entry in self:
+                entry_notes = entry.notes
+                entry_nonempty_notes = list(filter(bool, entry_notes))
+                notes.extend(entry_nonempty_notes)
             if notes:
                 time += '\n  ' + c.grey150('Times')
         
@@ -188,7 +202,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
                 time += '\n\n  ' + c.grey150('Notes')
         
             # for note_time, note_content in sorted(log_entry.notes, key=lambda _n: _n[0] if _n[0] else '0'):
-            for note_content, note_time in filter(bool, notes):
+            for note_content, note_time in notes:
                 if note_time:
                     time += f'\n  {note_content} ({note_time.HHmmss})'
                 else:
@@ -209,10 +223,11 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             tags = set()
             [tags.update(set(filter(bool, entry.tags))) for entry in self]
             name += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
-    
+
+        human_duration = self.human_duration()
         pretty = ' '.join([c.ljust_with_color(name, width),
                            '\x1b[2m\t\x1b[0m ',
-                           self.human_duration(),
+                           human_duration,
                            time])
         return pretty
 
