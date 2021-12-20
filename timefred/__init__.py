@@ -37,3 +37,6 @@ else:
         return fn
     
 builtins.eye = eye
+if os.getenv('TIMEFRED_RICH_TB', '').lower() in ('true', '1'):
+    from rich import traceback
+    traceback.install(extra_lines=5, show_locals=True)
