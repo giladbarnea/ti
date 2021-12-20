@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from multimethod import multimethod
 
 from timefred import color as c
@@ -10,14 +11,13 @@ NOTE_TIME_RE = re.compile(r'(.+) \(([\d/: ]+)\)', re.IGNORECASE)
 
 
 class Note(DictSpace):
-	time: XArrow = Field(default_factory=XArrow.from_absolute, cast=XArrow)
+	time: XArrow = Field(default_factory=XArrow.from_absolute, cast=XArrow.from_absolute)
 	content: str = Field(default_factory=str)
 	
-	# def __new__(cls, note: Mapping) -> "Note":
-	# 	time = next(iter(note))
-	# 	content = note[time]
-	# 	instance = super().__new__(cls, time=time, content=content)
-	# 	return instance
+	def __init__(self, note: Mapping) -> None:
+		time = next(iter(note))
+		content = note[time]
+		super().__init__(time=time, content=content)
 	
 	# @multimethod
 	# def __init__(self, content: str, time: Union[str, XArrow]=None):
