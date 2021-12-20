@@ -19,7 +19,10 @@ class Timespan(DictSpace):
     # end:   Optional[XArrow] = None
     # end = Field(optional=True, cast=XArrow)
     end: XArrow = Field(optional=True, cast=XArrow.from_absolute)
-    
+
+    def __init__(self, mappable=(), **kwargs) -> None:
+        super().__init__(mappable, **kwargs)
+
     @multimethod
     def __radd__(self, other) -> int:
         return self.__radd__(int(other.timedelta().total_seconds()))
