@@ -106,8 +106,8 @@ class Field(Generic[TFieldValue]):
                      cache=self.should_cache)
         return attrs
     
-    # def __repr__(self):
-    #     return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
+    def __repr__(self):
+        return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
     # @break_on_exc
     def __get__(self, instance: HasFields, instance_cls: Type[HasFields]) -> TFieldValue:
         field_data = self.get_set_default_field_data_from_instance(instance, {'value': UNSET, 'cached': UNSET})

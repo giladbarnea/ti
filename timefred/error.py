@@ -2,6 +2,17 @@ class TIError(Exception):
     """Errors raised by TI."""
 
 
+class EmptySheet(TIError):
+    """Sheet has no data."""
+
+
+class NoActivities(TIError):
+    """No activities at specified time"""
+
+    def __init__(self, time, *args: object) -> None:
+        super().__init__(*(f"No activities at {time}", *args))
+
+
 class AlreadyOn(TIError):
     """Already working on that task."""
 

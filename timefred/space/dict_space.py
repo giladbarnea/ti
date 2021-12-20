@@ -16,7 +16,7 @@ from typing import TypeVar, Type
 
 from timefred.space import Space, TypedSpace
 from .space import IGNORED_ATTRS
-from timefred.log import log
+# from timefred.log import log
 # from pdbpp import break_on_exc
 DICT_SPACE_K = TypeVar('DICT_SPACE_K')
 DICT_SPACE_V = TypeVar('DICT_SPACE_V')

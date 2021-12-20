@@ -3,6 +3,7 @@ from collections import defaultdict
 from typing import Literal, Union
 
 from timefred import color as c
+from timefred.error import EmptySheet, NoActivities
 from timefred.store import store, Entry, Activity
 from timefred.time.timeutils import arrows2rel_time
 from timefred.time.xarrow import XArrow
@@ -17,19 +18,19 @@ def log(time: Union[str, XArrow] = "today",
         raise ValueError(f"log({time = !r}, {detailed = }, {groupby = !r}) groupby must be either 't' | 'tag'")
     work = store.load()
     if not work:
-        return False
+        raise EmptySheet()
     current = None
     arrow = XArrow.from_human(time)
     # now = arrow.now() # TODO: should support a range of times, spanning several days etc
     day = work[arrow.DDMMYY]
     if not day:
-        return False
+        raise NoActivities(arrow.DDMMYY)
     # _log = Log()
     activities: list[Activity] = day.values()
-    activity: Activity = activities[0]
-    entry: Entry = activity[0]
-    entry_timespan = entry.timespan
-    print(f'{entry_timespan = !r}')
+    # activity: Activity = activities[0]
+    # entry: Entry = activity[0]
+    # entry_timespan = entry.timespan
+    # print(f'{entry_timespan = !r}')
     by_tag = defaultdict(set)  # activities = list(day.values());
     # for i, entry in enumerate(reversed(work)):
     # for day_key in reversed(work):
@@ -75,7 +76,7 @@ def log(time: Union[str, XArrow] = "today",
     print(title + '\n')
     # if not _log:
     #     return True
-    name_column_width = max(*map(len, map(lambda _: _.name, activities)), 24)
+    name_column_width = max(*map(len, map(lambda _activity: _activity.name, activities)), 24)
     if groupby:
         for _tag, names in by_tag.items():
             print(c.tag(_tag))
