@@ -10,7 +10,7 @@ from timefred.log import log
 from timefred.action import log as log_action
 from pytest import mark
 
-@mark.skip("Not implemented yet")
+# @mark.skip("Not implemented yet")
 def test_sanity():
     log.title(f"test_sanity()")
     work = default_work(TEST_START_ARROW)

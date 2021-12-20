@@ -20,7 +20,9 @@ class Entry(AttrDictSpace):
     # @Field(optional=True)
     @property
     def timespan(self):
-        return Timespan(self.start, self.end)
+        start = self.start
+        end = self.end
+        return Timespan(start, end)
     
     # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
     # 	super().__init__(dict(name=name,

@@ -128,6 +128,7 @@ def log(time: Union[str, XArrow] = "today",
     activities: list[Activity] = day.values()
     activity: Activity = activities[0]
     entry: Entry = activity[0]
+    print(entry.timespan)
     by_tag = defaultdict(set)   # activities = list(day.values());
     # for i, entry in enumerate(reversed(work)):
     for day_key in reversed(work):

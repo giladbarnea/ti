@@ -16,21 +16,30 @@ from typing import TypeVar, Type
 
 from timefred.space import Space, TypedSpace
 from .space import IGNORED_ATTRS
-
+from timefred.log import log
+# from pdbpp import break_on_exc
 DICT_SPACE_K = TypeVar('DICT_SPACE_K')
 DICT_SPACE_V = TypeVar('DICT_SPACE_V')
-
 
 class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     """Inherits from dict thus defining __getitem__, __setitem__ etc,
     and inherits from Space thus `setattr`s defined fields in __init__."""
     
-    def __new__(cls, mappable=(), **kwargs) -> "DictSpace":
-        if mappable:
-            assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
-            instance = dict.__new__(cls, **dict(mappable))
+    # @break_on_exc
+    def __new__(cls, *args, **kwargs) -> "DictSpace":
+        if 'Timespan' in str(cls):
+            # log.title(f'{cls}.__new__({mappable = }, {kwargs = })')
+            log.title(f'{cls}.__new__({args = }, {kwargs = })')
+        # if mappable:
+        #     assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
+        #     instance = dict.__new__(cls, **dict(mappable))
+        #     return instance
+        if args:
+            assert not kwargs, f"{cls}.__new__({args = }, {kwargs = })"
+            instance = dict.__new__(cls, **dict(*args))
             return instance
-        assert not mappable, f"{cls}.__new__({mappable = }, {kwargs = })"
+        # assert not mappable, f"{cls}.__new__({mappable = }, {kwargs = })"
+        assert not args, f"{cls}.__new__({args = }, {kwargs = })"
         instance = dict.__new__(cls, **kwargs)
         return instance
 
