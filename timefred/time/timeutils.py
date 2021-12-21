@@ -1,5 +1,6 @@
 from arrow.locales import EnglishLocale
 
+from timefred.log import log
 from timefred.config import config
 
 if config.time.first_day_of_week == 'monday':
@@ -30,10 +31,10 @@ def arrows2rel_time(present: "XArrow", past: "XArrow") -> str:
     >>> arrows2rel_time(now(), now().shift(days=-5, minutes=3))
     '4 days, 23 hours & 57 minutes ago'
     """
-    # TODO: check out present.humanize(past, granularity=["hour", "minute", "second"])
     # if (present.year != past.year or
     #         present.month != past.month):
     #     raise NotImplemented(f"Can only handle differences in weeks and below")
+    log.debug(f'arrows2rel_time({present = }, {past = })')
     secs = int((present - past).total_seconds())
     if not secs:
         return ''
@@ -51,14 +52,24 @@ def secs2human(secs: int) -> str:
     if not isinstance(secs, int):
         breakpoint()
     strings = []
-    if secs >= 604800:
-        weeks = int(secs // 604800)
-        secs -= weeks * 604800
+    if secs >= 3600 * 24 * 7 * 52:
+        years = int(secs // (3600 * 24 * 7 * 52))
+        secs -= years * 3600 * 24 * 7 * 52
+        strings.append(str(years) + ' year' + ('s' if years > 1 else ''))
+    
+    if secs >= 3600 * 24 * 7 * 4:
+        months = int(secs // (3600 * 24 * 7 * 4))
+        secs -= months * 3600 * 24 * 7 * 4
+        strings.append(str(months) + ' month' + ('s' if months > 1 else ''))
+    
+    if secs >= 3600 * 24 * 7:
+        weeks = int(secs // (3600 * 24 * 7))
+        secs -= weeks * 3600 * 24 * 7
         strings.append(str(weeks) + ' week' + ('s' if weeks > 1 else ''))
 
-    if secs >= 86400:
-        days = int(secs // 86400)
-        secs -= days * 86400
+    if secs >= 3600 * 24:
+        days = int(secs // (3600 * 24))
+        secs -= days * 3600 * 24
         strings.append(str(days) + ' day' + ('s' if days > 1 else ''))
 
     if secs >= 3600:

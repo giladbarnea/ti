@@ -1,8 +1,13 @@
 import sys
 from collections.abc import Iterable
 from copy import copy
+# from pdbpp import break_on_exc
+from itertools import product, permutations
+from random import randint, random
 from typing import NoReturn, Union
 
+import pytest
+from arrow import Arrow
 from arrow.locales import EnglishLocale
 from icecream import ic
 
@@ -10,11 +15,7 @@ from test import TEST_START_ARROW
 from timefred.config import config
 from timefred.log import log
 from timefred.time import XArrow
-from random import randint, random
-from arrow import Arrow
-# from pdbpp import break_on_exc
-from itertools import product, permutations
-import pytest
+from timefred.time.timeutils import secs2human
 
 ic.configureOutput(prefix='')
 
@@ -35,6 +36,7 @@ def assert_equal_attrs(obj1, obj2, attr: Union[str, Iterable[str]], *attrs) -> N
             assert getattr(obj1, attribute) == getattr(obj2, attribute)
         except AttributeError as attr_err:
             raise AssertionError(f'{obj1!r}.{attribute} not equal to {obj2!r}.{attribute} because AttributeError: {attr_err}') from None
+
 
 def assert_arrows_soft_eq(arrow1: Arrow, arrow2: Arrow, *, compare_second=True) -> NoReturn:
     """Compares year, month, day, hour, minute, second.
@@ -144,6 +146,47 @@ def test_isoweekday():
     # noinspection PyUnresolvedReferences
     from timefred.time import isoweekday
 
+class Test_secs2human:
+    def test_1_unit(self):
+        assert secs2human(0) == ''
+        assert secs2human(1) == '1 second'
+        assert secs2human(2) == '2 seconds'
+        assert secs2human(60) == '1 minute'
+        assert secs2human(120) == '2 minutes'
+        assert secs2human(60 * 60) == '1 hour'
+        assert secs2human(60 * 60 * 2) == '2 hours'
+        assert secs2human(60 * 60 * 24) == '1 day'
+        assert secs2human(60 * 60 * 24 * 2) == '2 days'
+        assert secs2human(60 * 60 * 24 * 7) == '1 week'
+        assert secs2human(60 * 60 * 24 * 7 * 2) == '2 weeks'
+        assert secs2human(60 * 60 * 24 * 7 * 52) == '1 year'
+        assert secs2human(60 * 60 * 24 * 7 * 52 * 2) == '2 years'
+
+    def test_2_units(self):
+        assert secs2human(61) == '1 minute & 1 second'
+        assert secs2human(121) == '2 minutes & 1 second'
+        assert secs2human(122) == '2 minutes & 2 seconds'
+        assert secs2human(60 * 60 * 24 + 1) == '1 day & 1 second'
+
+    def test_3_units(self):
+        assert secs2human(60 * 60 + 61) == '1 hour, 1 minute & 1 second'
+        assert secs2human(60 * 60 + 62) == '1 hour, 1 minute & 2 seconds'
+        assert secs2human(60 * 61 + 62) == '1 hour, 2 minutes & 2 seconds'
+        assert secs2human(2 * 60 * 61 + 62) == '2 hours, 3 minutes & 2 seconds'
+
+    def test_4_units(self):
+        minute = 60
+        hour = minute * 60
+        day = hour * 24
+        week = day * 7
+        assert secs2human(week + day + hour + minute) == '1 week, 1 day, 1 hour & 1 minute'
+        assert secs2human(week + day + hour + 2 * minute) == '1 week, 1 day, 1 hour & 2 minutes'
+        assert secs2human(week + day + 2 * hour + 2 * minute) == '1 week, 1 day, 2 hours & 2 minutes'
+        assert secs2human(week + 2 * day + 2 * hour + 2 * minute) == '1 week, 2 days, 2 hours & 2 minutes'
+        assert secs2human(2 * week + 2 * day + 2 * hour + 2 * minute) == '2 weeks, 2 days, 2 hours & 2 minutes'
+    
+
+
 class TestXArrow:
     def test_from_day(self):
         days = ['sunday', 'monday', 'tuesday',
@@ -153,7 +196,6 @@ class TestXArrow:
             for char_index in range(2, len(day) + 1):
                 arrow_from_day = XArrow.from_day(day[:char_index])
                 assert arrow_from_day.strftime('%A').lower() == day
-        
     
     class TestDehumanize:
         # @break_on_exc
@@ -179,7 +221,7 @@ class TestXArrow:
                         shift = 1
                         human_expression = relative_fmt.format(expression)  # a second ago / in a second
                     dehumanized_static = XArrow.dehumanize(human_expression)
-                
+                    
                     if 'ago' in relative_fmt:
                         shift *= -1
                     shift_kwargs = {unit.removesuffix('s') + 's': shift}
@@ -192,11 +234,10 @@ class TestXArrow:
                         now = XArrow.now()
                         now_shifted = now.shift(**shift_kwargs)
                         assert_arrows_soft_eq(dehumanized_static, now_shifted)
-                        
-                
+                    
                     dehumanized_instance = now.dehumanize(human_expression)
                     assert_arrows_soft_eq(dehumanized_instance, now_shifted)
-
+            
             # * 2 units
             for time_unit_1 in TIME_UNITS:
                 for time_unit_2 in TIME_UNITS:
@@ -228,7 +269,7 @@ class TestXArrow:
                             shift_kwargs[time_unit_1 + 's'] = shift_1 * sign
                         else:
                             shift_kwargs[time_unit_1 + 's'] = 1 * sign
-                            
+                        
                         if quantity_tuple[1]:
                             shift_kwargs[time_unit_2 + 's'] = shift_2 * sign
                         else:
@@ -241,7 +282,6 @@ class TestXArrow:
                         
                         now_shifted = now.shift(**shift_kwargs)
                         dehumanized_instance = now.dehumanize(human_expression)
-                        
                         
                         try:
                             assert_arrows_soft_eq(dehumanized_instance, now_shifted)
@@ -258,7 +298,7 @@ class TestXArrow:
                             dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
                             assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
                             assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-
+                    
                     # * 3 units
                     for time_unit_3 in TIME_UNITS:
                         if time_unit_3 == time_unit_1 or time_unit_3 == time_unit_2:
@@ -270,8 +310,8 @@ class TestXArrow:
                         plural_time_unit_3 = f"{shift_3} {time_unit_3}s"
                         expressions = {}
                         for fmt in ["{0} and {1} and {2}", "{0} and {1}, {2}", "{0} and {1} {2}",
-                                    "{0}, {1}, {2}",       "{0}, {1} and {2}", "{0}, {1} {2}",
-                                    "{0} {1} {2}",         "{0} {1}, {2}",     "{0} {1} and {2}",
+                                    "{0}, {1}, {2}", "{0}, {1} and {2}", "{0}, {1} {2}",
+                                    "{0} {1} {2}", "{0} {1}, {2}", "{0} {1} and {2}",
                                     ]:
                             for q1, q2, q3 in product(["plural", "singular"], ["plural", "singular"], ["plural", "singular"]):
                                 past_human_expression = eval(f"fmt.format({q1}_time_unit_1, {q2}_time_unit_2, {q3}_time_unit_3) + ' ago'")
@@ -286,12 +326,12 @@ class TestXArrow:
                                 shift_kwargs[time_unit_1 + 's'] = shift_1 * sign
                             else:
                                 shift_kwargs[time_unit_1 + 's'] = 1 * sign
-
+                            
                             if quantity_tuple[1]:
                                 shift_kwargs[time_unit_2 + 's'] = shift_2 * sign
                             else:
                                 shift_kwargs[time_unit_2 + 's'] = 1 * sign
-
+                            
                             if quantity_tuple[2]:
                                 shift_kwargs[time_unit_3 + 's'] = shift_3 * sign
                             else:
@@ -300,7 +340,7 @@ class TestXArrow:
                             now = XArrow.now()
                             dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
                             dehumanized_static = XArrow.dehumanize(human_expression)
-    
+                            
                             now_shifted = now.shift(**shift_kwargs)
                             dehumanized_instance = now.dehumanize(human_expression)
                             
@@ -319,19 +359,19 @@ class TestXArrow:
                                 dehumanized_instance_vanilla = Arrow.now().dehumanize(human_expression)
                                 assert_arrows_soft_eq(dehumanized_instance, dehumanized_instance_vanilla)
                                 assert_arrows_soft_eq(dehumanized_static, dehumanized_instance_vanilla)
-
+        
         def test_dehumanize_static(self):
             now_dehumanized = XArrow.dehumanize("now")
             now = XArrow.now()
             assert_arrows_soft_eq(now_dehumanized, now)
-    
+            
             today = XArrow.dehumanize('today')
             assert_arrows_soft_eq(today, now)
-    
+            
             yesterday = XArrow.dehumanize('yesterday')
             now_shift_yesterday = now.shift(days=-1)
             assert_arrows_soft_eq(now_shift_yesterday, yesterday)
-    
+            
             tomorrow = XArrow.dehumanize('tomorrow')
             now_shift_tomorrow = now.shift(days=+1)
             assert_arrows_soft_eq(now_shift_tomorrow, tomorrow)
@@ -340,7 +380,7 @@ class TestXArrow:
             now = XArrow.now()
             now_dehumanized = now.dehumanize("now")
             assert_arrows_soft_eq(now_dehumanized, now)
-
+            
             today = now.dehumanize('today')
             assert_arrows_soft_eq(today, now)
             assert_arrows_soft_eq(today, now_dehumanized)
@@ -355,55 +395,55 @@ class TestXArrow:
             
             _1_day_ago = now.dehumanize('1 day ago')
             assert_arrows_soft_eq(_1_day_ago, yesterday)
-    
+            
             _1d_ago = now.dehumanize('1d ago')
             assert_arrows_soft_eq(_1d_ago, yesterday)
-
+            
             _1_days_ago = now.dehumanize('1 days ago')
             assert_arrows_soft_eq(_1_days_ago, yesterday)
             
             _1_d_ago = now.dehumanize('1 d ago')
             assert_arrows_soft_eq(_1_d_ago, yesterday)
-
+            
             a_day = now.dehumanize('a day')
             assert_arrows_soft_eq(a_day, yesterday)
-
+            
             _1_day = now.dehumanize('1 day')
             assert_arrows_soft_eq(_1_day, yesterday)
-
+            
             _1d = now.dehumanize('1d')
             assert_arrows_soft_eq(_1d, yesterday)
-
+            
             _1_d = now.dehumanize('1 d')
             assert_arrows_soft_eq(_1_d, yesterday)
-
+            
             _1_days = now.dehumanize('1 days')
             assert_arrows_soft_eq(_1_days, yesterday)
-
+            
             # 5 days ago
             five_days_ago = now.shift(days=-5)
             
             _5_day_ago = now.dehumanize('5 day ago')
             assert_arrows_soft_eq(_5_day_ago, five_days_ago)
-
+            
             _5d_ago = now.dehumanize('5d ago')
             assert_arrows_soft_eq(_5d_ago, five_days_ago)
-
+            
             _5_days_ago = now.dehumanize('5 days ago')
             assert_arrows_soft_eq(_5_days_ago, five_days_ago)
-
+            
             _5_d_ago = now.dehumanize('5 d ago')
             assert_arrows_soft_eq(_5_d_ago, five_days_ago)
-
+            
             _5_day = now.dehumanize('5 day')
             assert_arrows_soft_eq(_5_day, five_days_ago)
-
+            
             _5d = now.dehumanize('5d')
             assert_arrows_soft_eq(_5d, five_days_ago)
-
+            
             _5_d = now.dehumanize('5 d')
             assert_arrows_soft_eq(_5_d, five_days_ago)
-
+            
             _5_days = now.dehumanize('5 days')
             assert_arrows_soft_eq(_5_days, five_days_ago)
             
@@ -417,13 +457,13 @@ class TestXArrow:
             # Complex
             _5h_32m_1s_ago = now.dehumanize('5h 32m 1s ago')
             assert_arrows_soft_eq(_5h_32m_1s_ago, now.shift(hours=-5, minutes=-32, seconds=-1))
-
+            
             _5_minutes_5_months = now.dehumanize('5 minutes 5 months')
             assert_arrows_soft_eq(_5_minutes_5_months, now.shift(minutes=-5, months=-5))
-
+            
             _5m_5_months = now.dehumanize('5m 5 months')
             assert_arrows_soft_eq(_5m_5_months, now.shift(minutes=-5, months=-5))
-
+            
             _5m_5M = now.dehumanize('5m 5M')
             assert_arrows_soft_eq(_5m_5M, now.shift(minutes=-5, months=-5))
             
@@ -441,23 +481,23 @@ class TestXArrow:
             assert_arrows_soft_eq(in_1_days, tomorrow)
             assert_arrows_soft_eq(now.shift(days=+1), tomorrow)
             assert_arrows_soft_eq(now.shift(days=+1), in_1_days)
-    
+            
             in_1_day = now.dehumanize('in 1 day')
             assert_arrows_soft_eq(in_1_day, tomorrow)
-
+            
             in_5_days = now.dehumanize('in 5 days')
             assert_arrows_soft_eq(now.shift(days=+5), in_5_days)
-
+            
             in_5_day = now.dehumanize('in 5 day')
             assert_arrows_soft_eq(in_5_day, now.shift(days=+5))
-
+            
             now_shift_in_5_minutes_5_months_7_weeks = now.shift(minutes=+5, months=+5, weeks=+7)
             for perm in permutations(['5m', '5M', '7w'], 3):
                 complex = now.dehumanize('in ' + ' '.join(perm))
                 assert_arrows_soft_eq(complex, now_shift_in_5_minutes_5_months_7_weeks)
         
         @pytest.mark.skip
-        def test_dehumanize_advanced(self): # can decide not to support if too difficult
+        def test_dehumanize_advanced(self):  # can decide not to support if too difficult
             XArrow.dehumanize('1 days from now')
             XArrow.dehumanize('1 days from today')
     
@@ -481,7 +521,6 @@ class TestXArrow:
             for not_included_attr in TIME_UNITS - set(expected_attrs):
                 assert getattr(from_formatted, not_included_attr) == 0 if not_included_attr in {'hour', 'minute', 'second'} else 1
     
-    
     def test_from_absolute_now(self):
         now = XArrow.now().replace(second=0)
         from_absolute_now = XArrow.from_absolute(now)
@@ -499,27 +538,27 @@ class TestXArrow:
             formatted = now.format(fmt)
             from_absolute_formatted: XArrow = XArrow.from_absolute(formatted)
             assert_arrows_soft_eq(from_absolute_formatted, now)
-
+    
     def test_from_absolute_HHmmss(self):
         HHmmss = "02:00:00"
         from_absolute = XArrow.from_absolute(HHmmss)
         assert from_absolute.hour == 2
         assert from_absolute.minute == 0
         assert from_absolute.second == 0
-
+        
         HHmmss = "02:53:49"
         from_absolute = XArrow.from_absolute(HHmmss)
         assert from_absolute.hour == 2
         assert from_absolute.minute == 53
         assert from_absolute.second == 49
-
+    
     def test_from_absolute_HHmm(self):
         HHmm = "02:00"
         from_absolute = XArrow.from_absolute(HHmm)
         assert from_absolute.hour == 2
         assert from_absolute.minute == 0
         assert from_absolute.second == 0
-
+    
     def test_from_absolute_DDMMYY(self):
         DDMMYY = "13/12/21"
         from_absolute = XArrow.from_absolute(DDMMYY)
