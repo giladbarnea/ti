@@ -14,5 +14,5 @@ class Colored(StringSpace):
     def colored(self):
         return self.brush(self)
 
-class TaskString(Colored):
-    brush = c.task
+class ActivityString(Colored):
+    brush = c.activity

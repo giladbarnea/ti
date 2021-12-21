@@ -46,17 +46,12 @@ class Note(DictSpace):
 	def __bool__(self):
 		return bool(self.content)
 
-	def pretty(self):
-		content_bold = c.b(self.content)
+	def pretty(self, color=True):
+		content = c.b(self.content) if color else self.content
 		if self.time:
-			return c.note(f'{self.time.HHmm}: {content_bold}')
-		return c.note(content_bold)
-
-	# @property
-	# def time(self) -> XArrow:
-	# 	if self._time and not isinstance(self._time, Arrow):
-	# 		self._time = XArrow.from_formatted(self._time)
-	# 	return self._time
+			string = f'{self.time.HHmm}: {content}'
+			return c.note(string) if color else string
+		return c.note(content) if color else content
 
 	@multimethod
 	def is_similar(self, other: "Note") -> bool:

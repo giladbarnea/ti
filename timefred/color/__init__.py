@@ -1,2 +1,2 @@
 from timefred.color.color import *
-from timefred.color.colored import Colored, TaskString
+from timefred.color.colored import Colored, ActivityString

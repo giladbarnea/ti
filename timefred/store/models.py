@@ -3,7 +3,8 @@ from functools import cached_property
 from typing import Optional, Iterable, Union, Any, Type, Mapping
 
 from timefred import color as c
-from timefred.color import Colored, TaskString
+from timefred.log import log
+from timefred.color import Colored, ActivityString
 from timefred.integration.jira import JiraTicket
 from timefred.note import Note
 from timefred.space import AttrDictSpace, Field, TypedListSpace, DefaultAttrDictSpace
@@ -55,7 +56,7 @@ class Entry(AttrDictSpace):
 
 class Activity(TypedListSpace[Entry], default_factory=Entry):
     """Activity (name=...) [Entry, Entry...]"""
-    name: Colored = Field(cast=TaskString)
+    name: Colored = Field(cast=ActivityString)
     
     def __init__(self, iterable: Iterable = (), **kwargs) -> None:
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
@@ -109,7 +110,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     
     def ongoing(self) -> bool:
         last_entry = self.safe_last_entry()
-        return bool(last_entry and not last_entry.end)
+        return bool(last_entry and not last_entry.end and last_entry.timespan.seconds != 0)
     
     def stop(self,
              time: Union[str, XArrow] = None,
@@ -178,56 +179,65 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
 
     def pretty(self, detailed: bool = True, width: int = 24):
         timespans = self.timespans
+        jira = None
         if detailed:
-            time = "\n  \x1b[2m"
+            pretty = "\n  \x1b[2m"
+            
+            # * Notes and Jira (build)
             notes = []
             for entry in self:
-                assert isinstance(entry, Entry)
                 entry_notes = entry.notes
                 entry_nonempty_notes = list(filter(bool, entry_notes))
                 notes.extend(entry_nonempty_notes)
-            if notes:
-                time += '\n  ' + c.grey150('Times')
-        
+                if entry.jira:
+                    if jira and entry.jira != jira:
+                        log.warning(f"entry.jira, {entry.jira} != jira, {jira}. Ignoring")
+                    else:
+                        jira = entry.jira
+            
+            if jira:
+                pretty += f'\x1b[3m{c.grey150(jira)}\x1b[0m\n'
+            
+            if notes or jira:
+                pretty += '\n  '
+            
+            # * Times
+            pretty += c.grey150('Times')
             for start, end in timespans:
                 if end:
-                    time += f'\n  {start.HHmmss} → {end.HHmmss} ({end - start})'
+                    pretty += f'\n    · {start.HHmmss} → {end.HHmmss} ({end - start})'
                 else:
-                    time += f'\n  {start.HHmmss}'
-        
+                    pretty += f'\n    · {start.HHmmss}'
+
+            # * Notes (represent)
             if notes:
-                time += '\n\n  ' + c.grey150('Notes')
+                pretty += '\n\n  ' + c.grey150('Notes')
+                for note in notes:
+                    pretty += f'\n    · {note.pretty(color=False)}'
         
-            # for note_time, note_content in sorted(log_entry.notes, key=lambda _n: _n[0] if _n[0] else '0'):
-            # for note_content, note_time in notes:
-            #     if note_time:
-            #         time += f'\n  {note_content} ({note_time.HHmmss})'
-            #     else:
-            #         time += f'\n  {note_content}'
-            for note in notes:
-                time += f'\n  {note.pretty()}'
-        
-            time += "\x1b[0m\n"
+            pretty += "\x1b[0m\n"
         else:
-            # earliest_start_time = self.earliest_start()
             earliest_start_time = timespans[0].start
-            time = c.i(c.dim('   started ' + earliest_start_time.HHmmss))
-    
+            pretty = c.i(c.dim('   started ' + earliest_start_time.HHmmss))
+
+        # * Activity title
         if self.ongoing():
             name = c.title(self.name)
         else:
             name = c.w200(self.name)
-    
+        name = c.bgrgb(' ', 58, 150, 221) + f' {name}'
+        # * Tags
         if detailed:
             tags = set()
             [tags.update(set(filter(bool, entry.tags))) for entry in self]
             name += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
 
+        # * Human duration
         human_duration = self.human_duration
         pretty = ' '.join([c.ljust_with_color(name, width),
                            '\x1b[2m\t\x1b[0m ',
                            human_duration,
-                           time])
+                           pretty])
         return pretty
 
 

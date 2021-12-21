@@ -8,7 +8,14 @@ def rgb(s, _r, _g=None, _b=None):
     return f'\x1b[38;2;{_r};{_g};{_b}m{s}\x1b[39m'
 
 
-def task(s):
+def bgrgb(s, _r, _g=None, _b=None):
+    if not _g:
+        _g = _r
+        _b = _r
+    return f'\x1b[48;2;{_r};{_g};{_b}m{s}\x1b[49m'
+
+
+def activity(s):
     """Cool blue"""
     return b(rgb(s, 58, 150, 221))
 
