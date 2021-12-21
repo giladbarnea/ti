@@ -2,7 +2,7 @@ import os
 from timefred.store import store
 from test import TEST_START_ARROW
 from test.test_times import assert_arrows_soft_eq
-from test.testutils import assert_raises, default_work
+from test.testutils import assert_raises, default_work, temp_sheet
 from timefred.color import Colored
 from timefred.store import Day, Activity, Work, Entry
 from timefred.time import XArrow
@@ -177,16 +177,9 @@ class TestSheetWithContent:
             
             def test_load_store(self, work=None):
                 log.title(f"test_load_store({work = })")
-                os.environ['TIMEFRED_SHEET'] = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
-                from timefred.config import config
-                config.sheet.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
-                store.path = "/tmp/timefred-sheet-test_on_device_validation_08_30.toml"
-                
                 if not work:
-                    log.debug('work = TestSheetWithContent.TestOngoingActivity.default_work()')
                     work = default_work()
-                store.dump(work)
-                
-                log.debug('work = store.load()')
-                work = store.load()
+                with temp_sheet("/tmp/timefred-sheet-test_on_device_validation_08_30.toml"):
+                    store.dump(work)
+                    work = store.load()
                 self.test_sanity(work=work)

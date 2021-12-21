@@ -316,13 +316,13 @@ class XArrow(Arrow):
                 raise NotImplementedError(f"Looks like {time = !r} is a datetime. Currently can only update time or date.")
             time_match = FORMATS.time_format_re.match(time)
             if time_match:
+                
                 match_dict = time_match.groupdict()
             else:
                 date_match = FORMATS.date_format_re.match(time)
                 if not date_match:
                     raise ValueError(f"{time = !r} doesn't match time format {FORMATS.time_format_re}, nor date format {FORMATS.date_format_re}")
                 match_dict = date_match.groupdict()
-            # time_match_dict = match_dict.groupdict()
             if (year := match_dict.get('year')) is not None:
                 replace['year'] = int(year)
             if (month := match_dict.get('month')) is not None:
