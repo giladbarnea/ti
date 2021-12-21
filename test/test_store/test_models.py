@@ -55,7 +55,6 @@ class TestActivity:
                 got_to_office_activity.stop(yesterday)
     
 class TestEntry:
-    @pytest.mark.skip('unskip when test_space.test_space_subclasses.TestNote.test_sanity passes')
     def test_init_with_all_fields(self):
         entry = Entry(start="02:00:00",
                       end="03:00:00",
