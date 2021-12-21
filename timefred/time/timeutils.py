@@ -34,11 +34,14 @@ def arrows2rel_time(present: "XArrow", past: "XArrow") -> str:
     # if (present.year != past.year or
     #         present.month != past.month):
     #     raise NotImplemented(f"Can only handle differences in weeks and below")
-    log.debug(f'arrows2rel_time({present = }, {past = })')
     secs = int((present - past).total_seconds())
     if not secs:
         return ''
-    return secs2human(secs) + ' ago'
+    ret = secs2human(secs) + ' ago'
+    # log.debug(f'arrows2rel_time({present = }, {past = })',
+    #           f'{secs = }',
+    #           f'  -> {ret}')
+    return ret
 
 
 def secs2human(secs: int) -> str:

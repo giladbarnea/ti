@@ -151,6 +151,13 @@ def test_arrows2rel_time():
     present = XArrow.now()
     past = present.shift(weeks=-3, days=-3)
     assert arrows2rel_time(present, past) == '3 weeks & 3 days ago'
+    
+    present = XArrow.from_absolute('21/12/21')
+    past = XArrow.from_absolute('01/12/21')
+    secs = int((present - past).total_seconds())
+    assert 20 * 24 * 3600 <= secs <= 21 * 24 * 3600
+    ret = arrows2rel_time(present, past)
+    assert ret == '2 weeks & 6 days ago'
 
 
 class Test_secs2human:
@@ -583,4 +590,4 @@ class TestXArrow:
             from_absolute = XArrow.from_absolute(DDMMYY)
             assert from_absolute.day == 13
             assert from_absolute.month == 12
-            assert from_absolute.year == 21
+            assert from_absolute.year == 2021

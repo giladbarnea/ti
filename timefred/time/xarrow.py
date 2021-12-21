@@ -324,7 +324,10 @@ class XArrow(Arrow):
                     raise ValueError(f"{time = !r} doesn't match time format {FORMATS.time_format_re}, nor date format {FORMATS.date_format_re}")
                 match_dict = date_match.groupdict()
             if (year := match_dict.get('year')) is not None:
-                replace['year'] = int(year)
+                if len(year) == 4:
+                    replace['year'] = int(year)
+                else:
+                    replace['year'] = int(year) + 2000  # fuck last century
             if (month := match_dict.get('month')) is not None:
                 replace['month'] = int(month)
             if (day := match_dict.get('day')) is not None:
