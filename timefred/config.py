@@ -100,14 +100,17 @@ class Config(AttrDictSpace):
         toml.dump(constructed, cfg_file.open(mode="x"))
 
 
-class ConfigProxy(Singleton):
-    _config: Config = None
+if os.getenv('TIMEFRED_NO_PROXIES', '').lower() in ('1', 'true'):
+    config: Config = Config()
+else:
+    class ConfigProxy(Singleton):
+        _config: Config = None
+        
+        def __getattr__(self, name):
+            if self._config is None:
+                self._config = Config()
+            return getattr(self._config, name)
     
-    def __getattr__(self, name):
-        if self._config is None:
-            self._config = Config()
-        return getattr(self._config, name)
-
-
-# noinspection PyTypeChecker
-config: Config = ConfigProxy()
+    
+    # noinspection PyTypeChecker
+    config: Config = ConfigProxy()
