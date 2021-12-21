@@ -15,7 +15,7 @@ from test import TEST_START_ARROW
 from timefred.config import config
 from timefred.log import log
 from timefred.time import XArrow
-from timefred.time.timeutils import secs2human
+from timefred.time.timeutils import secs2human, arrows2rel_time
 
 ic.configureOutput(prefix='')
 
@@ -146,6 +146,13 @@ def test_isoweekday():
     # noinspection PyUnresolvedReferences
     from timefred.time import isoweekday
 
+
+def test_arrows2rel_time():
+    present = XArrow.now()
+    past = present.shift(weeks=-3, days=-3)
+    assert arrows2rel_time(present, past) == '3 weeks & 3 days ago'
+
+
 class Test_secs2human:
     def test_1_unit(self):
         assert secs2human(0) == ''
@@ -161,19 +168,19 @@ class Test_secs2human:
         assert secs2human(60 * 60 * 24 * 7 * 2) == '2 weeks'
         assert secs2human(60 * 60 * 24 * 7 * 52) == '1 year'
         assert secs2human(60 * 60 * 24 * 7 * 52 * 2) == '2 years'
-
+    
     def test_2_units(self):
         assert secs2human(61) == '1 minute & 1 second'
         assert secs2human(121) == '2 minutes & 1 second'
         assert secs2human(122) == '2 minutes & 2 seconds'
         assert secs2human(60 * 60 * 24 + 1) == '1 day & 1 second'
-
+    
     def test_3_units(self):
         assert secs2human(60 * 60 + 61) == '1 hour, 1 minute & 1 second'
         assert secs2human(60 * 60 + 62) == '1 hour, 1 minute & 2 seconds'
         assert secs2human(60 * 61 + 62) == '1 hour, 2 minutes & 2 seconds'
         assert secs2human(2 * 60 * 61 + 62) == '2 hours, 3 minutes & 2 seconds'
-
+    
     def test_4_units(self):
         minute = 60
         hour = minute * 60
@@ -184,7 +191,6 @@ class Test_secs2human:
         assert secs2human(week + day + 2 * hour + 2 * minute) == '1 week, 1 day, 2 hours & 2 minutes'
         assert secs2human(week + 2 * day + 2 * hour + 2 * minute) == '1 week, 2 days, 2 hours & 2 minutes'
         assert secs2human(2 * week + 2 * day + 2 * hour + 2 * minute) == '2 weeks, 2 days, 2 hours & 2 minutes'
-    
 
 
 class TestXArrow:
@@ -196,6 +202,38 @@ class TestXArrow:
             for char_index in range(2, len(day) + 1):
                 arrow_from_day = XArrow.from_day(day[:char_index])
                 assert arrow_from_day.strftime('%A').lower() == day
+    
+    def test_from_formatted(self):
+        test_start_from_formatted = XArrow.from_formatted(TEST_START_ARROW)
+        assert_arrows_soft_eq(test_start_from_formatted, TEST_START_ARROW)
+        assert test_start_from_formatted is TEST_START_ARROW
+        
+        for fmt, expected_attrs in {
+            FORMATS.date:             ['year', 'month', 'day'],
+            FORMATS.short_date:       ['month', 'day'],
+            FORMATS.time:             ['hour', 'minute', 'second'],
+            FORMATS.short_time:       ['hour', 'minute'],
+            FORMATS.datetime:         ['year', 'month', 'day', 'hour', 'minute', 'second'],
+            FORMATS.shorter_datetime: ['year', 'month', 'day', 'hour', 'minute'],
+            FORMATS.short_datetime:   ['month', 'day', 'hour', 'minute'],
+            }.items():
+            formatted = TEST_START_ARROW.format(fmt)
+            from_formatted: XArrow = XArrow.from_formatted(formatted)
+            assert_equal_attrs(from_formatted, TEST_START_ARROW, *expected_attrs)
+            for not_included_attr in TIME_UNITS - set(expected_attrs):
+                assert getattr(from_formatted, not_included_attr) == 0 if not_included_attr in {'hour', 'minute', 'second'} else 1
+    
+    def test_sub(self):
+        minute = 60
+        hour = minute * 60
+        day = hour * 24
+        week = day * 7
+        present = XArrow.now()
+        past = present.shift(weeks=-3, days=-3)
+        td = present - past
+        assert td.days == 3 * 7 + 3
+        secs = int(td.total_seconds())
+        assert secs == 3 * week + 3 * day
     
     class TestDehumanize:
         # @break_on_exc
@@ -501,67 +539,48 @@ class TestXArrow:
             XArrow.dehumanize('1 days from now')
             XArrow.dehumanize('1 days from today')
     
-    def test_from_formatted(self):
-        test_start_from_formatted = XArrow.from_formatted(TEST_START_ARROW)
-        assert_arrows_soft_eq(test_start_from_formatted, TEST_START_ARROW)
-        assert test_start_from_formatted is TEST_START_ARROW
+    class Test_from_absolute:
+        def test_from_absolute_now(self):
+            now = XArrow.now().replace(second=0)
+            from_absolute_now = XArrow.from_absolute(now)
+            assert_arrows_soft_eq(from_absolute_now, now)
+            assert from_absolute_now is now
+            
+            for fmt in [  # FORMATS.date,
+                # FORMATS.short_date:       ['month', 'day'],
+                FORMATS.time,
+                FORMATS.short_time,
+                # FORMATS.datetime:         ['year', 'month', 'day', 'hour', 'minute', 'second'],
+                # FORMATS.shorter_datetime: ['year', 'month', 'day', 'hour', 'minute'],
+                # FORMATS.short_datetime:   ['month', 'day', 'hour', 'minute'],
+                ]:
+                formatted = now.format(fmt)
+                from_absolute_formatted: XArrow = XArrow.from_absolute(formatted)
+                assert_arrows_soft_eq(from_absolute_formatted, now)
         
-        for fmt, expected_attrs in {
-            FORMATS.date:             ['year', 'month', 'day'],
-            FORMATS.short_date:       ['month', 'day'],
-            FORMATS.time:             ['hour', 'minute', 'second'],
-            FORMATS.short_time:       ['hour', 'minute'],
-            FORMATS.datetime:         ['year', 'month', 'day', 'hour', 'minute', 'second'],
-            FORMATS.shorter_datetime: ['year', 'month', 'day', 'hour', 'minute'],
-            FORMATS.short_datetime:   ['month', 'day', 'hour', 'minute'],
-            }.items():
-            formatted = TEST_START_ARROW.format(fmt)
-            from_formatted: XArrow = XArrow.from_formatted(formatted)
-            assert_equal_attrs(from_formatted, TEST_START_ARROW, *expected_attrs)
-            for not_included_attr in TIME_UNITS - set(expected_attrs):
-                assert getattr(from_formatted, not_included_attr) == 0 if not_included_attr in {'hour', 'minute', 'second'} else 1
-    
-    def test_from_absolute_now(self):
-        now = XArrow.now().replace(second=0)
-        from_absolute_now = XArrow.from_absolute(now)
-        assert_arrows_soft_eq(from_absolute_now, now)
-        assert from_absolute_now is now
+        def test_from_absolute_HHmmss(self):
+            HHmmss = "02:00:00"
+            from_absolute = XArrow.from_absolute(HHmmss)
+            assert from_absolute.hour == 2
+            assert from_absolute.minute == 0
+            assert from_absolute.second == 0
+            
+            HHmmss = "02:53:49"
+            from_absolute = XArrow.from_absolute(HHmmss)
+            assert from_absolute.hour == 2
+            assert from_absolute.minute == 53
+            assert from_absolute.second == 49
         
-        for fmt in [  # FORMATS.date,
-            # FORMATS.short_date:       ['month', 'day'],
-            FORMATS.time,
-            FORMATS.short_time,
-            # FORMATS.datetime:         ['year', 'month', 'day', 'hour', 'minute', 'second'],
-            # FORMATS.shorter_datetime: ['year', 'month', 'day', 'hour', 'minute'],
-            # FORMATS.short_datetime:   ['month', 'day', 'hour', 'minute'],
-            ]:
-            formatted = now.format(fmt)
-            from_absolute_formatted: XArrow = XArrow.from_absolute(formatted)
-            assert_arrows_soft_eq(from_absolute_formatted, now)
-    
-    def test_from_absolute_HHmmss(self):
-        HHmmss = "02:00:00"
-        from_absolute = XArrow.from_absolute(HHmmss)
-        assert from_absolute.hour == 2
-        assert from_absolute.minute == 0
-        assert from_absolute.second == 0
+        def test_from_absolute_HHmm(self):
+            HHmm = "02:00"
+            from_absolute = XArrow.from_absolute(HHmm)
+            assert from_absolute.hour == 2
+            assert from_absolute.minute == 0
+            assert from_absolute.second == 0
         
-        HHmmss = "02:53:49"
-        from_absolute = XArrow.from_absolute(HHmmss)
-        assert from_absolute.hour == 2
-        assert from_absolute.minute == 53
-        assert from_absolute.second == 49
-    
-    def test_from_absolute_HHmm(self):
-        HHmm = "02:00"
-        from_absolute = XArrow.from_absolute(HHmm)
-        assert from_absolute.hour == 2
-        assert from_absolute.minute == 0
-        assert from_absolute.second == 0
-    
-    def test_from_absolute_DDMMYY(self):
-        DDMMYY = "13/12/21"
-        from_absolute = XArrow.from_absolute(DDMMYY)
-        assert from_absolute.day == 13
-        assert from_absolute.month == 12
-        assert from_absolute.year == 21
+        def test_from_absolute_DDMMYY(self):
+            DDMMYY = "13/12/21"
+            from_absolute = XArrow.from_absolute(DDMMYY)
+            assert from_absolute.day == 13
+            assert from_absolute.month == 12
+            assert from_absolute.year == 21
