@@ -13,9 +13,9 @@ class TestStore:
         def test_empty_day(self):
             ...
 
-        def test_singular_activity__time_in_proper(self):
+        def test_inline_activity__time_in_proper(self):
             raw_data = '["02/12/21"]\n"Got to office" = 09:40:00'
-            sheet_path = '/tmp/timefred-sheet--test-store--test-load--test-singular-activity--time-in-proper.toml'
+            sheet_path = '/tmp/timefred-sheet--test-store--test-load--test-inline-activity--time-in-proper.toml'
             with open(sheet_path, 'w') as sheet:
                 sheet.write(raw_data)
 
@@ -25,12 +25,13 @@ class TestStore:
             activity: Activity = day['Got to office']
             entry: Entry = activity.safe_last_entry()
             assert isinstance(entry.start, XArrow)
+            assert entry.start.HHmmss == "09:40:00"
             assert entry.end is UNSET
             
-        def test_singular_activity__time_in_str(self):
+        def test_inline_activity__time_in_str(self):
             raw_data = '["02/12/21"]\n"Got to office" = "09:40"'
 
-            sheet_path = '/tmp/timefred-sheet--test-store--test-load--test-singular-activity--time-in-str.toml'
+            sheet_path = '/tmp/timefred-sheet--test-store--test-load--test-inline-activity--time-in-str.toml'
             with open(sheet_path, 'w') as sheet:
                 sheet.write(raw_data)
 
@@ -40,8 +41,23 @@ class TestStore:
             activity: Activity = day['Got to office']
             entry: Entry = activity.safe_last_entry()
             assert isinstance(entry.start, XArrow)
+            assert entry.start.HHmmss == "09:40:00"
             assert entry.end is UNSET
-            
+
+        def test_subtable_activity__time_in_proper(self):
+            raw_data = '["02/12/21"]\n[["02/12/21"."Got to office"]]\nstart = 09:40:00'
+            sheet_path = '/tmp/timefred-sheet--test-store--test-load--test-subtable-activity--time-in-proper.toml'
+            with open(sheet_path, 'w') as sheet:
+                sheet.write(raw_data)
+    
+            with temp_sheet(sheet_path):
+                work = store.load()
+            day: Day = work['02/12/21']
+            activity: Activity = day['Got to office']
+            entry: Entry = activity.safe_last_entry()
+            assert isinstance(entry.start, XArrow)
+            assert entry.start.HHmmss == "09:40:00"
+            assert entry.end is UNSET
     
     def test_dump(self):
         work = default_work()

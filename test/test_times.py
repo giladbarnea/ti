@@ -519,5 +519,10 @@ class TestXArrow:
         assert from_absolute.hour == 2
         assert from_absolute.minute == 0
         assert from_absolute.second == 0
-    
-    
+
+    def test_from_absolute_DDMMYY(self):
+        DDMMYY = "13/12/21"
+        from_absolute = XArrow.from_absolute(DDMMYY)
+        assert from_absolute.day == 13
+        assert from_absolute.month == 12
+        assert from_absolute.year == 21

@@ -59,7 +59,6 @@ class Timespan(DictSpace):
     def __iter__(self) -> Iterator[Optional[XArrow]]:
         yield self.start
         yield self.end
-        # return super().__iter__()
 
     @cached_property
     def timedelta(self) -> timedelta:

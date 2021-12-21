@@ -312,18 +312,28 @@ class XArrow(Arrow):
         
         replace = {}
         if isinstance(time, str):
-            if FORMATS.date_separator in time:
-                raise NotImplementedError(f"Looks like {time = !r} is a date. Currently can only update time.")
+            if FORMATS.date_separator in time and FORMATS.time_separator in time:
+                raise NotImplementedError(f"Looks like {time = !r} is a datetime. Currently can only update time or date.")
             time_match = FORMATS.time_format_re.match(time)
-            if not time_match:
-                raise ValueError(f"{time = !r} doesn't match {FORMATS.time_format_re}")
-            
-            time_match_dict = time_match.groupdict()
-            if (hour := time_match_dict['hour']) is not None:
+            if time_match:
+                match_dict = time_match.groupdict()
+            else:
+                date_match = FORMATS.date_format_re.match(time)
+                if not date_match:
+                    raise ValueError(f"{time = !r} doesn't match time format {FORMATS.time_format_re}, nor date format {FORMATS.date_format_re}")
+                match_dict = date_match.groupdict()
+            # time_match_dict = match_dict.groupdict()
+            if (year := match_dict.get('year')) is not None:
+                replace['year'] = int(year)
+            if (month := match_dict.get('month')) is not None:
+                replace['month'] = int(month)
+            if (day := match_dict.get('day')) is not None:
+                replace['day'] = int(day)
+            if (hour := match_dict.get('hour')) is not None:
                 replace['hour'] = int(hour)
-            if (minute := time_match_dict['minute']) is not None:
+            if (minute := match_dict.get('minute')) is not None:
                 replace['minute'] = int(minute)
-            if (second := time_match_dict['second']) is not None:
+            if (second := match_dict.get('second')) is not None:
                 replace['second'] = int(second)
         
         else: # time or datetime
