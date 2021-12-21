@@ -345,11 +345,14 @@ class XArrow(Arrow):
         return rv
     
     @overload
-    def isoweekday(self, human: NoneType = None) -> int: ...
+    def isoweekday(self, human: NoneType = None) -> int:
+        """1"""
     @overload
-    def isoweekday(self, human: Literal['short'] = 'short') -> str: ...
+    def isoweekday(self, human: Literal['short'] = 'short') -> str:
+        """'Wed'"""
     @overload
-    def isoweekday(self, human: Literal['full'] = 'full') -> str: ...
+    def isoweekday(self, human: Literal['full'] = 'full') -> str:
+        """'Wednesday'"""
     def isoweekday(self, human=None):
         if not human:
             return isoweekday(self.strftime('%a'))
@@ -380,7 +383,7 @@ class XArrow(Arrow):
     def DDMMYYHHmmss(self):
         """'28/10/21 08:20:00'"""
         if not self._DDMMYYHHmmss:
-            self._DDMMYYHHmmss: str = self.format(f'{FORMATS.date} {FORMATS.time}')
+            self._DDMMYYHHmmss: str = self.format(f'{FORMATS.datetime}')
         return self._DDMMYYHHmmss
     
     @property

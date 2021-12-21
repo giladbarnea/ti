@@ -97,6 +97,14 @@ def dim(s):
     return f'\x1b[2m{s}\x1b[22m'
 
 
+def black(s):
+    return f'\x1b[30m{s}\x1b[0m'
+
+
+def brblack(s):
+    return f'\x1b[90m{s}\x1b[0m'
+
+
 def i(s):
     return f'\x1b[3m{s}\x1b[23m'
 
@@ -104,17 +112,17 @@ def i(s):
 COLOR_RE = re.compile("(\x1B\\[)[0-?]*[ -/]*[@-~]")
 
 
-def strip_color(s):
+def decolor(s):
     """Strip color from string."""
     rv = COLOR_RE.sub("", s)
     return rv
 
 
-def len_color(s):
+def color_esc_chars_length(s):
     """Length of color escape chars"""
-    return len(s) - len(strip_color(s))
+    return len(s) - len(decolor(s))
 
 
 def ljust_with_color(s: str, width):
-    """ljust string that might contain color."""
-    return s.ljust(width + len_color(s))
+    """ljust string by `width` plus the length of its color esc chars"""
+    return s.ljust(width + color_esc_chars_length(s))

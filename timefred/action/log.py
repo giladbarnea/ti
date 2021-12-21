@@ -65,10 +65,9 @@ def log(time: Union[str, XArrow] = "today",
     # log_entry.timespans.append(timespan)
     # if not timespan.end:
     # log_entry.is_current = True
-    
-    title = c.title(arrow.full)
+    title = c.title(f"{arrow.isoweekday('full')}, " + arrow.DDMMYY)
     now = XArrow.now()
-    arrow.humanize()
+    # ago = now.humanize(arrow, granularity=["year", "month", "week", "day", "hour", "minute"])
     ago = arrows2rel_time(now, arrow)
     if ago:
         title += f' {c.dim("| " + ago)}'
@@ -76,7 +75,7 @@ def log(time: Union[str, XArrow] = "today",
     print(title + '\n')
     # if not _log:
     #     return True
-    name_column_width = max(*map(len, map(lambda _activity: _activity.name, activities)), 24)
+    name_column_width = max(*map(len, map(lambda _activity: _activity.name, activities)), 24) + 8
     if groupby:
         for _tag, names in by_tag.items():
             print(c.tag(_tag))

@@ -199,7 +199,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
                         jira = entry.jira
             
             if jira:
-                pretty += f'\x1b[3m{c.grey150(jira)}\x1b[0m\n'
+                pretty += c.brblack(jira) + '\n'
             
             if notes or jira:
                 pretty += '\n  '
@@ -208,37 +208,37 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             pretty += c.grey150('Times')
             for start, end in timespans:
                 if end:
-                    pretty += f'\n    · {start.HHmmss} → {end.HHmmss} ({end - start})'
+                    pretty += f'\n    {c.brblack("·")} {start.HHmmss} → {end.HHmmss} ({end - start})'
                 else:
-                    pretty += f'\n    · {start.HHmmss}'
+                    pretty += f'\n    {c.brblack("·")} {start.HHmmss}'
 
             # * Notes (represent)
             if notes:
                 pretty += '\n\n  ' + c.grey150('Notes')
                 for note in notes:
-                    pretty += f'\n    · {note.pretty(color=False)}'
+                    pretty += f'\n    {c.brblack("·")} {note.pretty(color=False)}'
         
-            pretty += "\x1b[0m\n"
+            pretty += '\x1b[0m\n\n'
         else:
             earliest_start_time = timespans[0].start
             pretty = c.i(c.dim('   started ' + earliest_start_time.HHmmss))
 
         # * Activity title
         if self.ongoing():
-            name = c.title(self.name)
+            title = c.title(self.name)
         else:
-            name = c.w200(self.name)
-        name = c.bgrgb(' ', 58, 150, 221) + f' {name}'
+            title = c.rgb(self.name, 220)
+        title = c.bgrgb(' ', 58, 150, 221) + f' {title}'
         # * Tags
         if detailed:
             tags = set()
             [tags.update(set(filter(bool, entry.tags))) for entry in self]
-            name += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
+            title += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
 
         # * Human duration
-        human_duration = self.human_duration
-        pretty = ' '.join([c.ljust_with_color(name, width),
-                           '\x1b[2m\t\x1b[0m ',
+        human_duration = c.black('|') + f' {c.dim(self.human_duration)}'
+        ljustified_title = c.ljust_with_color(title, width)
+        pretty = ' '.join([ljustified_title,
                            human_duration,
                            pretty])
         return pretty

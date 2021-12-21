@@ -49,7 +49,7 @@ class Note(DictSpace):
 	def pretty(self, color=True):
 		content = c.b(self.content) if color else self.content
 		if self.time:
-			string = f'{self.time.HHmm}: {content}'
+			string = f'{self.time.HHmm} {c.black("|")} {content}'
 			return c.note(string) if color else string
 		return c.note(content) if color else content
 
