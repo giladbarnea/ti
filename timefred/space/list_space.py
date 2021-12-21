@@ -37,10 +37,11 @@ class TypedListSpace(ListSpace[TYPED_LIST_SPACE_V],
         else:
             if not isinstance(value, self.__default_factory__):
                 # todo (bug): activity[:] -> TypeError: unhashable type: 'slice'
-                assert name not in self.__class__.DONT_SET_KEYS | IGNORED_ATTRS, \
-                    (f"{self.__class__.__qualname__}.__getitem__({name!r}) returned {value!r} "
-                     f"but it's not of type {self.__default_factory__.__qualname__} "
-                     f"and it's in {self.__class__.DONT_SET_KEYS | IGNORED_ATTRS = }")
+                if not isinstance(value, slice):
+                    assert name not in self.__class__.DONT_SET_KEYS | IGNORED_ATTRS, \
+                        (f"{self.__class__.__qualname__}.__getitem__({name!r}) returned {value!r} "
+                         f"but it's not of type {self.__default_factory__.__qualname__} "
+                         f"and it's in {self.__class__.DONT_SET_KEYS | IGNORED_ATTRS = }")
                 constructed = self.__default_factory__(**value)
                 list.__setitem__(self, name, constructed)
                 return constructed

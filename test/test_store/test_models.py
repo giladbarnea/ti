@@ -9,7 +9,7 @@ import pytest
 
 class TestActivity:
     def test_ongoing(self):
-        log.title(f"test_features.test_ongoing()")
+        log.title(f"test_models.test_ongoing()")
         work = default_work(TEST_START_ARROW)
         day: Day = work.__getitem__(TEST_START_ARROW.DDMMYY)
         got_to_office_activity: Activity = day.__getitem__("Got to office")
@@ -20,7 +20,7 @@ class TestActivity:
     
     class TestStop:
         def test_stop_when_not_ongoing(self):
-            log.title(f"test_features.test_stop_when_not_ongoing()")
+            log.title(f"test_models.test_stop_when_not_ongoing()")
             work = default_work(TEST_START_ARROW)
             day: Day = work.__getitem__(TEST_START_ARROW.DDMMYY)
             got_to_office_activity: Activity = day.__getitem__("Got to office")
@@ -37,7 +37,7 @@ class TestActivity:
                 got_to_office_activity.stop()
     
         def test_stop_before_last_entry_started(self):
-            log.title(f"test_features.test_stop_before_last_entry_started()")
+            log.title(f"test_models.test_stop_before_last_entry_started()")
             work = default_work(TEST_START_ARROW)
             
             day: Day = work.__getitem__(TEST_START_ARROW.DDMMYY)

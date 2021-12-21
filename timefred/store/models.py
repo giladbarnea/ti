@@ -61,9 +61,11 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     def __init__(self, iterable: Iterable = (), **kwargs) -> None:
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
         try:
+            if isinstance(iterable, str):
+                raise TypeError(f'{iterable!r} is a str, so practically not iterable')
             super().__init__(iterable, **kwargs)
         except TypeError as e:
-            if not e.args[0].endswith('is not iterable'):
+            if not e.args[0].endswith('not iterable'):
                 raise
             iterable = (dict(start=iterable), )
             super().__init__(iterable, **kwargs)
@@ -110,7 +112,8 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     
     def ongoing(self) -> bool:
         last_entry = self.safe_last_entry()
-        return bool(last_entry and not last_entry.end and last_entry.timespan.seconds != 0)
+        # return bool(last_entry and not last_entry.end and last_entry.timespan.seconds != 0)
+        return bool(last_entry and not last_entry.end)
     
     def stop(self,
              time: Union[str, XArrow] = None,

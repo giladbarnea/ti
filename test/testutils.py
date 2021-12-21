@@ -57,7 +57,8 @@ def default_work(day: XArrow = None) -> Work:
         day = XArrow.now()
     sheet = {
         day.DDMMYY: {
-            "Got to office": [{"start": "02:20:00"}]
+            "Got to office": [{"start": "02:20:00"}],
+            # "Integration": [{"start": "02:20:00", "end": "02:30:00"}]
             }
         }
     work = Work(Day, **sheet)
