@@ -26,17 +26,18 @@ class DictSpace(Space, dict[DICT_SPACE_K, DICT_SPACE_V]):
     and inherits from Space thus `setattr`s defined fields in __init__."""
     
     # @break_on_exc
-    def __new__(cls, *args, **kwargs) -> "DictSpace":
-        # if mappable:
-        #     assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
-        #     instance = dict.__new__(cls, **dict(mappable))
-        #     return instance
-        if args:
-            assert not kwargs, f"{cls}.__new__({args = }, {kwargs = })"
-            instance = dict.__new__(cls, **dict(*args))
+    # def __new__(cls, *args, **kwargs) -> "DictSpace":
+    def __new__(cls, mappable=(), **kwargs) -> "DictSpace":
+        if mappable:
+            assert not kwargs, f"{cls}.__new__({mappable = }, {kwargs = })"
+            instance = dict.__new__(cls, **dict(mappable))
             return instance
-        # assert not mappable, f"{cls}.__new__({mappable = }, {kwargs = })"
-        assert not args, f"{cls}.__new__({args = }, {kwargs = })"
+        # if args:
+        #     assert not kwargs, f"{cls}.__new__({args = }, {kwargs = })"
+        #     instance = dict.__new__(cls, **dict(*args))
+        #     return instance
+        assert not mappable, f"{cls}.__new__({mappable = }, {kwargs = })"
+        # assert not args, f"{cls}.__new__({args = }, {kwargs = })"
         instance = dict.__new__(cls, **kwargs)
         return instance
 

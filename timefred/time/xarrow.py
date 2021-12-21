@@ -86,6 +86,7 @@ class XArrow(Arrow):
                  microsecond: int = 0,
                  tzinfo: Optional[TZ_EXPR] = None,
                  **kwargs: Any) -> None:
+        self._HHmm = None
         self._HHmmss = None
         self._DDMMYY = None
         self._DDMMYYHHmmss = None
@@ -347,7 +348,12 @@ class XArrow(Arrow):
         if human == 'full':
             return self.strftime('%A')
         raise ValueError(f"Bad 'human' value, can be either None, 'short' or 'full'. Got XArrow.isoweekday({human = !r})")
-    
+
+    @property
+    def HHmm(self):
+        if not self._HHmm:
+            self._HHmm: str = self.format(FORMATS.short_time)
+        return self._HHmm
     @property
     def HHmmss(self):
         if not self._HHmmss:

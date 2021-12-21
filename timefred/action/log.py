@@ -88,5 +88,5 @@ def log(time: Union[str, XArrow] = "today",
     for activity in activities:
         print(activity.pretty(detailed, name_column_width))
     
-    print(c.title('Total: ') + re.sub(r'\d', lambda match: f'{c.digit(match.group())}', day.human_duration()))
+    print(c.title('Total: ') + re.sub(r'\d', lambda match: f'{c.digit(match.group())}', day.human_duration))
     print()

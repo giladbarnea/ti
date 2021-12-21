@@ -10,3 +10,4 @@ class TestNote:
         assert note.time.minute == 0
         assert note.time.second == 0, note.time.second
         assert note.content == "PR-6091"
+        assert repr(note) == "Note(content = 'PR-6091', time = XArrow ⟨21/12/21 17:00:00⟩)", repr(note)

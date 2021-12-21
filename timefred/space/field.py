@@ -126,17 +126,28 @@ class Field(Generic[TFieldValue]):
                 value = self.default
 
         if self.cast:
+            
+            # self.cast = list[Note]
+            # t.get_origin(self.cast) = list
             if t.get_origin(self.cast) in (list, tuple, set, dict):
-                type_arg, *type_args = t.get_args(self.cast)
-                if type_args:
+                # scalar_type = Note
+                scalar_type, *scalar_types = t.get_args(self.cast)
+                if scalar_types:
                     raise NotImplementedError(f'{self.cast = !r} has multiple args; {t.get_args(self.cast) = }')
-                if type(value) in (list, tuple, set, dict):
-                    value = self.cast(map(type_arg, value))
+                
+                if isinstance(value, (list, tuple, set)):
+                    mapped_scalars = map(scalar_type, value)
+                    value = self.cast(mapped_scalars)
+                elif isinstance(value, dict):
+                    constructed_scalar = scalar_type(value)
+                    value = self.cast((constructed_scalar,))
                 else:
+                    # TODO: probable bug, needs same isinstance checks as clause above
                     if value is UNSET:
                         value = self.cast((value,))
                     else:
-                        value = self.cast(type_arg(value))
+                        constructed_scalar = scalar_type(value)
+                        value = self.cast((constructed_scalar,))
             else:
                 if value is not UNSET:
                     value = self.cast(value)

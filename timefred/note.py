@@ -19,6 +19,8 @@ class Note(DictSpace):
 		content = note[time]
 		super().__init__(time=time, content=content)
 	
+	def __repr__(self):
+		return f'{self.__class__.__qualname__}(content = {self.content!r}, time = {self.time!r})'
 	# @multimethod
 	# def __init__(self, content: str, time: Union[str, XArrow]=None):
 	# 	self.content = content
@@ -44,15 +46,10 @@ class Note(DictSpace):
 	def __bool__(self):
 		return bool(self.content)
 
-	def __repr__(self) -> str:
-		if self.time:
-			return f'{self.content} ({self.time.HHmmss})'
-		return self.content
-
 	def pretty(self):
 		content_bold = c.b(self.content)
 		if self.time:
-			return c.note(f'{content_bold} ({self.time.HHmmss})')
+			return c.note(f'{self.time.HHmm}: {content_bold}')
 		return c.note(content_bold)
 
 	# @property

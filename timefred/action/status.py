@@ -9,7 +9,7 @@ def status(show_notes=False):
     
     data = store.load()
     current = Entry(**data[-1])
-    duration = Timespan(current.start, XArrow.now()).human_duration()
+    duration = Timespan(current.start, XArrow.now()).human_duration
     # diff = timegap(current.start, now())
     
     # notes = current.get('notes')

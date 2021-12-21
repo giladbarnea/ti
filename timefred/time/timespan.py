@@ -1,6 +1,7 @@
 # from dataclasses import dataclass, field
 from datetime import timedelta
 from collections.abc import Iterator
+from functools import cached_property
 from typing import Optional
 
 from multimethod import multimethod
@@ -31,14 +32,14 @@ class Timespan(DictSpace):
 
     @multimethod
     def __radd__(self, other) -> int:
-        other_timedelta = other.timedelta()
+        other_timedelta = other.timedelta
         other_total_seconds = other_timedelta.total_seconds()
         other_total_seconds_int = int(other_total_seconds)
         return self.__radd__(other_total_seconds_int)
     
     @multimethod
     def __radd__(self, other: int) -> int:
-        self_seconds = self.seconds()
+        self_seconds = self.seconds
         return self_seconds + other
         # try:
         #     return self_seconds + int(other.timedelta().total_seconds())
@@ -48,8 +49,8 @@ class Timespan(DictSpace):
         return self.start > other.start
     
     def __add__(self, other) -> int:
-        self_seconds = self.seconds()
-        other_seconds = other.seconds()
+        self_seconds = self.seconds
+        other_seconds = other.seconds
         return self_seconds + other_seconds
     
     def __bool__(self):
@@ -60,16 +61,19 @@ class Timespan(DictSpace):
         yield self.end
         # return super().__iter__()
 
+    @cached_property
     def timedelta(self) -> timedelta:
         if self.end:
             return self.end - self.start
         else:
             return timedelta(seconds=0)
-    #
+    
+    @cached_property
     def seconds(self) -> int:
-        td = self.timedelta()
+        td = self.timedelta
         td_total_seconds = td.total_seconds()
         return int(td_total_seconds)
-    
+
+    @cached_property
     def human_duration(self) -> str:
-        return secs2human(self.seconds())
+        return secs2human(self.seconds)

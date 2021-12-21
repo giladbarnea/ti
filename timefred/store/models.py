@@ -1,4 +1,5 @@
 import os
+from functools import cached_property
 from typing import Optional, Iterable, Union, Any, Type, Mapping
 
 from timefred import color as c
@@ -15,61 +16,46 @@ from timefred.util import normalize_str
 class Entry(AttrDictSpace):
     start: XArrow = Field(cast=XArrow.from_absolute)
     end: Optional[XArrow] = Field(optional=True, cast=XArrow.from_absolute)
+    jira: Optional[JiraTicket] = Field(default_factory=JiraTicket)
     synced: Optional[bool] = Field(optional=True)
     notes: Optional[list[Note]] = Field(optional=True, cast=list[Note])
     tags: Optional[set[Tag]] = Field(optional=True, cast=list[Tag])
+
+    # def __new__(cls, mappable=(), **kwargs) -> "Entry":
+    #     if mappable:
+    #         print()
+    #     else:
+    #         return super().__new__(cls, mappable, **kwargs)
     
     # @Field(optional=True)
-    @property
+    @cached_property
     def timespan(self):
         start = self.start
         end = self.end
         timespan = Timespan(start=start, end=end)
         return timespan
-    
-    # def __init__(self, name, start, end=None, notes=None, tags=None, jira=None) -> None:
-    # 	super().__init__(dict(name=name,
-    # 						  start=start,
-    # 						  end=end,
-    # 						  notes=notes or [],
-    # 						  tags=tags or set(),
-    # 						  jira=jira))
-    
-    # @property
-    # def notes(self) -> list[Note]:
-    # 	if self.__cache__.notes:
-    # 		return self._notes
-    # 	for i, note in enumerate(self._notes):
-    # 		if not isinstance(note, Note):
-    # 			self._notes[i] = Note(note)
-    # 	self.__cache__.notes = True
-    # 	return self._notes
-    
-    # @property
-    # def start(self) -> XArrow:
-    # 	if self._start and not isinstance(self._start, Arrow):
-    # 		self._start = XArrow.from_formatted(self._start)
-    # 	return self._start
-    
-    # @start.setter
-    # def start(self, val):
-    # 	self._start = val
-    
-    # @property
-    # def end(self) -> XArrow:
-    # 	if self._end and not isinstance(self._end, Arrow):
-    # 		self._end = XArrow.from_formatted(self._end)
-    # 	return self._end
-    #
-    # @end.setter
-    # def end(self, val):
-    # 	self._end = val
+
+    def __repr__(self):
+        representation = f'Entry(start={self.start!r}'
+        if self.end:
+            representation += f', end={self.end!r}'
+        if self.jira:
+            representation += f', jira={self.jira!r}'
+        if self.synced:
+            representation += f', synced={self.synced}'
+        if self.tags:
+            representation += f', tags={self.tags}'
+        if self.notes:
+            representation += f', notes={self.notes}'
+        return representation + ')'
+
+    def __lt__(self, other):
+        return self.start < other.start
 
 
 class Activity(TypedListSpace[Entry], default_factory=Entry):
-    """Activity (name=..., jira=...) [Entry, Entry...]"""
+    """Activity (name=...) [Entry, Entry...]"""
     name: Colored = Field(cast=TaskString)
-    jira: Optional[JiraTicket] = Field(default_factory=JiraTicket)
     
     def __init__(self, iterable: Iterable = (), **kwargs) -> None:
         # Necessary because otherwise TypedSpace.__new__ expects (self, default_factory, **kwargs)
@@ -84,15 +70,16 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
     def __repr__(self) -> str:
         name = f'{getattr(self, "name")}'
         short_id = f'{str(id(self))[-4:]}'
-        jira = self.jira
-        representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
+        # jira = self.jira
+        # representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
+        representation = f'{self.__class__.__qualname__} ({name=!r} <{short_id}>) {list.__repr__(self)}'
         return representation
-    
+
     def shortrepr(self) -> str:
         """Like repr, but with only the last entry."""
         name = f'{getattr(self, "name")}'
         short_id = f'{str(id(self))[-4:]}'
-        jira = self.jira
+        # jira = self.jira
         last_entry = self.safe_last_entry()
         self_len = len(self)
         if self_len > 1:
@@ -101,7 +88,8 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             short_entries_repr = f'[{last_entry}]'
         else:
             short_entries_repr = f'[]'
-        representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {short_entries_repr}'
+        # representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {short_entries_repr}'
+        representation = f'{self.__class__.__qualname__} ({name=!r} <{short_id}>) {short_entries_repr}'
         return representation
     
     def safe_last_entry(self) -> Optional[Entry]:
@@ -166,26 +154,35 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         
         self.append(entry)
         return entry
-
+    
+    @cached_property
     def timespans(self) -> list[Timespan]:
-        sorted_entries = sorted(map(lambda entry: entry.timespan, self))
-        return sorted_entries
+        timespans = []
+        for sorted_entry in sorted(self):
+            timespan = sorted_entry.timespan
+            timespans.append(timespan)
+        return timespans
+        # sorted_entries = list(map(lambda entry: entry.timespan, sorted(self)))
+        # return sorted_entries
 
+    @cached_property
     def seconds(self) -> int:
-        timespans = self.timespans()
+        timespans = self.timespans
         return sum(timespans)
 
+    @cached_property
     def human_duration(self) -> str:
-        seconds = self.seconds()
+        seconds = self.seconds
         human = secs2human(seconds)
         return human
 
     def pretty(self, detailed: bool = True, width: int = 24):
-        timespans = self.timespans()
+        timespans = self.timespans
         if detailed:
             time = "\n  \x1b[2m"
             notes = []
             for entry in self:
+                assert isinstance(entry, Entry)
                 entry_notes = entry.notes
                 entry_nonempty_notes = list(filter(bool, entry_notes))
                 notes.extend(entry_nonempty_notes)
@@ -202,11 +199,13 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
                 time += '\n\n  ' + c.grey150('Notes')
         
             # for note_time, note_content in sorted(log_entry.notes, key=lambda _n: _n[0] if _n[0] else '0'):
-            for note_content, note_time in notes:
-                if note_time:
-                    time += f'\n  {note_content} ({note_time.HHmmss})'
-                else:
-                    time += f'\n  {note_content}'
+            # for note_content, note_time in notes:
+            #     if note_time:
+            #         time += f'\n  {note_content} ({note_time.HHmmss})'
+            #     else:
+            #         time += f'\n  {note_content}'
+            for note in notes:
+                time += f'\n  {note.pretty()}'
         
             time += "\x1b[0m\n"
         else:
@@ -224,7 +223,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
             [tags.update(set(filter(bool, entry.tags))) for entry in self]
             name += f'  {", ".join(c.dim(c.tag2(_tag)) for _tag in tags)}'
 
-        human_duration = self.human_duration()
+        human_duration = self.human_duration
         pretty = ' '.join([c.ljust_with_color(name, width),
                            '\x1b[2m\t\x1b[0m ',
                            human_duration,
@@ -282,11 +281,13 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
         # log(f'{self.__class__.__qualname__}.__getitem__({name!r}) => {constructed!r}\n\n')
         return constructed
 
+    @cached_property
     def seconds(self) -> int:
-        return sum(map(lambda activity: activity.seconds(), self.values()))
+        return sum(map(lambda activity: activity.seconds, self.values()))
 
+    @cached_property
     def human_duration(self) -> str:
-        return secs2human(self.seconds())
+        return secs2human(self.seconds)
 
 class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""

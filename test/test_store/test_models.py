@@ -65,7 +65,10 @@ class TestEntry:
         assert entry.start == XArrow.from_absolute("02:00:00")
         assert entry.end == XArrow.from_absolute("03:00:00")
         assert entry.synced is True
+        assert entry.notes
+        assert isinstance(entry.notes, list)
         assert entry.notes == [Note({"02:30:00": "PR-5000"})]
+        assert isinstance(entry.notes[0], Note)
         assert entry.notes[0] == Note({"02:30:00": "PR-5000"})
         assert entry.notes[0].time == XArrow.from_absolute("02:30:00")
         assert entry.notes[0].content == "PR-5000"
