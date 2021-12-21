@@ -242,12 +242,12 @@ class TestXArrow:
         secs = int(td.total_seconds())
         assert secs == 3 * week + 3 * day
     
-    class TestDehumanize:
+    class Test_dehumanize:
         # @break_on_exc
         @pytest.mark.slow
         def test_dehumanize_vanilla(self):
             """Make sure we don't break vanilla Arrow.dehumanize() functionality"""
-            log.title('TestXArrow.TestDehumanize.test_dehumanize_vanilla')
+            log.title('TestXArrow.Test_dehumanize.test_dehumanize_vanilla')
             now = XArrow.now()
             now_dehumanized = XArrow.dehumanize("now")
             assert_arrows_soft_eq(now_dehumanized, now)
@@ -545,6 +545,24 @@ class TestXArrow:
         def test_dehumanize_advanced(self):  # can decide not to support if too difficult
             XArrow.dehumanize('1 days from now')
             XArrow.dehumanize('1 days from today')
+    
+    class Test_from_human:
+        def test_from_human_static(self):
+            now = XArrow.from_human('now')
+            today = XArrow.from_human('today')
+            assert now == today == XArrow.now()
+            yesterday = XArrow.from_human('yesterday')
+            assert yesterday == now.shift(days=-1)
+            assert yesterday.day == now.day - 1
+            eight_days_ago = XArrow.from_human('8 days ago')
+            assert eight_days_ago == now.shift(days=-8)
+            assert eight_days_ago.day == now.day - 8
+            dec_first_21 = XArrow.from_human('01/12/21')
+            assert dec_first_21.year == 2021
+            assert dec_first_21.month == 12
+            assert dec_first_21.day == 1
+            thursday = XArrow.from_human('thursday')
+            assert thursday.strftime('%A') == 'Thursday'
     
     class Test_from_absolute:
         def test_from_absolute_now(self):

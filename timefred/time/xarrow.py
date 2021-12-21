@@ -236,48 +236,45 @@ class XArrow(Arrow):
             self: XArrow = XArrow.now()
         else:
             self: XArrow = self_or_input_string
+        
         rv = self._dehumanize_relative(input_string)
         return rv
-    
-    @classmethod
-    def from_human(cls, human_time: Union[str, dt_time, "XArrow"] = "now") -> "XArrow":
-        """
-        Format is e.g.::
 
-            <number>[ ?]<unit>[ ago]
-
-        unit::
-
-            s[ec[ond[s]]], m[in[ute[s]]], h[[ou]r[s]]
-
-        For example: "1s ago", "2 minutes ago", "3hr"
-        """
-        if isinstance(human_time, Arrow):
-            if isinstance(human_time, XArrow):
-                return human_time
-            raise NotImplementedError(f"{cls.__qualname__}.from_human({human_time = !r}) is Arrow")
+    # noinspection PyMethodParameters,PyOverloads
+    @overload
+    def from_human(human_time: Union[str, dt_time] = "now") -> "XArrow": ...
+    @overload
+    def from_human(self: "XArrow", human_time: Union[str, dt_time] = "now") -> "XArrow": ...
+    # noinspection PyMethodParameters
+    def from_human(self_or_human_time, human_time_or_nothing = None) -> "XArrow":
+        if human_time_or_nothing is None and not isinstance(self_or_human_time, XArrow):
+            human_time = self_or_human_time
+            self: XArrow = XArrow.now()
+        else:
+            human_time = human_time_or_nothing
+            self: XArrow = self_or_human_time
         
         # '3m' / 'now', 'today', 'yesterday', 'tomorrow'
         with suppress(ValueError):
-            return cls.dehumanize(human_time)
+            return self.dehumanize(human_time)
         
         # 'thurs', ...
         with suppress(ValueError):
-            return cls.from_day(human_time)
+            return self.from_day(human_time)
         
         
         # '09:45'
         with suppress(ValueError):
-            return cls.from_absolute(human_time)
+            return self.from_absolute(human_time)
         
         # 05/18/21
         if FORMATS.date_separator in human_time:
-            return cls.from_formatted(human_time)
+            return self.from_formatted(human_time)
         
         # 'Wednesday 09:45'
         day, _, time = human_time.partition(' ')
         # TODO: '05/20/21' doesnt work! and enters here
-        day = cls.from_day(day)
+        day = self.from_day(day)
         return day.update(time)
         
         #

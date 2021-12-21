@@ -20,7 +20,7 @@ def log(time: Union[str, XArrow] = "today",
     if not work:
         raise EmptySheet()
     current = None
-    arrow = XArrow.from_absolute(time)
+    arrow = XArrow.from_human(time)
     # now = arrow.now() # TODO: should support a range of times, spanning several days etc
     day = work[arrow.DDMMYY]
     if not day:
