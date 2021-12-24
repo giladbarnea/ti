@@ -111,23 +111,23 @@ class Store(Space):
                 print(f'Restored sheet backup', file=sys.stderr)
             raise
 
+# breaks testutils.temp_sheet
+# if os.getenv('TIMEFRED_NO_PROXIES', '').lower() in ('1', 'true'):
+#     from timefred.config import config
+#
+#     store: Store = Store(path=path.expanduser(config.sheet.path))
+# else:
+class StoreProxy(Singleton):
+    _store: Store = None
+    
+    def __getattr__(self, name):
+        if name == '_store':
+            return self._store
+        if self._store is None:
+            from timefred.config import config
+            self._store = Store(path=path.expanduser(config.sheet.path))
+        return getattr(self._store, name)
 
-if os.getenv('TIMEFRED_NO_PROXIES', '').lower() in ('1', 'true'):
-    from timefred.config import config
-    
-    store: Store = Store(path=path.expanduser(config.sheet.path))
-else:
-    class StoreProxy(Singleton):
-        _store: Store = None
-        
-        def __getattr__(self, name):
-            if name == '_store':
-                return self._store
-            if self._store is None:
-                from timefred.config import config
-                self._store = Store(path=path.expanduser(config.sheet.path))
-            return getattr(self._store, name)
-    
-    
-    # noinspection PyTypeChecker
-    store: Store = StoreProxy()
+
+# noinspection PyTypeChecker
+store: Store = StoreProxy()

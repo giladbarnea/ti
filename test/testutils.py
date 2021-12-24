@@ -66,18 +66,20 @@ def default_work(day: XArrow = None) -> Work:
 
 
 @contextmanager
-def temp_sheet(path, rm=True):
+def temp_sheet(path, rm=True, backup=True):
     old_path = config.sheet.path
     if 'TIMEFRED_SHEET' in os.environ and os.environ['TIMEFRED_SHEET'] != old_path != store.path:
-        raise ValueError(f"Sheet path config mismatch: "
+        raise ValueError(f"Original sheet path config mismatch: "
                          f"{os.environ['TIMEFRED_SHEET'] = !r}, {config.sheet.path = !r}, {store.path = !r}")
-    now_ns = int(time_ns())
-    store._backup(f'_{now_ns}')
+    
+    if backup:
+        now_ns = int(time_ns())
+        store._backup(f'_{now_ns}')
     os.environ['TIMEFRED_SHEET'] = path
     path = Path(path)
     config.sheet.path = path
     store.path = path
-    store._store = None
+    store._store = None # forces StoreProxy to re init a Store
     
     try:
         yield
@@ -89,8 +91,8 @@ def temp_sheet(path, rm=True):
         config.sheet.path = old_path
         store.path = old_path
         if rm:
-            if os.path.exists(path):
-                os.remove(path)
-            backup_path = (config.cache.path / old_path.name).with_name(old_path.stem + f'_{now_ns}.backup')
-            backup_path.unlink(True)
+            path.unlink(True)
+            if backup:
+                backup_path = (config.cache.path / old_path.name).with_name(old_path.stem + f'_{now_ns}.backup')
+                backup_path.unlink(True)
             
