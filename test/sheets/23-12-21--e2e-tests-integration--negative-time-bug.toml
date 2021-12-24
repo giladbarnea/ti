@@ -1,0 +1,28 @@
+["23/12/21"]
+[["23/12/21"."Office"]]
+start = 09:50:00
+end = 18:00:00
+[["23/12/21"."replace evenbus consumer with improved sm consumer"]]
+jira = "ASM-14475"
+start = 10:00:00
+end = 11:00:00
+
+[["23/12/21"."E2E Tests (Integration)"]]
+start = 11:00:00
+end = 11:30:00
+
+[["23/12/21"."replace evenbus consumer with improved sm consumer"]]
+jira = "ASM-14475"
+start = 11:30:00
+end = 12:00:00
+
+[["23/12/21"."replace evenbus consumer with improved sm consumer"]]
+jira = "ASM-14475"
+start = 12:17:00
+end = 12:45:00
+
+[["23/12/21"."replace evenbus consumer with improved sm consumer"]]
+jira = "ASM-14475"
+start = 14:00:00
+end = 16:39:00
+notes = { "16:39:00" = "PR-6177" }

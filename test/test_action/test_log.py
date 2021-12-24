@@ -58,3 +58,12 @@ def test_log_01_12_21(capsys):
     past = XArrow.from_absolute('01/12/21')
     from timefred.time.timeutils import arrows2rel_time
     assert decolor(output_lines[0]) == f'Wednesday, 01/12/21 | {arrows2rel_time(now, past)}'
+    
+def test_23_12_21__e2e_tests_integration__negative_time_bug(capsys):
+    with temp_sheet('test/sheets/23-12-21--e2e-tests-integration--negative-time-bug.toml'):
+        log_action('23/12/21')
+
+    captured = capsys.readouterr()
+    output = decolor(captured.out)
+    output_lines = output.splitlines()
+    print()
