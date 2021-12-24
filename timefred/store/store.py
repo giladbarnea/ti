@@ -111,8 +111,10 @@ class Store(Space):
                 print(f'Restored sheet backup', file=sys.stderr)
             raise
 
+
 if os.getenv('TIMEFRED_NO_PROXIES', '').lower() in ('1', 'true'):
     from timefred.config import config
+    
     store: Store = Store(path=path.expanduser(config.sheet.path))
 else:
     class StoreProxy(Singleton):
