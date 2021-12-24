@@ -80,6 +80,7 @@ def log(time: Union[str, XArrow] = "today",
         for _tag, names in by_tag.items():
             print(c.tag(_tag))
             for name in names:
+                # noinspection PyUnresolvedReferences
                 print_log(name, _log[name], current, detailed, name_column_width)
         return True
     

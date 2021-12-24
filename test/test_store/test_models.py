@@ -6,6 +6,7 @@ from timefred.store import Day, Activity, Entry
 from timefred.tag import Tag
 from timefred.time import XArrow
 import pytest
+import toml
 
 class TestActivity:
     def test_ongoing(self):
@@ -75,3 +76,12 @@ class TestEntry:
         assert entry.tags == [Tag("meeting")]
         assert next(iter(entry.tags)) == Tag("meeting")
         assert isinstance(next(iter(entry.tags)), Tag)
+        
+class TestDay:
+    @pytest.mark.skip("not yet implemented")
+    def test_new_structure(self):
+        day = dict(start="10:00", end="19:00", Integration=dict(jira="ASM", sessions=[dict(start="10:10", end="18:50", synced=True)]))
+        work = {"24/12/21": day}
+        toml_str = toml.dumps(work)
+        print(toml_str)
+    

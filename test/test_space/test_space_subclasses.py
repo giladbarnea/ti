@@ -1,6 +1,6 @@
 from timefred.note import Note
 from timefred.time import XArrow
-
+from test import TEST_START_ARROW
 class TestNote:
     def test_sanity(self):
         note = Note({"17:00": "PR-6091"})
@@ -10,4 +10,4 @@ class TestNote:
         assert note.time.minute == 0
         assert note.time.second == 0, note.time.second
         assert note.content == "PR-6091"
-        assert repr(note) == "Note(content = 'PR-6091', time = XArrow ⟨21/12/21 17:00:00⟩)", repr(note)
+        assert repr(note) == f"Note(content = 'PR-6091', time = XArrow ⟨{TEST_START_ARROW.DDMMYY} 17:00:00⟩)", repr(note)
