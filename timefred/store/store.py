@@ -69,6 +69,7 @@ class Store(Space):
         return Work(**data)
     
     def _backup(self, name_suffix='') -> bool:
+        """Backs up to TIMEFRED_CACHE_DIR = ~/.cache/timefred"""
         from timefred.config import config
         destination = (config.cache.path / self.path.name)
         destination_name = self.path.stem + name_suffix + '.backup'

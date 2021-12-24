@@ -66,7 +66,8 @@ def default_work(day: XArrow = None) -> Work:
 
 
 @contextmanager
-def temp_sheet(path, rm=True, backup=True):
+def temp_sheet(path, *, rm=True, backup=True):
+    """Doesn't remove if an exception occurred."""
     old_path = config.sheet.path
     if 'TIMEFRED_SHEET' in os.environ and os.environ['TIMEFRED_SHEET'] != old_path != store.path:
         raise ValueError(f"Original sheet path config mismatch: "

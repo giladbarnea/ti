@@ -64,6 +64,7 @@ class Config(AttrDictSpace):
         path: Path
         @Field(cast=Path)
         def path(): # when fixing, note that sometimes we do want self
+            """Defaults to TIMEFRED_CACHE_DIR = ~/.cache/timefred"""
             path = Path(os.path.expanduser(os.environ.get('TIMEFRED_CACHE_DIR', "~/.cache/timefred")))
             if not path.exists():
                 path.mkdir(exist_ok=True)
