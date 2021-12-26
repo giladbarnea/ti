@@ -3,6 +3,7 @@ from datetime import timedelta
 from collections.abc import Iterator
 from functools import cached_property
 from typing import Optional
+import os
 
 from multimethod import multimethod
 
@@ -23,12 +24,13 @@ class Timespan(DictSpace):
     # end = Field(optional=True, cast=XArrow)
     end: XArrow = Field(optional=True, cast=XArrow.from_absolute)
 
-    def __repr__(self):
-        short_id = f'{str(id(self))[-4:]}'
-        start = self.start
-        end = self.end
-        representation = f'{self.__class__.__qualname__} ({start=!r}, {end=!r}) <{short_id}>'
-        return representation
+    if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+        def __repr__(self):
+            short_id = f'{str(id(self))[-4:]}'
+            start = self.start
+            end = self.end
+            representation = f'{self.__class__.__qualname__} ({start=!r}, {end=!r}) <{short_id}>'
+            return representation
 
     @multimethod
     def __radd__(self, other) -> int:
@@ -60,19 +62,22 @@ class Timespan(DictSpace):
         yield self.start
         yield self.end
 
-    @cached_property
+    # @cached_property
+    @property
     def timedelta(self) -> timedelta:
         if self.end:
             return self.end - self.start
         else:
             return timedelta(seconds=0)
     
-    @cached_property
+    # @cached_property
+    @property
     def seconds(self) -> int:
         td = self.timedelta
         td_total_seconds = td.total_seconds()
         return int(td_total_seconds)
 
-    @cached_property
+    # @cached_property
+    @property
     def human_duration(self) -> str:
         return secs2human(self.seconds)

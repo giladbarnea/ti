@@ -41,13 +41,14 @@ class Space:
                 setattr(self, name, val)
                 continue
             log.warning(f"{self.__class__.__qualname__}.__init__(...) ignoring keyword argument {name!r}")
-    
-    def __repr__(self):
-        super_repr = super().__repr__()
-        if os.getenv('TIMEFRED_REPR', '') == 'short':
-            from textwrap import shorten
-            super_repr = shorten(super_repr, width=40, placeholder='⟨...⟩')
-        return f'{self.__class__.__qualname__} {super_repr}'
+
+    if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+        def __repr__(self):
+            super_repr = super().__repr__()
+            if os.getenv('TIMEFRED_REPR', '') == 'short':
+                from textwrap import shorten
+                super_repr = shorten(super_repr, width=40, placeholder='⟨...⟩')
+            return f'{self.__class__.__qualname__} {super_repr}'
 
 
 TYPED_SPACE_K = TypeVar('TYPED_SPACE_K')

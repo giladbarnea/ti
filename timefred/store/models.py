@@ -30,25 +30,27 @@ class Entry(AttrDictSpace):
     
     # @Field(optional=True)
     @cached_property
+    # @property
     def timespan(self):
         start = self.start
         end = self.end
         timespan = Timespan(start=start, end=end)
         return timespan
 
-    def __repr__(self):
-        representation = f'Entry(start={self.start!r}'
-        if self.end:
-            representation += f', end={self.end!r}'
-        if self.jira:
-            representation += f', jira={self.jira!r}'
-        if self.synced:
-            representation += f', synced={self.synced}'
-        if self.tags:
-            representation += f', tags={self.tags}'
-        if self.notes:
-            representation += f', notes={self.notes}'
-        return representation + ')'
+    if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+        def __repr__(self):
+            representation = f'Entry(start={self.start!r}'
+            if self.end:
+                representation += f', end={self.end!r}'
+            if self.jira:
+                representation += f', jira={self.jira!r}'
+            if self.synced:
+                representation += f', synced={self.synced}'
+            if self.tags:
+                representation += f', tags={self.tags}'
+            if self.notes:
+                representation += f', notes={self.notes}'
+            return representation + ')'
 
     def __lt__(self, other):
         return self.start < other.start
@@ -69,14 +71,15 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
                 raise
             iterable = (dict(start=iterable), )
             super().__init__(iterable, **kwargs)
-            
-    def __repr__(self) -> str:
-        name = f'{getattr(self, "name")}'
-        short_id = f'{str(id(self))[-4:]}'
-        # jira = self.jira
-        # representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
-        representation = f'{self.__class__.__qualname__} ({name=!r} <{short_id}>) {list.__repr__(self)}'
-        return representation
+
+    if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+        def __repr__(self) -> str:
+            name = f'{getattr(self, "name")}'
+            short_id = f'{str(id(self))[-4:]}'
+            # jira = self.jira
+            # representation = f'{self.__class__.__qualname__} ({name=!r}, {jira=!r} <{short_id}>) {list.__repr__(self)}'
+            representation = f'{self.__class__.__qualname__} ({name=!r} <{short_id}>) {list.__repr__(self)}'
+            return representation
 
     def shortrepr(self) -> str:
         """Like repr, but with only the last entry."""
@@ -160,6 +163,7 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         return entry
     
     @cached_property
+    # @property
     def timespans(self) -> list[Timespan]:
         timespans = []
         for sorted_entry in sorted(self):
@@ -170,11 +174,13 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
         # return sorted_entries
 
     @cached_property
+    # @property
     def seconds(self) -> int:
         timespans = self.timespans
         return sum(timespans)
 
     @cached_property
+    # @property
     def human_duration(self) -> str:
         seconds = self.seconds
         human = secs2human(seconds)
@@ -295,10 +301,12 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
         return constructed
 
     @cached_property
+    # @property
     def seconds(self) -> int:
         return sum(map(lambda activity: activity.seconds, self.values()))
 
     @cached_property
+    # @property
     def human_duration(self) -> str:
         return secs2human(self.seconds)
 

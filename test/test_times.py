@@ -565,6 +565,43 @@ class TestXArrow:
             assert thursday.strftime('%A') == 'Thursday'
     
     class Test_from_absolute:
+        def test_from_absolute_time(self):
+            from datetime import time
+            abs_time = time(hour=11, minute=0, second=0)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 0
+            assert from_absolute.second == 0
+
+            abs_time = time(hour=11, minute=23, second=0)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 0
+
+            abs_time = time(hour=11, minute=23, second=45)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 45
+
+            abs_time = time(hour=11, minute=0, second=45)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 0
+            assert from_absolute.second == 45
+
+            abs_time = time(hour=0, minute=0, second=45)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 0
+            assert from_absolute.minute == 0
+            assert from_absolute.second == 45
+
+            abs_time = time(hour=0, minute=23, second=45)
+            from_absolute = XArrow.from_absolute(abs_time)
+            assert from_absolute.hour == 0
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 45
         def test_from_absolute_now(self):
             now = XArrow.now().replace(second=0)
             from_absolute_now = XArrow.from_absolute(now)
@@ -609,3 +646,38 @@ class TestXArrow:
             assert from_absolute.day == 13
             assert from_absolute.month == 12
             assert from_absolute.year == 2021
+
+        def test_from_absolute_DDMMYYHHmmss(self):
+            datetime = "13/12/21 11:23:45"
+            from_absolute = XArrow.from_absolute(datetime)
+            assert from_absolute.day == 13
+            assert from_absolute.month == 12
+            assert from_absolute.year == 2021
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 45
+
+            datetime = "13/12 11:23:45"
+            from_absolute = XArrow.from_absolute(datetime)
+            assert from_absolute.day == 13
+            assert from_absolute.month == 12
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 45
+
+            datetime = "13/12/21 11:23"
+            from_absolute = XArrow.from_absolute(datetime)
+            assert from_absolute.day == 13
+            assert from_absolute.month == 12
+            assert from_absolute.year == 2021
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 0
+
+            datetime = "13/12 11:23"
+            from_absolute = XArrow.from_absolute(datetime)
+            assert from_absolute.day == 13
+            assert from_absolute.month == 12
+            assert from_absolute.hour == 11
+            assert from_absolute.minute == 23
+            assert from_absolute.second == 00

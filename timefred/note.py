@@ -1,4 +1,5 @@
 import re
+import os
 from collections.abc import Mapping
 from multimethod import multimethod
 
@@ -19,8 +20,9 @@ class Note(DictSpace):
 		content = note[time]
 		super().__init__(time=time, content=content)
 	
-	def __repr__(self):
-		return f'{self.__class__.__qualname__}(content = {self.content!r}, time = {self.time!r})'
+	if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+		def __repr__(self):
+			return f'{self.__class__.__qualname__}(content = {self.content!r}, time = {self.time!r})'
 	# @multimethod
 	# def __init__(self, content: str, time: Union[str, XArrow]=None):
 	# 	self.content = content

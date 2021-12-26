@@ -68,4 +68,6 @@ def test_23_12_21__e2e_tests_integration__negative_time_bug(capsys):
     captured = capsys.readouterr()
     output = decolor(captured.out)
     output_lines = output.splitlines()
-    print()
+    output_lines = list(filter(bool, map(str.strip, output_lines)))
+    e2e_line = next(line for line in output_lines if 'E2E' in line)
+    assert e2e_line.endswith('30 minutes'), e2e_line

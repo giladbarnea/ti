@@ -35,11 +35,21 @@ class Config(AttrDictSpace):
                 if self.short_time.count(self.time_separator) != 1:
                     raise ValueError(f'Invalid date format: {self.short_time!r}. Needs to signify Hours and minutes.')
                 
-                self.time_format_re = re.compile(fr'(?P<hour>\d{{1,2}})({self.time_separator}(?P<minute>\d{{2}}))(?:{self.time_separator}(?P<second>\d{{2}}))?')
-                """23:31[:56]]"""
+                
+                self.time_format_re = re.compile(fr'(?P<hour>\d{{1,2}})'
+                                                 fr'({self.time_separator}(?P<minute>\d{{2}}))'
+                                                 fr'(?:{self.time_separator}(?P<second>\d{{2}}))?')
+                """23:31[:56]"""
 
-                self.date_format_re = re.compile(fr'(?P<day>\d{{1,2}})({self.date_separator}(?P<month>\d{{2}}))(?:{self.date_separator}(?P<year>\d{{2,4}}))?')
+                self.date_format_re = re.compile(fr'(?P<day>\d{{1,2}})'
+                                                 fr'({self.date_separator}(?P<month>\d{{2}}))'
+                                                 fr'(?:{self.date_separator}(?P<year>\d{{2,4}}))?')
                 """31/12[/21]"""
+                
+                self.datetime_format_re = re.compile(rf'({self.date_format_re.pattern})?( *{self.time_format_re.pattern})?')
+                """[31/12[/21]] [23:31[:56]]
+                Matches: '23/12', '23/12/21', '23/12 11:00', '23/12/21 11:00:59'
+                """
         
         # tz: BaseTzInfo
         # tz: datetime.timezone = dt.now().astimezone().tzinfo

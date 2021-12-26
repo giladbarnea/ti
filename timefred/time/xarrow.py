@@ -309,17 +309,18 @@ class XArrow(Arrow):
         
         replace = {}
         if isinstance(time, str):
-            if FORMATS.date_separator in time and FORMATS.time_separator in time:
-                raise NotImplementedError(f"Looks like {time = !r} is a datetime. Currently can only update time or date.")
-            time_match = FORMATS.time_format_re.match(time)
-            if time_match:
-                
-                match_dict = time_match.groupdict()
+            if FORMATS.date_separator in time:
+                if FORMATS.time_separator in time:
+                    match = FORMATS.datetime_format_re.match(time)
+                else:
+                    match = FORMATS.date_format_re.match(time)
             else:
-                date_match = FORMATS.date_format_re.match(time)
-                if not date_match:
-                    raise ValueError(f"{time = !r} doesn't match time format {FORMATS.time_format_re}, nor date format {FORMATS.date_format_re}")
-                match_dict = date_match.groupdict()
+                match = FORMATS.time_format_re.match(time)
+            if not match:
+                raise ValueError(f"{time = !r} doesn't match time format {FORMATS.time_format_re}, "
+                                 f"date format {FORMATS.date_format_re}, "
+                                 f"nor datetime format: {FORMATS.datetime_format_re}")
+            match_dict = match.groupdict()
             if (year := match_dict.get('year')) is not None:
                 if len(year) == 4:
                     replace['year'] = int(year)
@@ -338,7 +339,7 @@ class XArrow(Arrow):
         
         else: # time or datetime
             for name in self._ATTRS:
-                if name != 'microsecond' and (attr := getattr(time, name, None)):
+                if name != 'microsecond' and (attr := getattr(time, name, None)) is not None:
                     replace[name] = attr
         
         rv = self.replace(**replace)

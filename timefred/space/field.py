@@ -1,6 +1,9 @@
 from collections.abc import Mapping
+import os
 import typing as t
 from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
+
+from timefred.log import log
 from timefred.singleton import Singleton
 # from timefred.log import log
 # from pdbpp import break_on_exc
@@ -81,14 +84,21 @@ class Field(Generic[TFieldValue]):
         self.default_factory = method
         return self
     
-    def get_set_default_field_data_from_instance(self, instance: HasFields, default_field_data: FieldData) -> FieldData:
+    def setdefault_instance_field_data(self, instance: HasFields, default_field_data: FieldData) -> FieldData:
+        """Insert default_field_data if self.name is not in instance.__fields__.
+        Return instance.__fields__[self.name].
+        Initialize instance.__fields__[self.name] if needed."""
         if not hasattr(instance, '__fields__'):
+            # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | · Setting {default_field_data = !r} (initialized __fields__)")
             setattr(instance, '__fields__', {self.name: default_field_data})
         elif self.name not in instance.__fields__:
+            # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | · Setting {default_field_data = !r} (initialized __fields__[self.name]")
             instance.__fields__[self.name] = default_field_data
+        # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | · returning {instance.__fields__[self.name]!r}")
         return instance.__fields__[self.name]
     
     def set_instance_field_data(self, instance: HasFields, field_data: FieldData) -> NoReturn:
+        """Unconditionally sets instance.__fields__[self.name] = field_data"""
         if not hasattr(instance, '__fields__'):
             setattr(instance, '__fields__', {self.name: field_data})
         else:
@@ -105,12 +115,14 @@ class Field(Generic[TFieldValue]):
                      optional=self.optional,
                      cache=self.should_cache)
         return attrs
-    
-    def __repr__(self):
-        return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
+
+    if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
+        def __repr__(self):
+            return f"{self.__class__.__qualname__}⟨{self.name!r}⟩({', '.join([f'{k}={v}' for k, v in self._repred_attrs().items()])})"
     # @break_on_exc
     def __get__(self, instance: HasFields, instance_cls: Type[HasFields]) -> TFieldValue:
-        field_data = self.get_set_default_field_data_from_instance(instance, {'value': UNSET, 'cached': UNSET})
+        # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | Getting {instance}.__fields__[ {self.name!r} ]")
+        field_data = self.setdefault_instance_field_data(instance, {'value': UNSET, 'cached': UNSET})
         if self.should_cache and field_data['cached'] is not UNSET:
             return field_data['cached']
         
@@ -158,7 +170,7 @@ class Field(Generic[TFieldValue]):
         return value
     
     def __set__(self, instance: HasFields, value):
-        # log.debug(f"setting {instance}.__fields__[ {self.name!r} ] = {value!r}")
+        # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | Setting {instance}.__fields__[ {self.name!r} ] = {{ value: {value!r}, cached: UNSET }}")
         if self.validate is not UNSET and not self.validate(value):
             raise ValueError(f"{self.name} is not valid: {value!r}")
         self.set_instance_field_data(instance, {'value': value, 'cached': UNSET})
@@ -172,7 +184,7 @@ class Field(Generic[TFieldValue]):
         #     instance.__fields__[self.name]['value'] = value
     
     def __delete__(self, instance: HasFields):
-        # log.debug(f"deleting {instance}.__fields__[ {self.name!r} ]")
+        # log.debug(f"[b][i]{instance.__class__.__qualname__}[/i].{self.name}[/b] | Deleting {instance}.__fields__[ {self.name!r} ]")
         self.set_instance_field_data(instance, {'value': UNSET, 'cached': UNSET})
         # if not hasattr(instance, '__fields__'):
         #     setattr(instance, '__fields__', {self.name: {'value': UNSET, 'cached': UNSET}})
@@ -188,8 +200,5 @@ class Field(Generic[TFieldValue]):
             field_data['cached'] = UNSET
             # assert field_data['cached'] is UNSET
             # assert instance.__fields__[self.name]['cached'] is UNSET
-            # log.debug(f"cleared cache of {instance}.__fields__[ {self.name!r} ]",
-            #           # f"it's now: {instance.__fields__[self.name]['cached']!r}"
-            #           )
             # if instance.__fields__[self.name]['cached'] is not UNSET:
             #     breakpoint()

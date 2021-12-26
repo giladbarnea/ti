@@ -19,7 +19,11 @@ class TestActivity:
         assert ongoing_activity.ongoing() is True
         assert got_to_office_activity.ongoing() is True
     
-    class TestStop:
+    class Test_timespans:
+        ...
+            
+        
+    class Test_stop:
         def test_stop_when_not_ongoing(self):
             log.title(f"test_models.test_stop_when_not_ongoing()")
             work = default_work(TEST_START_ARROW)
