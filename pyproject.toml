@@ -9,21 +9,20 @@ license = "MIT"
 python = "^3.8"
 toml = "^0.10"
 arrow = "^1.1.0"
-pytz = "^2021.1"
+# pytz = "^2021.1"
 PyYAML = "^5.4.1"
 multimethod = { git = "https://github.com/giladbarnea/multimethod.git", branch = "main" }
-pydantic = {url = "https://files.pythonhosted.org/packages/ff/74/54e030641601112309f6d2af620774e9080f99c7a15742fc6a0b170c4076/pydantic-1.8.2-py3-none-any.whl"}
-pytest = "^6.2.5"
-screeninfo = "^0.7"
-ipython-autoimport = "^0.3"
-icecream = "^2.1.1"
-pytest-lineno = {git = "https://github.com/harupy/pytest-lineno.git", develop = true}
+# pydantic = {url = "https://files.pythonhosted.org/packages/ff/74/54e030641601112309f6d2af620774e9080f99c7a15742fc6a0b170c4076/pydantic-1.8.2-py3-none-any.whl"}
+# screeninfo = "^0.7"
 
 [tool.poetry.dev-dependencies]
+ipython-autoimport = "^0.3"
+pytest-lineno = {git = "https://github.com/harupy/pytest-lineno.git", develop = true}
+icecream = "^2.1.1"
 IPython = { path = "../ipython/", develop = true }
 pdbpp = { path = "../pdbpp/", develop = true }
 pytest = { version = "latest", optional = true }
-rich = { path = "../rich/", develop = true }
+rich = { git = "https://github.com/Textualize/rich.git", develop = true }
 # loguru = { version = "^0.5.3", optional = true }
 
 [tool.poetry.build]
