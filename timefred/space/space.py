@@ -3,6 +3,8 @@ from collections.abc import Callable
 from timefred.log import log
 import os
 
+from timefred.space.field import UNSET
+
 OBJECT_DICT_KEYS = set(object.__dict__)
 IGNORED_ATTRS = OBJECT_DICT_KEYS | {
     '__abstractmethods__',
@@ -41,7 +43,17 @@ class Space:
                 setattr(self, name, val)
                 continue
             log.warning(f"{self.__class__.__qualname__}.__init__(...) ignoring keyword argument {name!r}")
-
+    def dict(self):
+        # ignore = self.DONT_SET_KEYS | IGNORED_ATTRS
+        # return {key: val
+        #         for key in self.__class__.__dict__
+        #         if key not in ignore
+        #         and (val := getattr(self, key)) is not UNSET}
+        ret = dict()
+        for key, val in self.__fields__.items():
+            if val is UNSET:
+                continue
+    
     if not os.getenv('TIMEFRED_REPR', '').lower() in ('no', 'disable'):
         def __repr__(self):
             super_repr = super().__repr__()

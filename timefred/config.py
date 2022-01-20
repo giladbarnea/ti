@@ -109,6 +109,7 @@ class Config(AttrDictSpace):
                 log.error(f'{e.__class__.__qualname__} caught in {self}.__init__: {e}')
     
     def _create_default_config_file(self, cfg_file: Path):
+        breakpoint()
         raise NotImplementedError
         constructed = self.dict()
         toml.dump(constructed, cfg_file.open(mode="x"))

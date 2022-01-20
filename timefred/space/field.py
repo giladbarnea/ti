@@ -3,7 +3,6 @@ import os
 import typing as t
 from typing import Any, Callable, Type, TypeVar, Protocol, TypedDict, NoReturn, Generic
 
-from timefred.log import log
 from timefred.singleton import Singleton
 # from timefred.log import log
 # from pdbpp import break_on_exc
