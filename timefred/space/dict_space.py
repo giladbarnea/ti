@@ -67,7 +67,6 @@ class TypedDictSpace(TypedSpace[TYPED_DICT_SPACE_K, TYPED_DICT_SPACE_V],
                     (f"{self.__class__.__qualname__}.__getitem__({name!r}) returned {value!r} but it's not of type {self.__default_factory__.__qualname__}"
                      f"and it's in {self.__class__.DONT_SET_KEYS | IGNORED_ATTRS = }")
                 constructed = self.__default_factory__(**value)
-                # self[name] = constructed # <- bad idea because sets item not attr
                 # this cannot be commented out, tests fail
                 setattr(self, name, constructed)
                 return constructed
