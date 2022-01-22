@@ -64,7 +64,7 @@ class Store(Space):
         else:
             data = {}
             with self.path.open('w') as f:
-                toml.load(data, f)
+                toml.dump(data, f)
         # self.cache.data = data
         return Work(**data)
     
