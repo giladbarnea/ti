@@ -9,6 +9,7 @@ def stop(end: XArrow, tag: Tag = None, note: Note = None) -> bool:
     # ensure_working()
     
     work: Work = store.load()
+    work.stop(end, tag, note)
     ongoing_activity: Activity = work.ongoing_activity()
     entry: Entry = ongoing_activity.stop(end, tag, note)
     

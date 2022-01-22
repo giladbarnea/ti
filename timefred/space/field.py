@@ -17,6 +17,7 @@ class UNSET_TYPE(Singleton):
 
 UNSET = UNSET_TYPE()
 
+NON_SCALAR_TYPES = {list, tuple, set, dict}
 
 def updatedefault(obj: Any, name: str, mapping: Mapping):
     # noinspection PyUnresolvedReferences
@@ -140,7 +141,7 @@ class Field(Generic[TFieldValue]):
             
             # self.cast = list[Note]
             # t.get_origin(self.cast) = list
-            if t.get_origin(self.cast) in (list, tuple, set, dict):
+            if t.get_origin(self.cast) in NON_SCALAR_TYPES:
                 # scalar_type = Note
                 scalar_type, *scalar_types = t.get_args(self.cast)
                 if scalar_types:
@@ -154,6 +155,7 @@ class Field(Generic[TFieldValue]):
                     value = self.cast((constructed_scalar,))
                 else:
                     # TODO: probable bug, needs same isinstance checks as clause above
+                    #  also what about frozenset?
                     if value is UNSET:
                         value = self.cast((value,))
                     else:

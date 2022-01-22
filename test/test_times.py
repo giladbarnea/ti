@@ -606,7 +606,6 @@ class TestXArrow:
             now = XArrow.now().replace(second=0)
             from_absolute_now = XArrow.from_absolute(now)
             assert_arrows_soft_eq(from_absolute_now, now)
-            assert from_absolute_now is now
             
             for fmt in [  # FORMATS.date,
                 # FORMATS.short_date:       ['month', 'day'],

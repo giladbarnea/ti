@@ -8,8 +8,9 @@ from timefred.color import Colored, ActivityString
 from timefred.integration.jira import JiraTicket
 from timefred.note import Note
 from timefred.space import AttrDictSpace, Field, TypedListSpace, DefaultAttrDictSpace
+from timefred.space.dict_space import DEFAULT_ATTR_DICT_SPACE_V
 from timefred.tag import Tag
-from timefred.time import XArrow, Timespan
+from timefred.time import XArrow, Timespan, XDate
 from timefred.time.timeutils import secs2human
 from timefred.util import normalize_str
 
@@ -253,7 +254,12 @@ class Activity(TypedListSpace[Entry], default_factory=Entry):
 class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
     """Day { "activity_name": Activity }"""
     __default_factory__: Type[Activity]
-    
+    DONT_SET_KEYS = DefaultAttrDictSpace.DONT_SET_KEYS | {'date'}
+    date: XArrow = Field(cast=XDate.from_absolute)
+
+    # def __init__(self, default_factory: Type[DEFAULT_ATTR_DICT_SPACE_V] = None, **kwargs):
+    #     super().__init__(default_factory, **kwargs)
+
     def __getitem__(self, name):
         # log(f'[title]{self.__class__.__qualname__}.__getitem__({name!r})...')
         try:
@@ -313,7 +319,13 @@ class Day(DefaultAttrDictSpace[Any, Activity], default_factory=Activity):
 class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
     """Work { "31/10/21": Day }"""
     __default_factory__: Type[Day]
-    
+
+    def __getitem__(self, date: str) -> Day:
+        day: Day = super().__getitem__(date)
+        day.date = date
+        constructed_date = day.date
+        return day
+
     def ongoing_activity(self) -> Activity:
         """
         Raises:
@@ -333,12 +345,19 @@ class Work(DefaultAttrDictSpace[Any, Day], default_factory=Day):
              tag: Union[str, Tag] = None,
              note: Union[str, Note] = None) -> Optional[Activity]:
         """
-        Raises:
-            ValueError: if there is no ongoing activity
+        Returns:
+            Just-stopped activity if there was an ongoing one, or None if there wasn't
         """
+        # try:
+        #     ongoing_activity = self.ongoing_activity()
+        # except ValueError:
+        #     return None
         ongoing_activity = self.ongoing_activity()
         if not time:
             time = XArrow.now()
+        # day = self[time.DDMMYY]
+        
+        
         ongoing_activity.stop(time=time, tag=tag, note=note)
         stopped_activity = ongoing_activity
         return stopped_activity

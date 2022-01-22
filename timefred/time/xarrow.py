@@ -1,9 +1,11 @@
+from __future__ import annotations
 import re
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import tzinfo as dt_tzinfo, time as dt_time
 # from time import struct_time
-from typing import Type, Optional, Any, Union, Literal, overload, final
+from functools import cached_property
+from typing import Type, Optional, Any, Union, Literal, overload, final, TypeVar
 
 from arrow import Arrow, ArrowFactory
 from arrow.arrow import TZ_EXPR
@@ -68,14 +70,27 @@ Used in `XArrow._dehumanize_relative`"""
 #     "year":    "({0}|a) years",
 #     }
 
-def dehumanize_other_if_str(method: Callable[["XArrow", Any], bool]) -> Callable[["XArrow", Any], bool]:
-    def wrapper(self: "XArrow", other: Any) -> bool:
+_T = TypeVar('_T', bound='XArrow')
+
+def dehumanize_other_if_str(method: Callable[[_T, Any], bool]) -> Callable[[_T, Any], bool]:
+    def wrapper(self, other: Any) -> bool:
         if isinstance(other, str):
             other = self.dehumanize(other)
         return method(self, other)
     return wrapper
 
+
 class XArrow(Arrow):
+    _ATTRS = [
+        "year",
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+        ]
+    _ATTRS_PLURAL = [f"{a}s" for a in _ATTRS]
+    
     def __init__(self,
                  year: int,
                  month: int,
@@ -94,19 +109,12 @@ class XArrow(Arrow):
         self._colored = None
         super().__init__(year, month, day, hour, minute, second, microsecond=0, tzinfo=tzinfo, **kwargs)
     
-    @property
+    @cached_property
     def colored(self):
-        if not self._colored:
-            self._colored = c.time(str(self))
-        return self._colored
+        return c.time(str(self))
     
     @classmethod
-    def now(cls, tzinfo: Optional[dt_tzinfo] = None) -> "XArrow":
-        rv = super().now(tzinfo)
-        return rv
-    
-    @classmethod
-    def from_formatted(cls, date: Union[str, dt_time, "XArrow"]) -> "XArrow":
+    def from_formatted(cls, date: Union[str, dt_time, _T]) -> _T:
         """`date` can be any `config.time.formats`, e.g `DD/MM/YY HH:mm:ss` ... `HH:MM`"""
         if isinstance(date, Arrow):
             if isinstance(date, XArrow):
@@ -124,7 +132,7 @@ class XArrow(Arrow):
                                   tzinfo=TZINFO)
     
     @classmethod
-    def from_day(cls, day: Union[str, dt_time, "XArrow"]) -> "XArrow":  # perf: µs
+    def from_day(cls, day: Union[str, dt_time, _T]) -> _T:  # perf: µs
         """
         >>> XArrow.from_day('thurs')
         <XArrow ...>
@@ -142,7 +150,7 @@ class XArrow(Arrow):
         return now.shift(days=shift)
 
     @classmethod
-    def from_absolute(cls, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
+    def from_absolute(cls, time: Union[str, dt_time, _T]) -> _T:
         """
         >>> XArrow.from_absolute('09:45')
         <XArrow ...>
@@ -150,17 +158,16 @@ class XArrow(Arrow):
         # if `time` specifies second, it would get updated
         # otherwise expected behavior is like constructing datetime.time(23, 59) (second == 0)
         now = cls.now().replace(second=0)
-        
         updated = now.update(time)
         return updated
     
     # noinspection PyMethodOverriding,PyMethodParameters
     @overload
-    def dehumanize(input_string: str, locale: str = "local") -> "XArrow": ...
+    def dehumanize(input_string: str, locale: str = "local") -> _T: ...
     @overload
-    def dehumanize(self: "XArrow", input_string: str, locale: str = "local") -> "XArrow": ...
+    def dehumanize(self, input_string: str, locale: str = "local") -> _T: ...
     # noinspection PyMethodParameters
-    def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> "XArrow":
+    def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> _T:
         if isinstance(self_or_input_string, str):
             called_static = True
             input_string = self_or_input_string
@@ -186,7 +193,7 @@ class XArrow(Arrow):
         rv = self._dehumanize_relative(input_string)
         return rv
 
-    def _dehumanize_relative(self, input_string: Union[str, dt_time, "XArrow"]) -> "XArrow":
+    def _dehumanize_relative(self, input_string: Union[str, dt_time, _T]) -> _T:
         """
         >>> XArrow._dehumanize_relative('3m ago')
         <XArrow ...>
@@ -241,11 +248,11 @@ class XArrow(Arrow):
         return parsed
     # noinspection PyMethodParameters,PyOverloads
     @overload
-    def from_human(human_time: Union[str, dt_time] = "now") -> "XArrow": ...
+    def from_human(human_time: Union[str, dt_time] = "now") -> _T: ...
     @overload
-    def from_human(self: "XArrow", human_time: Union[str, dt_time] = "now") -> "XArrow": ...
+    def from_human(self, human_time: Union[str, dt_time] = "now") -> _T: ...
     # noinspection PyMethodParameters
-    def from_human(self_or_human_time, human_time_or_nothing = None) -> "XArrow":
+    def from_human(self_or_human_time, human_time_or_nothing = None) -> _T:
         if human_time_or_nothing is None and not isinstance(self_or_human_time, XArrow):
             human_time = self_or_human_time
             self: XArrow = XArrow.now()
@@ -298,14 +305,11 @@ class XArrow(Arrow):
         #
         # raise BadTime(f"Don't understand the time {human_time!r}")
     
-    def update(self, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
+    def update(self, time: Union[str, dt_time, _T]) -> _T:
         """
         >>> self.update('09:45')
         <XArrow ...>
         """
-        if isinstance(time, XArrow):
-            return time
-        
         replace = {}
         if isinstance(time, str):
             if FORMATS.date_separator in time:
@@ -320,26 +324,19 @@ class XArrow(Arrow):
                                  f"date format {FORMATS.date_format_re}, "
                                  f"nor datetime format: {FORMATS.datetime_format_re}")
             match_dict = match.groupdict()
-            if (year := match_dict.get('year')) is not None:
-                if len(year) == 4:
-                    replace['year'] = int(year)
-                else:
-                    replace['year'] = int(year) + 2000  # fuck last century
-            if (month := match_dict.get('month')) is not None:
-                replace['month'] = int(month)
-            if (day := match_dict.get('day')) is not None:
-                replace['day'] = int(day)
-            if (hour := match_dict.get('hour')) is not None:
-                replace['hour'] = int(hour)
-            if (minute := match_dict.get('minute')) is not None:
-                replace['minute'] = int(minute)
-            if (second := match_dict.get('second')) is not None:
-                replace['second'] = int(second)
+            for time_unit in self._ATTRS:
+                if time_unit in match_dict and (time_value := match_dict[time_unit]):
+                    if time_unit == 'year' and len(time_value) == 2:
+                        time_value = '20' + time_value
+                    replace[time_unit] = int(time_value)
         
-        else: # time or datetime
-            for name in self._ATTRS:
-                if name != 'microsecond' and (attr := getattr(time, name, None)) is not None:
-                    replace[name] = attr
+        else: # time, datetime or Arrow
+            for time_unit in self._ATTRS:
+                assert time_unit != 'microsecond'    # overriden _ATTRS but is Final so maybe doesn't work
+                if (attr := getattr(time, time_unit, None)) is not None:
+                    if time_unit == 'year':
+                        assert attr >= 2000
+                    replace[time_unit] = attr
         
         rv = self.replace(**replace)
         return rv
@@ -407,23 +404,50 @@ class XArrow(Arrow):
     __le__ = dehumanize_other_if_str(Arrow.__le__)
 
 class XDate(XArrow):
+    _ATTRS = ["year",
+              "month",
+              "day"]
+    _ATTRS_PLURAL = ["years","months","days"]
     def __init__(self,
                  year: int,
                  month: int,
                  day: int,
+                 hour: int,
+                 minute: int,
+                 second: int,
+                 microsecond: int = 0,
                  tzinfo: Optional[TZ_EXPR] = None,
                  **kwargs: Any) -> None:
-        super().__init__(year=year, month=month, day=day, tzinfo=tzinfo, **kwargs)
+        super().__init__(year=year, month=month, day=day,
+                         hour=0, minute=0, second=0, microsecond=0,
+                         tzinfo=tzinfo, **kwargs)
+
+    @classmethod
+    def from_absolute(cls, time: Union[str, dt_time, _T]) -> _T:
+        now = cls.now()
+        updated = now.update(time)
+        return updated
+        # return super().from_absolute(time)
 
 
 class XTime(XArrow):
+    _ATTRS = ["hour",
+              "minute",
+              "second"]
+    _ATTRS_PLURAL = ["hours", "minutes", "seconds"]
     def __init__(self,
-                 hour: int = 0,
-                 minute: int = 0,
-                 second: int = 0,
+                 year: int,
+                 month: int,
+                 day: int,
+                 hour: int,
+                 minute: int,
+                 second: int,
+                 microsecond: int = 0,
                  tzinfo: Optional[TZ_EXPR] = None,
                  **kwargs: Any) -> None:
-        super().__init__(year=0, month=0, day=0, hour=hour, minute=minute, second=second, microsecond=0, tzinfo=tzinfo, **kwargs)
+        super().__init__(year=0, month=0, day=0,
+                         hour=hour, minute=minute, second=second, microsecond=0,
+                         tzinfo=tzinfo, **kwargs)
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]

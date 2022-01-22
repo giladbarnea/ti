@@ -123,7 +123,7 @@ class AttrDictSpace(DictSpace[ATTR_DICT_SPACE_K, ATTR_DICT_SPACE_V]):
             value = super().__getitem__(name)
         except KeyError as keyerr:
             value = super().__getattribute__(name)
-            breakpoint()
+            # breakpoint()
         
         # this can be commented out and tests still pass
         # setattr(self, name, value)

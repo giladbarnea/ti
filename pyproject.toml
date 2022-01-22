@@ -8,21 +8,21 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 toml = "^0.10"
-arrow = "^1.1.0"
+arrow = { git = "https://github.com/giladbarnea/arrow.git", develop = true }
 # pytz = "^2021.1"
 PyYAML = "^5.4.1"
 multimethod = { git = "https://github.com/giladbarnea/multimethod.git", branch = "main" }
+rich = { version = "latest" }
 # pydantic = {url = "https://files.pythonhosted.org/packages/ff/74/54e030641601112309f6d2af620774e9080f99c7a15742fc6a0b170c4076/pydantic-1.8.2-py3-none-any.whl"}
 # screeninfo = "^0.7"
 
 [tool.poetry.dev-dependencies]
-ipython-autoimport = "^0.3"
 pytest-lineno = {git = "https://github.com/harupy/pytest-lineno.git", develop = true}
 icecream = "^2.1.1"
 IPython = { path = "../ipython/", develop = true }
 pdbpp = { path = "../pdbpp/", develop = true }
 pytest = { version = "latest", optional = true }
-rich = { git = "https://github.com/Textualize/rich.git", develop = true }
+
 # loguru = { version = "^0.5.3", optional = true }
 
 [tool.poetry.build]
