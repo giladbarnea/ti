@@ -141,6 +141,51 @@ class XArrow(Arrow):
             shift = diff * -1
         return now.shift(days=shift)
 
+    @classmethod
+    def from_absolute(cls, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
+        """
+        >>> XArrow.from_absolute('09:45')
+        <XArrow ...>
+        """
+        # if `time` specifies second, it would get updated
+        # otherwise expected behavior is like constructing datetime.time(23, 59) (second == 0)
+        now = cls.now().replace(second=0)
+        
+        updated = now.update(time)
+        return updated
+    
+    # noinspection PyMethodOverriding,PyMethodParameters
+    @overload
+    def dehumanize(input_string: str, locale: str = "local") -> "XArrow": ...
+    @overload
+    def dehumanize(self: "XArrow", input_string: str, locale: str = "local") -> "XArrow": ...
+    # noinspection PyMethodParameters
+    def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> "XArrow":
+        if isinstance(self_or_input_string, str):
+            called_static = True
+            input_string = self_or_input_string
+        else:
+            called_static = False
+            input_string = input_string_or_locale
+
+        input_string_lowercase = input_string.lower()
+        if input_string_lowercase in ('now', 'today', 'just now', 'right now'):
+            return XArrow.now()
+        
+        if input_string_lowercase == 'yesterday':
+            return XArrow.now().shift(days=-1)
+        
+        if input_string_lowercase == 'tomorrow':
+            return XArrow.now().shift(days=1)
+        
+        if called_static:
+            self: XArrow = XArrow.now()
+        else:
+            self: XArrow = self_or_input_string
+        
+        rv = self._dehumanize_relative(input_string)
+        return rv
+
     def _dehumanize_relative(self, input_string: Union[str, dt_time, "XArrow"]) -> "XArrow":
         """
         >>> XArrow._dehumanize_relative('3m ago')
@@ -194,52 +239,6 @@ class XArrow(Arrow):
                 shift_kwargs.update({time_unit_3_plural: quantity_3})
         parsed = self.shift(**shift_kwargs)
         return parsed
-
-    @classmethod
-    def from_absolute(cls, time: Union[str, dt_time, "XArrow"]) -> "XArrow":
-        """
-        >>> XArrow.from_absolute('09:45')
-        <XArrow ...>
-        """
-        # if `time` specifies second, it would get updated
-        # otherwise expected behavior is like constructing datetime.time(23, 59) (second==0)
-        now = cls.now().replace(second=0)
-        
-        updated = now.update(time)
-        return updated
-    
-    # noinspection PyMethodOverriding,PyMethodParameters
-    @overload
-    def dehumanize(input_string: str, locale: str = "local") -> "XArrow": ...
-    @overload
-    def dehumanize(self: "XArrow", input_string: str, locale: str = "local") -> "XArrow": ...
-    # noinspection PyMethodParameters
-    def dehumanize(self_or_input_string, input_string_or_locale: str = None, locale: str = "local") -> "XArrow":
-        if isinstance(self_or_input_string, str):
-            called_static = True
-            input_string = self_or_input_string
-        else:
-            called_static = False
-            input_string = input_string_or_locale
-
-        input_string_lowercase = input_string.lower()
-        if input_string_lowercase in ('now', 'today', 'just now', 'right now'):
-            return XArrow.now()
-        
-        if input_string_lowercase == 'yesterday':
-            return XArrow.now().shift(days=-1)
-        
-        if input_string_lowercase == 'tomorrow':
-            return XArrow.now().shift(days=1)
-        
-        if called_static:
-            self: XArrow = XArrow.now()
-        else:
-            self: XArrow = self_or_input_string
-        
-        rv = self._dehumanize_relative(input_string)
-        return rv
-
     # noinspection PyMethodParameters,PyOverloads
     @overload
     def from_human(human_time: Union[str, dt_time] = "now") -> "XArrow": ...
@@ -406,6 +405,25 @@ class XArrow(Arrow):
     __ge__ = dehumanize_other_if_str(Arrow.__ge__)
     __lt__ = dehumanize_other_if_str(Arrow.__lt__)
     __le__ = dehumanize_other_if_str(Arrow.__le__)
+
+class XDate(XArrow):
+    def __init__(self,
+                 year: int,
+                 month: int,
+                 day: int,
+                 tzinfo: Optional[TZ_EXPR] = None,
+                 **kwargs: Any) -> None:
+        super().__init__(year=year, month=month, day=day, tzinfo=tzinfo, **kwargs)
+
+
+class XTime(XArrow):
+    def __init__(self,
+                 hour: int = 0,
+                 minute: int = 0,
+                 second: int = 0,
+                 tzinfo: Optional[TZ_EXPR] = None,
+                 **kwargs: Any) -> None:
+        super().__init__(year=0, month=0, day=0, hour=hour, minute=minute, second=second, microsecond=0, tzinfo=tzinfo, **kwargs)
 
 class XArrowFactory(ArrowFactory):
     type: Type[XArrow]
