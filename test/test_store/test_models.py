@@ -84,12 +84,17 @@ class TestEntry:
 class TestDay:
     @pytest.mark.skip("not yet implemented")
     def test_new_structure(self):
-        day = dict(start="10:00",
-                   end="19:00",
-                   Performance=dict(jira="ASM",
-                                    sessions=[dict(start="10:10",
-                                                   end="18:50",
-                                                   synced=True)]))
+        day = dict(start='10:00',
+                   end='19:00',
+                   Performance={
+                       'jira':     'ASM',
+                       '0': dict(start="10:10",
+                                 end="14:50",
+                                 synced=True),
+                       '1': dict(start="15:00",
+                                 end="19:00",
+                                 synced=True)
+                       })
         work = {"24/12/21": day}
         toml_str = toml.dumps(work)
         print(toml_str)
