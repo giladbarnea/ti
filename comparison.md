@@ -16,7 +16,7 @@ That's true.
 
 All the tools I've used feel like they manage _me_ in some sense. I need to report to _them_, and do things in a such a way that their logs make sense at the end of the day.
 
-`dont-ask-me` is built with the assumption that you can do whatever you want, as long as you get the job done.
+`timefred` is built with the assumption that you can do whatever you want, as long as you get the job done.
 
 Remembering to announce the moment you start or stop working, or needing to edit entries, is just another form of work.
 
@@ -25,8 +25,9 @@ It decorates terminal actions of your choice, displays a high-resolution aggrega
 
 # Comparison with existing tools
 | Tool                         | Jira integration | Doesn't need you | Flexible reports | Past / Future tense support | Zsh integration | Notes         |
-|------------------------------|------------------|------------------|------------------|-----------------------------|-----------------|---------------|
-| `timefred`                  | V                | V                | V                | V                           | V               |               |
+| ---------------------------- | ---------------- | ---------------- | ---------------- | --------------------------- | --------------- | ------------- |
+| `timefred`                   | V                | V                | V                | V                           | V               |               |
+| [`dob`][dob]                 | ?                | ?                | ?                | ?                           | ?               |               |
 | [`did`][did]                 | X                | X                | V                |                             | X               |               |
 | [`i-did`][i-did]             | X                | X                | X                |                             | X               |               |
 | [`yatta`][yatta]             | X                | X                | X                |                             | V               |               |
@@ -40,8 +41,8 @@ It decorates terminal actions of your choice, displays a high-resolution aggrega
 | [`jtime`][jtime]             | V                | X                |                  |                             |                 |               |
 
 
-# What `dont-ask-me` is not
-`dont-ask-me` is not a task manager, nor a stopwatch wrapper.
+# What `timefred` is not
+`timefred` is not a task manager, nor a stopwatch wrapper.
 
 In other words, it doesn't require defining a specific Jira or repo, and it doesn't have a "start" / "stop" functions.
 
@@ -52,16 +53,16 @@ Tools with different goals.
 [`project-hamster`](https://github.com/projecthamster)
 [`termdown`](https://github.com/trehn/termdown)
 [`timetrack`](https://www.flathub.org/apps/details/net.danigm.timetrack)
-[`timestrap`](https://github.com/samg/timetrap)
+[`timetrap`](https://github.com/samg/timetrap)
 [`timewarrior`](https://timewarrior.net/) - Timer
 [`Watson`](https://github.com/TailorDev/Watson) - Timer
-[`Wakatime`](https://wakatime.com)
+[`Wakatime`](https://wakatime.com) - Passive IDE Plugin for code stats, many integrations (BB, GH etc)
 [`worklog`](https://dcs-worklog.readthedocs.io/en/latest/index.html) - Timer
 [`worklogmd`](https://pypi.org/project/worklogmd/) - Only prints, no adding entries
 [`t`](https://stevelosh.com/projects/t/) - Task manager
 [`timed`](http://adeel.github.io/timed/) - Timer
 [`tt-cli`](https://pypi.org/project/tt-cli/) - Just sums up "add"
-[`mttt`](https://pypi.org/project/mttt/) - Timer and task manager
+[`mttt`](https://pypi.org/project/mttt/) - Timer and task manager, Python2 only
 [`spendtime`](https://pypi.org/project/spendtime/) - Timer
 [`salary-timetracker`](https://pypi.org/project/salary-timetracker/) - Salary calculator
 [`time-tracker-plus`](https://pypi.org/project/time-tracker-plus/) - Mostly reporting
@@ -69,6 +70,7 @@ Tools with different goals.
 [`timetracker-cli`](https://pypi.org/project/timetracker-cli/) - For Bairesdev TimeTracker
 
 [did]: (https://pypi.org/project/did/)
+[dob]: (https://pypi.org/project/dob/)
 [hamster-cli]: (https://github.com/rhroberts/hamster-cli)
 [i-did]: (https://pypi.org/project/i-did)
 [ti]: (https://github.com/richmeta/ti)
