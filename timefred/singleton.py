@@ -13,3 +13,8 @@ class Singleton:
         if hasattr(self.__class__, '_inst'):
             return
         setattr(self.__class__, '_inst', self)
+    
+    def __copy__(self):
+        return self
+    def __deepcopy__(self):
+        return self
